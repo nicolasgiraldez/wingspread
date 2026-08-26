@@ -155,6 +155,7 @@ export type RoundGoal = {
 
 export type PlayerState = {
   id: PlayerId;
+  name: string;
   hand: CardId[];
   bonusCards: BonusCard[];
   resources: Partial<Record<ResourceFace, number>>;
@@ -211,6 +212,7 @@ export type GameState = {
   firstPlayerId: PlayerId;
   players: Record<PlayerId, PlayerState>;
   playerOrder: PlayerId[];
+  customPlayerNames?: Record<PlayerId, string>;
   deck: CardId[];
   discard: CardId[];
   market: CardId[];
@@ -258,6 +260,7 @@ export type Move =
 
 export type NetworkMessage =
   | { type: "SYNC_STATE"; state: GameState; roomCode?: string }
+  | { type: "GUEST_JOIN"; guestName: string }
   | { type: "APPLY_MOVE"; move: Move; playerId: PlayerId }
   | { type: "RESTART_GAME" }
   | { type: "PING" };

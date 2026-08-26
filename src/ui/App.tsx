@@ -4,11 +4,9 @@ import {
   Bot,
   Feather,
   Globe,
-  Layers,
   RefreshCw,
   Sparkles,
   Trophy,
-  Users,
 } from "lucide-react";
 import {
   applyMove,
@@ -18,7 +16,6 @@ import {
 } from "../game";
 import type {
   AutomaDifficulty,
-  GameMode,
   GameState,
   HabitatId,
   Move,
@@ -33,15 +30,11 @@ import { BirdFeeder } from "./components/BirdFeeder";
 import { BirdMarket } from "./components/BirdMarket";
 import { ConnectionStatusBar } from "./components/ConnectionStatusBar";
 import { GameOverModal } from "./components/GameOverModal";
-import { OnlineLobbyModal } from "./components/OnlineLobbyModal";
+import { HomePage, HomePageConfig } from "./components/HomePage";
 import { PlayBirdModal } from "./components/PlayBirdModal";
 import { PlayerBoard } from "./components/PlayerBoard";
 import { RoundGoalsMat } from "./components/RoundGoalsMat";
 import {
-  actionLabels,
-  difficultyLabels,
-  habitatLabels,
-  playerNames,
   resourceIcons,
   resourceLabels,
 } from "./labels";
@@ -50,16 +43,19 @@ import {
   networkManager,
 } from "./network/peerManager";
 
+// Helper: get display name from game state
+function getDisplayName(state: GameState, playerId: PlayerId): string {
+  return state.players[playerId]?.name || playerId;
+}
+
 export const App: React.FC = () => {
-  const [gameState, setGameState] = useState<GameState>(() =>
-    createInitialState({ mode: "solo", automaDifficulty: "normal" }),
-  );
+  // null = show homepage
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [localPlayerId, setLocalPlayerId] = useState<PlayerId>("nico");
   const [roomCode, setRoomCode] = useState<string>("");
   const [isHost, setIsHost] = useState<boolean>(true);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
   const [connectionMessage, setConnectionMessage] = useState<string>("");
-  const [showLobbyModal, setShowLobbyModal] = useState<boolean>(false);
   const [urlJoinCode, setUrlJoinCode] = useState<string>("");
 
   const [selectedCardForPlay, setSelectedCardForPlay] = useState<SpeciesCard | null>(null);
@@ -67,95 +63,146 @@ export const App: React.FC = () => {
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<PlayerId>("nico");
 
-  const gameStateRef = useRef(gameState);
+  const gameStateRef = useRef<GameState | null>(null);
   gameStateRef.current = gameState;
 
-  // Check URL parameters for ?room=code on initial mount
+  // Check URL for ?room= on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const roomParam = params.get("room") || params.get("join");
     if (roomParam) {
-      const code = roomParam.trim().toLowerCase();
-      setUrlJoinCode(code);
-      handleJoinOnlineRoom(code);
+      setUrlJoinCode(roomParam.trim().toLowerCase());
     }
   }, []);
 
-  const handleStartSolo = (difficulty: AutomaDifficulty) => {
+  // ── Handle HomePage submission ────────────────────────────────────────────
+  const handleHomeStart = (config: HomePageConfig) => {
     networkManager.cleanup();
-    const nextState = createInitialState({ mode: "solo", automaDifficulty: difficulty });
-    setGameState(nextState);
-    setLocalPlayerId("nico");
-    setActiveTab("nico");
-    setIsHost(true);
-    setRoomCode("");
-    setConnectionStatus("disconnected");
     setSelectedCardForPlay(null);
-    setShowLobbyModal(false);
-  };
 
-  const handleCreateOnlineRoom = (code: string) => {
-    const nextState = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
-    setGameState(nextState);
-    setRoomCode(code);
-    setIsHost(true);
-    setLocalPlayerId("nico");
-    setActiveTab("nico");
-    setSelectedCardForPlay(null);
-    setShowLobbyModal(false);
+    if (config.mode === "solo") {
+      const customNames: Record<string, string> = {
+        nico: config.playerName,
+        automa: "Automa (IA)",
+      };
+      const state = createInitialState({
+        mode: "solo",
+        automaDifficulty: config.automaDifficulty ?? "normal",
+        playerIds: ["nico", "automa"],
+        customPlayerNames: customNames,
+      });
+      setGameState(state);
+      setLocalPlayerId("nico");
+      setActiveTab("nico");
+      setIsHost(true);
+      setRoomCode("");
+      setConnectionStatus("disconnected");
 
-    networkManager.initHost(code, {
-      onStatusChange: (status, message) => {
-        setConnectionStatus(status);
-        if (message) setConnectionMessage(message);
-        if (status === "connected") {
-          // Send current state to newly connected guest
-          networkManager.sendMessage({
-            type: "SYNC_STATE",
-            state: gameStateRef.current,
-            roomCode: code,
-          });
-        }
-      },
-      onMessage: (msg: NetworkMessage) => {
-        if (msg.type === "APPLY_MOVE") {
-          const currentState = gameStateRef.current;
-          if (isLegalMove(currentState, msg.playerId, msg.move)) {
-            const next = applyMove(currentState, msg.playerId, msg.move);
-            setGameState(next);
-            networkManager.sendMessage({
-              type: "SYNC_STATE",
-              state: next,
-              roomCode: code,
+    } else if (config.mode === "online-host") {
+      const code = config.roomCode!;
+      const customNames: Record<string, string> = {
+        nico: config.playerName,
+        santi: config.opponentName || "Invitado",
+      };
+      const state = createInitialState({
+        mode: "online",
+        playerIds: ["nico", "santi"],
+        customPlayerNames: customNames,
+      });
+      setGameState(state);
+      setLocalPlayerId("nico");
+      setActiveTab("nico");
+      setIsHost(true);
+      setRoomCode(code);
+      setConnectionStatus("connecting");
+
+      networkManager.initHost(code, {
+        onStatusChange: (status, message) => {
+          setConnectionStatus(status);
+          if (message) setConnectionMessage(message);
+          if (status === "connected") {
+            const cur = gameStateRef.current;
+            if (cur) networkManager.sendMessage({ type: "SYNC_STATE", state: cur, roomCode: code });
+          }
+        },
+        onMessage: (msg: NetworkMessage) => {
+          if (msg.type === "GUEST_JOIN") {
+            // Update guest's display name if provided
+            setGameState((prev) => {
+              if (!prev) return prev;
+              const updated = {
+                ...prev,
+                players: {
+                  ...prev.players,
+                  santi: { ...prev.players.santi, name: msg.guestName || prev.players.santi.name },
+                },
+              };
+              networkManager.sendMessage({ type: "SYNC_STATE", state: updated, roomCode: code });
+              return updated;
             });
           }
-        }
-      },
-    });
+          if (msg.type === "APPLY_MOVE") {
+            const cur = gameStateRef.current;
+            if (!cur) return;
+            if (isLegalMove(cur, msg.playerId, msg.move)) {
+              const next = applyMove(cur, msg.playerId, msg.move);
+              setGameState(next);
+              networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode: code });
+            }
+          }
+        },
+      });
+
+    } else if (config.mode === "online-join") {
+      const code = config.roomCode!;
+      setLocalPlayerId("santi");
+      setActiveTab("santi");
+      setIsHost(false);
+      setRoomCode(code);
+      setConnectionStatus("connecting");
+
+      networkManager.initGuest(code, {
+        onStatusChange: (status, message) => {
+          setConnectionStatus(status);
+          if (message) setConnectionMessage(message);
+          if (status === "connected") {
+            // Tell host our name
+            networkManager.sendMessage({ type: "GUEST_JOIN", guestName: config.playerName });
+          }
+        },
+        onMessage: (msg: NetworkMessage) => {
+          if (msg.type === "SYNC_STATE") {
+            // Patch our local name in the state we receive
+            setGameState((prev) => {
+              const next = msg.state;
+              // Keep our entered name in santi slot
+              return {
+                ...next,
+                players: {
+                  ...next.players,
+                  santi: { ...next.players.santi, name: config.playerName },
+                },
+              };
+            });
+          }
+        },
+      });
+    }
   };
 
-  const handleJoinOnlineRoom = (code: string) => {
-    setRoomCode(code);
-    setIsHost(false);
-    setLocalPlayerId("santi");
-    setActiveTab("santi");
+  // ── Return to homepage ────────────────────────────────────────────────────
+  const handleGoHome = () => {
+    networkManager.cleanup();
+    setGameState(null);
+    setConnectionStatus("disconnected");
+    setConnectionMessage("");
+    setRoomCode("");
     setSelectedCardForPlay(null);
-    setShowLobbyModal(false);
-
-    networkManager.initGuest(code, {
-      onStatusChange: (status, message) => {
-        setConnectionStatus(status);
-        if (message) setConnectionMessage(message);
-      },
-      onMessage: (msg: NetworkMessage) => {
-        if (msg.type === "SYNC_STATE") {
-          setGameState(msg.state);
-        }
-      },
-    });
   };
 
+  // ── Game moves ────────────────────────────────────────────────────────────
   const executeLocalMove = (move: Move) => {
+    if (!gameState) return;
     if (gameState.currentPlayerId !== localPlayerId) return;
 
     if (gameState.gameMode === "solo") {
@@ -167,68 +214,50 @@ export const App: React.FC = () => {
         if (isLegalMove(gameState, localPlayerId, move)) {
           const next = applyMove(gameState, localPlayerId, move);
           setGameState(next);
-          networkManager.sendMessage({
-            type: "SYNC_STATE",
-            state: next,
-            roomCode,
-          });
+          networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode });
         }
       } else {
-        // Guest sends move to Host
-        networkManager.sendMessage({
-          type: "APPLY_MOVE",
-          move,
-          playerId: localPlayerId,
-        });
+        networkManager.sendMessage({ type: "APPLY_MOVE", move, playerId: localPlayerId });
       }
     }
   };
 
-  const handleGainFood = (dieIndex: number) => {
-    executeLocalMove({
-      type: "gainFood",
-      dieIndexes: [dieIndex],
-    });
-  };
+  const handleGainFood = (dieIndex: number) =>
+    executeLocalMove({ type: "gainFood", dieIndexes: [dieIndex] });
 
-  const handleRerollFeeder = () => {
+  const handleRerollFeeder = () =>
     executeLocalMove({ type: "rerollFeeder" });
-  };
 
-  const handleDrawFromDeck = () => {
-    executeLocalMove({
-      type: "drawBirdCards",
-      draws: [{ source: "deck" }],
-    });
-  };
+  const handleDrawFromDeck = () =>
+    executeLocalMove({ type: "drawBirdCards", draws: [{ source: "deck" }] });
 
-  const handleDrawFromMarket = (cardId: string) => {
-    executeLocalMove({
-      type: "drawBirdCards",
-      draws: [{ source: "market", marketCardId: cardId }],
-    });
-  };
+  const handleDrawFromMarket = (cardId: string) =>
+    executeLocalMove({ type: "drawBirdCards", draws: [{ source: "market", marketCardId: cardId }] });
 
-  const handleLayEggOnSlot = (habitat: HabitatId, slotIndex: number) => {
-    executeLocalMove({
-      type: "layEggs",
-      eggPlacements: [{ habitat, slotIndex }],
-    });
-  };
+  const handleLayEggOnSlot = (habitat: HabitatId, slotIndex: number) =>
+    executeLocalMove({ type: "layEggs", eggPlacements: [{ habitat, slotIndex }] });
 
   const handleConfirmPlayBird = (move: Extract<Move, { type: "playBird" }>) => {
     executeLocalMove(move);
     setSelectedCardForPlay(null);
   };
 
+  // ── Show HomePage ─────────────────────────────────────────────────────────
+  if (!gameState) {
+    return <HomePage onStart={handleHomeStart} defaultJoinCode={urlJoinCode} />;
+  }
+
   const currentPlayer = gameState.players[gameState.currentPlayerId];
   const viewedPlayer = gameState.players[activeTab];
   const isMyTurn = gameState.currentPlayerId === localPlayerId;
-  const isControlsActive = isMyTurn && (currentPlayer?.actionCubesAvailable ?? 0) > 0 && gameState.phase === "round";
+  const isControlsActive =
+    isMyTurn &&
+    (currentPlayer?.actionCubesAvailable ?? 0) > 0 &&
+    gameState.phase === "round";
 
   return (
     <div className="app-shell">
-      {/* Side Navigation & Player Status Panel */}
+      {/* ── Side Panel ───────────────────────────────────────────────────── */}
       <aside className="side-panel">
         <div className="brand">
           <div className="brand-icon">
@@ -237,17 +266,19 @@ export const App: React.FC = () => {
           <div>
             <h1>Wingspread</h1>
             <p>
-              {gameState.gameMode === "solo" ? "Modo Solitario (vs Automa)" : "Multijugador Online (P2P)"}
+              {gameState.gameMode === "solo"
+                ? "Modo Solitario (vs Automa)"
+                : "Multijugador Online (P2P)"}
             </p>
           </div>
         </div>
 
-        {/* Active Turn Card */}
+        {/* Active Turn */}
         <div className={`status-card ${isMyTurn ? "active-turn" : ""}`}>
           <h4>Turno Actual</h4>
           <div className="player-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {currentPlayer?.isAutoma ? <Bot size={20} /> : null}
-            {playerNames[gameState.currentPlayerId]}
+            {getDisplayName(gameState, gameState.currentPlayerId)}
             {gameState.currentPlayerId === localPlayerId && (
               <span style={{ fontSize: "0.75rem", color: "#235c3a", fontWeight: 700 }}>(Tú)</span>
             )}
@@ -266,11 +297,12 @@ export const App: React.FC = () => {
             </div>
           </div>
           <div style={{ fontSize: "0.8rem", color: "#556", marginTop: 2 }}>
-            Ronda <strong>{gameState.round}</strong> de 4 {gameState.phase === "gameEnd" ? "(Terminada)" : ""}
+            Ronda <strong>{gameState.round}</strong> de 4{" "}
+            {gameState.phase === "gameEnd" ? "(Terminada)" : ""}
           </div>
         </div>
 
-        {/* Live Scoreboard */}
+        {/* Scoreboard */}
         <div className="status-card">
           <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <Trophy size={14} color="#9c6c16" /> Puntuación en Vivo
@@ -289,8 +321,10 @@ export const App: React.FC = () => {
                 }}
               >
                 <span>
-                  <strong>{playerNames[pId]}</strong>
-                  {pId === localPlayerId && <small style={{ color: "#235c3a" }}> (Tú)</small>}
+                  <strong>{getDisplayName(gameState, pId)}</strong>
+                  {pId === localPlayerId && (
+                    <small style={{ color: "#235c3a" }}> (Tú)</small>
+                  )}
                   {gameState.firstPlayerId === pId && (
                     <span style={{ fontSize: "0.7rem", color: "#235c3a", marginLeft: 4 }}>
                       (1er jugador)
@@ -303,11 +337,9 @@ export const App: React.FC = () => {
           })}
         </div>
 
-        {/* Player View Tabs */}
+        {/* View tabs */}
         <div>
-          <h4 style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "#667" }}>
-            VER VISTA DE:
-          </h4>
+          <h4 style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "#667" }}>VER VISTA DE:</h4>
           <div style={{ display: "flex", gap: 8 }}>
             {gameState.playerOrder.map((pId) => (
               <button
@@ -318,23 +350,29 @@ export const App: React.FC = () => {
                   backgroundColor: activeTab === pId ? "#235c3a" : "#eef2ed",
                   color: activeTab === pId ? "#ffffff" : "#334",
                   justifyContent: "center",
-                  fontSize: "0.85rem",
+                  fontSize: "0.8rem",
                 }}
               >
-                {gameState.players[pId]?.isAutoma ? "Automa" : pId === localPlayerId ? `${playerNames[pId]} (Tú)` : playerNames[pId]}
+                {gameState.players[pId]?.isAutoma
+                  ? "Automa"
+                  : pId === localPlayerId
+                  ? `${getDisplayName(gameState, pId)} (Tú)`
+                  : getDisplayName(gameState, pId)}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Resources for activeTab player (if not Automa) */}
+        {/* Resources */}
         {viewedPlayer && !viewedPlayer.isAutoma && (
           <div className="status-card">
-            <h4>Recursos de {playerNames[viewedPlayer.id]}</h4>
+            <h4>Recursos de {getDisplayName(gameState, viewedPlayer.id)}</h4>
             <div className="resources-grid">
               {Object.entries(viewedPlayer.resources ?? {}).map(([res, count]) => (
                 <div key={res} className="resource-badge">
-                  <span>{resourceIcons[res as ResourceFace]} {resourceLabels[res as ResourceFace]}</span>
+                  <span>
+                    {resourceIcons[res as ResourceFace]} {resourceLabels[res as ResourceFace]}
+                  </span>
                   <strong>{count ?? 0}</strong>
                 </div>
               ))}
@@ -342,15 +380,25 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Bonus Cards for activeTab player (if not Automa) */}
+        {/* Bonus cards */}
         {viewedPlayer && !viewedPlayer.isAutoma && (
           <div className="status-card">
             <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Sparkles size={14} color="#235c3a" /> Cartas de Bonificación
             </h4>
-            {viewedPlayer.bonusCards && viewedPlayer.bonusCards.length > 0 ? (
+            {viewedPlayer.bonusCards?.length > 0 ? (
               viewedPlayer.bonusCards.map((b) => (
-                <div key={b.id} style={{ fontSize: "0.8rem", background: "#ffffff", padding: "6px 8px", borderRadius: 6, border: "1px solid #d2ded0", marginTop: 4 }}>
+                <div
+                  key={b.id}
+                  style={{
+                    fontSize: "0.8rem",
+                    background: "#ffffff",
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #d2ded0",
+                    marginTop: 4,
+                  }}
+                >
                   <strong>{b.name}</strong>
                   <p style={{ margin: "2px 0 0 0", color: "#556" }}>{b.description}</p>
                 </div>
@@ -361,28 +409,32 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Game Activity Log */}
+        {/* Activity log */}
         <div className="status-card" style={{ maxHeight: 160, overflowY: "auto" }}>
           <h4>Registro de Acciones</h4>
           {gameState.log.slice(-6).map((entry, idx) => (
             <div key={idx} style={{ fontSize: "0.75rem", padding: "2px 0", color: "#445" }}>
-              {entry.playerId ? <strong>[{playerNames[entry.playerId]}]: </strong> : ""}
+              {entry.playerId ? (
+                <strong>[{getDisplayName(gameState, entry.playerId)}]: </strong>
+              ) : (
+                ""
+              )}
               {entry.message}
             </div>
           ))}
         </div>
 
         <button
-          onClick={() => setShowLobbyModal(true)}
+          onClick={handleGoHome}
           style={{ backgroundColor: "#235c3a", marginTop: "auto", justifyContent: "center" }}
         >
-          <RefreshCw size={14} /> Nueva Partida / Cambiar Modo
+          <RefreshCw size={14} /> Nueva Partida / Inicio
         </button>
       </aside>
 
-      {/* Main Game Area */}
+      {/* ── Main Table ───────────────────────────────────────────────────── */}
       <main className="main-table">
-        {/* Connection Status Bar (for Online Mode) */}
+        {/* Online connection bar */}
         {gameState.gameMode === "online" && (
           <ConnectionStatusBar
             roomCode={roomCode}
@@ -393,17 +445,26 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* Turn Notice Banner if opponent's turn in Online mode */}
+        {/* Waiting banner */}
         {gameState.gameMode === "online" && !isMyTurn && gameState.phase === "round" && (
-          <div style={{ background: "#fef3d6", border: "1px solid #ebdcb2", padding: "10px 16px", borderRadius: 8, color: "#9c6c16", fontWeight: 600, fontSize: "0.9rem" }}>
-            ⏳ Turno de {playerNames[gameState.currentPlayerId]}... Esperando su jugada en tiempo real.
+          <div
+            style={{
+              background: "#fef3d6",
+              border: "1px solid #ebdcb2",
+              padding: "10px 16px",
+              borderRadius: 8,
+              color: "#9c6c16",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+            }}
+          >
+            ⏳ Turno de {getDisplayName(gameState, gameState.currentPlayerId)}... Esperando su
+            jugada en tiempo real.
           </div>
         )}
 
-        {/* 1. Round Goals Track */}
         <RoundGoalsMat gameState={gameState} />
 
-        {/* 2. Automa Panel (if Solo mode) */}
         {gameState.gameMode === "solo" && gameState.automaState && gameState.players.automa && (
           <AutomaPanel
             automaState={gameState.automaState}
@@ -412,7 +473,6 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* 3. Birdfeeder Tray */}
         <BirdFeeder
           feeder={gameState.feeder}
           onTakeDie={handleGainFood}
@@ -420,7 +480,6 @@ export const App: React.FC = () => {
           disabled={!isControlsActive}
         />
 
-        {/* 4. Bird Market */}
         <BirdMarket
           marketCardIds={gameState.market}
           cardsCatalog={gameState.cards}
@@ -430,7 +489,6 @@ export const App: React.FC = () => {
           disabled={!isControlsActive}
         />
 
-        {/* 5. Player Habitat Board */}
         {viewedPlayer && !viewedPlayer.isAutoma && (
           <PlayerBoard
             player={viewedPlayer}
@@ -446,14 +504,29 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* 6. Player Hand (only shown for local player) */}
+        {/* Hand */}
         {gameState.players[localPlayerId] && (
-          <section style={{ background: "#ffffff", padding: 18, borderRadius: 16, border: "1px solid #d2ded0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <section
+            style={{
+              background: "#ffffff",
+              padding: 18,
+              borderRadius: 16,
+              border: "1px solid #d2ded0",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 14,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Feather size={20} color="#235c3a" />
                 <h3 style={{ margin: 0, fontSize: "1.15rem" }}>
-                  Tu Mano ({gameState.players[localPlayerId].hand.length} carta{gameState.players[localPlayerId].hand.length !== 1 ? "s" : ""})
+                  Tu Mano ({gameState.players[localPlayerId].hand.length} carta
+                  {gameState.players[localPlayerId].hand.length !== 1 ? "s" : ""})
                 </h3>
               </div>
               <span style={{ fontSize: "0.8rem", color: "#667" }}>
@@ -462,11 +535,16 @@ export const App: React.FC = () => {
             </div>
 
             {gameState.players[localPlayerId].hand.length > 0 ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 12 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
+                  gap: 12,
+                }}
+              >
                 {gameState.players[localPlayerId].hand.map((cardId) => {
                   const card = gameState.cards[cardId];
                   if (!card) return null;
-
                   return (
                     <BirdCard
                       key={cardId}
@@ -486,7 +564,7 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Play Bird Modal Dialog */}
+      {/* ── Modals ───────────────────────────────────────────────────────── */}
       {selectedCardForPlay && gameState.players[localPlayerId] && (
         <PlayBirdModal
           card={selectedCardForPlay}
@@ -497,23 +575,8 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Online Lobby Modal */}
-      {showLobbyModal && (
-        <OnlineLobbyModal
-          onStartSolo={handleStartSolo}
-          onCreateOnlineRoom={handleCreateOnlineRoom}
-          onJoinOnlineRoom={handleJoinOnlineRoom}
-          onClose={() => setShowLobbyModal(false)}
-          defaultJoinCode={urlJoinCode}
-        />
-      )}
-
-      {/* Game Over Victory Modal */}
       {gameState.phase === "gameEnd" && (
-        <GameOverModal
-          gameState={gameState}
-          onRestart={() => setShowLobbyModal(true)}
-        />
+        <GameOverModal gameState={gameState} onRestart={handleGoHome} />
       )}
     </div>
   );

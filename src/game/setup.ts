@@ -84,6 +84,7 @@ export interface CreateGameOptions {
   mode?: GameMode;
   automaDifficulty?: AutomaDifficulty;
   playerIds?: PlayerId[];
+  customPlayerNames?: Record<PlayerId, string>;
 }
 
 export function createInitialState(
@@ -92,6 +93,7 @@ export function createInitialState(
   let mode: GameMode = "solo";
   let automaDifficulty: AutomaDifficulty = "normal";
   let playerIds: PlayerId[] = ["nico", "automa"];
+  let customNames: Record<PlayerId, string> = {};
 
   if (Array.isArray(optionsOrPlayerIds)) {
     playerIds = optionsOrPlayerIds;
@@ -100,11 +102,18 @@ export function createInitialState(
     mode = optionsOrPlayerIds.mode ?? "solo";
     automaDifficulty = optionsOrPlayerIds.automaDifficulty ?? "normal";
     playerIds = optionsOrPlayerIds.playerIds ?? (mode === "solo" ? ["nico", "automa"] : ["nico", "santi"]);
+    customNames = optionsOrPlayerIds.customPlayerNames ?? {};
   }
 
   if (playerIds.length < 2) {
     throw new Error("Wingspread requiere al menos 2 jugadores.");
   }
+
+  const defaultNames: Record<string, string> = {
+    nico: "Nico",
+    santi: "Santi",
+    automa: "Automa (IA)",
+  };
 
   const deck = shuffle(Object.keys(speciesCards));
   const bonusDeck = shuffle(Object.keys(bonusCardsCatalog));
@@ -115,7 +124,8 @@ export function createInitialState(
       const hand = isAutoma ? [] : deck.splice(0, 2);
       const bonusIds = isAutoma ? [] : bonusDeck.splice(0, 1);
       const bonusCards = bonusIds.map((bId) => bonusCardsCatalog[bId]);
-      return [id, createPlayer(id, hand, bonusCards, isAutoma)];
+      const name = customNames[id] || defaultNames[id] || id;
+      return [id, createPlayer(id, name, hand, bonusCards, isAutoma)];
     }),
   );
 
@@ -141,6 +151,7 @@ export function createInitialState(
     firstPlayerId: playerIds[0],
     players,
     playerOrder: playerIds,
+    customPlayerNames: customNames,
     deck,
     discard: [],
     market: deck.splice(0, 3),
@@ -160,12 +171,14 @@ export function createInitialState(
 
 function createPlayer(
   id: PlayerId,
+  name: string,
   hand: string[],
   bonusCards = [] as PlayerState["bonusCards"],
   isAutoma = false,
 ): PlayerState {
   return {
     id,
+    name,
     hand,
     bonusCards,
     resources: isAutoma ? {} : { seed: 1, fruit: 1, insect: 1 },
