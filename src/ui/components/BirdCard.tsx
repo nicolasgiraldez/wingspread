@@ -2,6 +2,7 @@ import React from "react";
 import { Egg, Feather, Layers, Sparkles } from "lucide-react";
 import type { ResourceFace, SpeciesCard } from "../../game";
 import {
+  habitatIcons,
   habitatLabels,
   nestIcons,
   nestLabels,
@@ -43,7 +44,49 @@ export const BirdCard: React.FC<BirdCardProps> = ({
     >
       {/* Top Bar: Habitats & Points & Nest & Wingspan */}
       <div className="card-top-bar">
-        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+        {/* Habitats with Icons */}
+        <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+          {card.habitats.map((hab) => (
+            <span
+              key={hab}
+              title={`Hábitat: ${habitatLabels[hab]}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 2,
+                fontSize: "0.75rem",
+                padding: "2px 5px",
+                borderRadius: 4,
+                fontWeight: 700,
+                backgroundColor:
+                  hab === "forest"
+                    ? "#eaf4ed"
+                    : hab === "grassland"
+                      ? "#fbf5e6"
+                      : "#e9f3f9",
+                color:
+                  hab === "forest"
+                    ? "#235c3a"
+                    : hab === "grassland"
+                      ? "#9c6c16"
+                      : "#1d618a",
+                border: `1px solid ${
+                  hab === "forest"
+                    ? "#b8dbc0"
+                    : hab === "grassland"
+                      ? "#ebdcb2"
+                      : "#bddbf0"
+                }`,
+              }}
+            >
+              <span>{habitatIcons[hab]}</span>
+              {!compact && <span style={{ fontSize: "0.68rem" }}>{habitatLabels[hab]}</span>}
+            </span>
+          ))}
+        </div>
+
+        {/* Nest, Wingspan and Victory Points */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {card.nestType && (
             <span title={nestLabels[card.nestType] ?? card.nestType} style={{ fontSize: "0.85rem" }}>
               {nestIcons[card.nestType] ?? "🪺"}
@@ -54,9 +97,9 @@ export const BirdCard: React.FC<BirdCardProps> = ({
               {card.wingspanCm}cm
             </span>
           )}
-        </div>
-        <div className="points-badge" title="Puntos de victoria">
-          <Feather size={12} /> {card.points}
+          <div className="points-badge" title="Puntos de victoria">
+            <Feather size={12} /> {card.points}
+          </div>
         </div>
       </div>
 
@@ -68,7 +111,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
         )}
       </div>
 
-      {/* Habitats & Cost */}
+      {/* Food Cost */}
       <div className="card-cost-row">
         {Object.entries(card.cost).length > 0 ? (
           Object.entries(card.cost).map(([res, count]) => (

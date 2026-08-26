@@ -18,6 +18,12 @@ export const habitatLabels: Record<HabitatId, string> = {
   wetland: "Río",
 };
 
+export const habitatIcons: Record<HabitatId, string> = {
+  forest: "🌲",
+  grassland: "🌾",
+  wetland: "🌊",
+};
+
 export const actionLabels = {
   playBird: "Jugá un ave",
   gainFood: "Obtené alimento",
