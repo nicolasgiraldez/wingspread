@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Bird,
   Bot,
   Feather,
+  Globe,
   Layers,
   RefreshCw,
   Sparkles,
@@ -21,6 +22,7 @@ import type {
   GameState,
   HabitatId,
   Move,
+  NetworkMessage,
   PlayerId,
   ResourceFace,
   SpeciesCard,
@@ -29,7 +31,9 @@ import { AutomaPanel } from "./components/AutomaPanel";
 import { BirdCard } from "./components/BirdCard";
 import { BirdFeeder } from "./components/BirdFeeder";
 import { BirdMarket } from "./components/BirdMarket";
+import { ConnectionStatusBar } from "./components/ConnectionStatusBar";
 import { GameOverModal } from "./components/GameOverModal";
+import { OnlineLobbyModal } from "./components/OnlineLobbyModal";
 import { PlayBirdModal } from "./components/PlayBirdModal";
 import { PlayerBoard } from "./components/PlayerBoard";
 import { RoundGoalsMat } from "./components/RoundGoalsMat";
@@ -41,81 +45,186 @@ import {
   resourceIcons,
   resourceLabels,
 } from "./labels";
+import {
+  ConnectionStatus,
+  networkManager,
+} from "./network/peerManager";
 
 export const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(() =>
     createInitialState({ mode: "solo", automaDifficulty: "normal" }),
   );
+  const [localPlayerId, setLocalPlayerId] = useState<PlayerId>("nico");
+  const [roomCode, setRoomCode] = useState<string>("");
+  const [isHost, setIsHost] = useState<boolean>(true);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
+  const [connectionMessage, setConnectionMessage] = useState<string>("");
+  const [showLobbyModal, setShowLobbyModal] = useState<boolean>(false);
+  const [urlJoinCode, setUrlJoinCode] = useState<string>("");
+
   const [selectedCardForPlay, setSelectedCardForPlay] = useState<SpeciesCard | null>(null);
   const [selectedHabitat, setSelectedHabitat] = useState<HabitatId>("forest");
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<PlayerId>("nico");
-  const [showModeModal, setShowModeModal] = useState<boolean>(false);
 
-  const currentPlayer = gameState.players[gameState.currentPlayerId];
-  const viewedPlayer = gameState.players[activeTab];
-  const isCurrentTurn = activeTab === gameState.currentPlayerId && !currentPlayer?.isAutoma;
+  const gameStateRef = useRef(gameState);
+  gameStateRef.current = gameState;
+
+  // Check URL parameters for ?room=code on initial mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get("room") || params.get("join");
+    if (roomParam) {
+      const code = roomParam.trim().toLowerCase();
+      setUrlJoinCode(code);
+      handleJoinOnlineRoom(code);
+    }
+  }, []);
+
+  const handleStartSolo = (difficulty: AutomaDifficulty) => {
+    networkManager.cleanup();
+    const nextState = createInitialState({ mode: "solo", automaDifficulty: difficulty });
+    setGameState(nextState);
+    setLocalPlayerId("nico");
+    setActiveTab("nico");
+    setIsHost(true);
+    setRoomCode("");
+    setConnectionStatus("disconnected");
+    setSelectedCardForPlay(null);
+    setShowLobbyModal(false);
+  };
+
+  const handleCreateOnlineRoom = (code: string) => {
+    const nextState = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+    setGameState(nextState);
+    setRoomCode(code);
+    setIsHost(true);
+    setLocalPlayerId("nico");
+    setActiveTab("nico");
+    setSelectedCardForPlay(null);
+    setShowLobbyModal(false);
+
+    networkManager.initHost(code, {
+      onStatusChange: (status, message) => {
+        setConnectionStatus(status);
+        if (message) setConnectionMessage(message);
+        if (status === "connected") {
+          // Send current state to newly connected guest
+          networkManager.sendMessage({
+            type: "SYNC_STATE",
+            state: gameStateRef.current,
+            roomCode: code,
+          });
+        }
+      },
+      onMessage: (msg: NetworkMessage) => {
+        if (msg.type === "APPLY_MOVE") {
+          const currentState = gameStateRef.current;
+          if (isLegalMove(currentState, msg.playerId, msg.move)) {
+            const next = applyMove(currentState, msg.playerId, msg.move);
+            setGameState(next);
+            networkManager.sendMessage({
+              type: "SYNC_STATE",
+              state: next,
+              roomCode: code,
+            });
+          }
+        }
+      },
+    });
+  };
+
+  const handleJoinOnlineRoom = (code: string) => {
+    setRoomCode(code);
+    setIsHost(false);
+    setLocalPlayerId("santi");
+    setActiveTab("santi");
+    setSelectedCardForPlay(null);
+    setShowLobbyModal(false);
+
+    networkManager.initGuest(code, {
+      onStatusChange: (status, message) => {
+        setConnectionStatus(status);
+        if (message) setConnectionMessage(message);
+      },
+      onMessage: (msg: NetworkMessage) => {
+        if (msg.type === "SYNC_STATE") {
+          setGameState(msg.state);
+        }
+      },
+    });
+  };
+
+  const executeLocalMove = (move: Move) => {
+    if (gameState.currentPlayerId !== localPlayerId) return;
+
+    if (gameState.gameMode === "solo") {
+      if (isLegalMove(gameState, localPlayerId, move)) {
+        setGameState(applyMove(gameState, localPlayerId, move));
+      }
+    } else if (gameState.gameMode === "online") {
+      if (isHost) {
+        if (isLegalMove(gameState, localPlayerId, move)) {
+          const next = applyMove(gameState, localPlayerId, move);
+          setGameState(next);
+          networkManager.sendMessage({
+            type: "SYNC_STATE",
+            state: next,
+            roomCode,
+          });
+        }
+      } else {
+        // Guest sends move to Host
+        networkManager.sendMessage({
+          type: "APPLY_MOVE",
+          move,
+          playerId: localPlayerId,
+        });
+      }
+    }
+  };
 
   const handleGainFood = (dieIndex: number) => {
-    const move: Move = {
+    executeLocalMove({
       type: "gainFood",
       dieIndexes: [dieIndex],
-    };
-    if (isLegalMove(gameState, gameState.currentPlayerId, move)) {
-      setGameState(applyMove(gameState, gameState.currentPlayerId, move));
-    }
+    });
   };
 
   const handleRerollFeeder = () => {
-    const move: Move = { type: "rerollFeeder" };
-    if (isLegalMove(gameState, gameState.currentPlayerId, move)) {
-      setGameState(applyMove(gameState, gameState.currentPlayerId, move));
-    }
+    executeLocalMove({ type: "rerollFeeder" });
   };
 
   const handleDrawFromDeck = () => {
-    const move: Move = {
+    executeLocalMove({
       type: "drawBirdCards",
       draws: [{ source: "deck" }],
-    };
-    if (isLegalMove(gameState, gameState.currentPlayerId, move)) {
-      setGameState(applyMove(gameState, gameState.currentPlayerId, move));
-    }
+    });
   };
 
   const handleDrawFromMarket = (cardId: string) => {
-    const move: Move = {
+    executeLocalMove({
       type: "drawBirdCards",
       draws: [{ source: "market", marketCardId: cardId }],
-    };
-    if (isLegalMove(gameState, gameState.currentPlayerId, move)) {
-      setGameState(applyMove(gameState, gameState.currentPlayerId, move));
-    }
+    });
   };
 
   const handleLayEggOnSlot = (habitat: HabitatId, slotIndex: number) => {
-    const move: Move = {
+    executeLocalMove({
       type: "layEggs",
       eggPlacements: [{ habitat, slotIndex }],
-    };
-    if (isLegalMove(gameState, gameState.currentPlayerId, move)) {
-      setGameState(applyMove(gameState, gameState.currentPlayerId, move));
-    }
+    });
   };
 
   const handleConfirmPlayBird = (move: Extract<Move, { type: "playBird" }>) => {
-    if (isLegalMove(gameState, gameState.currentPlayerId, move)) {
-      setGameState(applyMove(gameState, gameState.currentPlayerId, move));
-      setSelectedCardForPlay(null);
-    }
+    executeLocalMove(move);
+    setSelectedCardForPlay(null);
   };
 
-  const handleStartGame = (mode: GameMode, difficulty: AutomaDifficulty = "normal") => {
-    setGameState(createInitialState({ mode, automaDifficulty: difficulty }));
-    setSelectedCardForPlay(null);
-    setActiveTab("nico");
-    setShowModeModal(false);
-  };
+  const currentPlayer = gameState.players[gameState.currentPlayerId];
+  const viewedPlayer = gameState.players[activeTab];
+  const isMyTurn = gameState.currentPlayerId === localPlayerId;
+  const isControlsActive = isMyTurn && (currentPlayer?.actionCubesAvailable ?? 0) > 0 && gameState.phase === "round";
 
   return (
     <div className="app-shell">
@@ -128,17 +237,20 @@ export const App: React.FC = () => {
           <div>
             <h1>Wingspread</h1>
             <p>
-              {gameState.gameMode === "solo" ? "Modo Solitario (vs Automa)" : "Modo 2 Jugadores Local"}
+              {gameState.gameMode === "solo" ? "Modo Solitario (vs Automa)" : "Multijugador Online (P2P)"}
             </p>
           </div>
         </div>
 
         {/* Active Turn Card */}
-        <div className="status-card active-turn">
+        <div className={`status-card ${isMyTurn ? "active-turn" : ""}`}>
           <h4>Turno Actual</h4>
           <div className="player-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {currentPlayer?.isAutoma ? <Bot size={20} /> : null}
             {playerNames[gameState.currentPlayerId]}
+            {gameState.currentPlayerId === localPlayerId && (
+              <span style={{ fontSize: "0.75rem", color: "#235c3a", fontWeight: 700 }}>(Tú)</span>
+            )}
           </div>
           <div>
             <span style={{ fontSize: "0.8rem", color: "#445" }}>
@@ -178,6 +290,7 @@ export const App: React.FC = () => {
               >
                 <span>
                   <strong>{playerNames[pId]}</strong>
+                  {pId === localPlayerId && <small style={{ color: "#235c3a" }}> (Tú)</small>}
                   {gameState.firstPlayerId === pId && (
                     <span style={{ fontSize: "0.7rem", color: "#235c3a", marginLeft: 4 }}>
                       (1er jugador)
@@ -208,18 +321,18 @@ export const App: React.FC = () => {
                   fontSize: "0.85rem",
                 }}
               >
-                {gameState.players[pId]?.isAutoma ? "Automa" : playerNames[pId]}
+                {gameState.players[pId]?.isAutoma ? "Automa" : pId === localPlayerId ? `${playerNames[pId]} (Tú)` : playerNames[pId]}
               </button>
             ))}
           </div>
         </div>
 
         {/* Resources for activeTab player (if not Automa) */}
-        {!viewedPlayer?.isAutoma && (
+        {viewedPlayer && !viewedPlayer.isAutoma && (
           <div className="status-card">
-            <h4>Recursos de {playerNames[viewedPlayer?.id]}</h4>
+            <h4>Recursos de {playerNames[viewedPlayer.id]}</h4>
             <div className="resources-grid">
-              {Object.entries(viewedPlayer?.resources ?? {}).map(([res, count]) => (
+              {Object.entries(viewedPlayer.resources ?? {}).map(([res, count]) => (
                 <div key={res} className="resource-badge">
                   <span>{resourceIcons[res as ResourceFace]} {resourceLabels[res as ResourceFace]}</span>
                   <strong>{count ?? 0}</strong>
@@ -230,12 +343,12 @@ export const App: React.FC = () => {
         )}
 
         {/* Bonus Cards for activeTab player (if not Automa) */}
-        {!viewedPlayer?.isAutoma && (
+        {viewedPlayer && !viewedPlayer.isAutoma && (
           <div className="status-card">
             <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Sparkles size={14} color="#235c3a" /> Cartas de Bonificación
             </h4>
-            {viewedPlayer?.bonusCards && viewedPlayer.bonusCards.length > 0 ? (
+            {viewedPlayer.bonusCards && viewedPlayer.bonusCards.length > 0 ? (
               viewedPlayer.bonusCards.map((b) => (
                 <div key={b.id} style={{ fontSize: "0.8rem", background: "#ffffff", padding: "6px 8px", borderRadius: 6, border: "1px solid #d2ded0", marginTop: 4 }}>
                   <strong>{b.name}</strong>
@@ -260,7 +373,7 @@ export const App: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setShowModeModal(true)}
+          onClick={() => setShowLobbyModal(true)}
           style={{ backgroundColor: "#235c3a", marginTop: "auto", justifyContent: "center" }}
         >
           <RefreshCw size={14} /> Nueva Partida / Cambiar Modo
@@ -269,10 +382,28 @@ export const App: React.FC = () => {
 
       {/* Main Game Area */}
       <main className="main-table">
+        {/* Connection Status Bar (for Online Mode) */}
+        {gameState.gameMode === "online" && (
+          <ConnectionStatusBar
+            roomCode={roomCode}
+            isHost={isHost}
+            status={connectionStatus}
+            statusMessage={connectionMessage}
+            localPlayerId={localPlayerId}
+          />
+        )}
+
+        {/* Turn Notice Banner if opponent's turn in Online mode */}
+        {gameState.gameMode === "online" && !isMyTurn && gameState.phase === "round" && (
+          <div style={{ background: "#fef3d6", border: "1px solid #ebdcb2", padding: "10px 16px", borderRadius: 8, color: "#9c6c16", fontWeight: 600, fontSize: "0.9rem" }}>
+            ⏳ Turno de {playerNames[gameState.currentPlayerId]}... Esperando su jugada en tiempo real.
+          </div>
+        )}
+
         {/* 1. Round Goals Track */}
         <RoundGoalsMat gameState={gameState} />
 
-        {/* 2. Automa Panel (if Solo mode and viewing Automa or above table) */}
+        {/* 2. Automa Panel (if Solo mode) */}
         {gameState.gameMode === "solo" && gameState.automaState && gameState.players.automa && (
           <AutomaPanel
             automaState={gameState.automaState}
@@ -286,7 +417,7 @@ export const App: React.FC = () => {
           feeder={gameState.feeder}
           onTakeDie={handleGainFood}
           onReroll={handleRerollFeeder}
-          disabled={!isCurrentTurn || (currentPlayer?.actionCubesAvailable ?? 0) <= 0}
+          disabled={!isControlsActive}
         />
 
         {/* 4. Bird Market */}
@@ -296,10 +427,10 @@ export const App: React.FC = () => {
           deckCount={gameState.deck.length}
           onDrawMarketCard={handleDrawFromMarket}
           onDrawFromDeck={handleDrawFromDeck}
-          disabled={!isCurrentTurn || (currentPlayer?.actionCubesAvailable ?? 0) <= 0}
+          disabled={!isControlsActive}
         />
 
-        {/* 5. Player Habitat Board (for human player) */}
+        {/* 5. Player Habitat Board */}
         {viewedPlayer && !viewedPlayer.isAutoma && (
           <PlayerBoard
             player={viewedPlayer}
@@ -311,18 +442,18 @@ export const App: React.FC = () => {
             }}
             selectedHabitat={selectedHabitat}
             selectedSlotIndex={selectedSlotIndex}
-            isCurrentPlayerTurn={isCurrentTurn && (currentPlayer?.actionCubesAvailable ?? 0) > 0}
+            isCurrentPlayerTurn={isControlsActive && activeTab === localPlayerId}
           />
         )}
 
-        {/* 6. Human Player Hand */}
-        {viewedPlayer && !viewedPlayer.isAutoma && (
+        {/* 6. Player Hand (only shown for local player) */}
+        {gameState.players[localPlayerId] && (
           <section style={{ background: "#ffffff", padding: 18, borderRadius: 16, border: "1px solid #d2ded0" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Feather size={20} color="#235c3a" />
                 <h3 style={{ margin: 0, fontSize: "1.15rem" }}>
-                  Mano de {playerNames[viewedPlayer.id]} ({viewedPlayer.hand.length} carta{viewedPlayer.hand.length !== 1 ? "s" : ""})
+                  Tu Mano ({gameState.players[localPlayerId].hand.length} carta{gameState.players[localPlayerId].hand.length !== 1 ? "s" : ""})
                 </h3>
               </div>
               <span style={{ fontSize: "0.8rem", color: "#667" }}>
@@ -330,9 +461,9 @@ export const App: React.FC = () => {
               </span>
             </div>
 
-            {viewedPlayer.hand.length > 0 ? (
+            {gameState.players[localPlayerId].hand.length > 0 ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 12 }}>
-                {viewedPlayer.hand.map((cardId) => {
+                {gameState.players[localPlayerId].hand.map((cardId) => {
                   const card = gameState.cards[cardId];
                   if (!card) return null;
 
@@ -340,7 +471,7 @@ export const App: React.FC = () => {
                     <BirdCard
                       key={cardId}
                       card={card}
-                      actionLabel={isCurrentTurn && (currentPlayer?.actionCubesAvailable ?? 0) > 0 ? "Jugar esta ave" : undefined}
+                      actionLabel={isControlsActive ? "Jugar esta ave" : undefined}
                       onAction={() => setSelectedCardForPlay(card)}
                     />
                   );
@@ -356,80 +487,32 @@ export const App: React.FC = () => {
       </main>
 
       {/* Play Bird Modal Dialog */}
-      {selectedCardForPlay && viewedPlayer && !viewedPlayer.isAutoma && (
+      {selectedCardForPlay && gameState.players[localPlayerId] && (
         <PlayBirdModal
           card={selectedCardForPlay}
-          player={viewedPlayer}
+          player={gameState.players[localPlayerId]}
           gameState={gameState}
           onConfirmPlay={handleConfirmPlayBird}
           onClose={() => setSelectedCardForPlay(null)}
         />
       )}
 
-      {/* Mode Selection / Reset Modal */}
-      {showModeModal && (
-        <div className="modal-backdrop" onClick={() => setShowModeModal(false)}>
-          <div className="modal-content" style={{ maxWidth: 500 }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Configurar Nueva Partida</h2>
-            </div>
-            <p style={{ margin: 0, color: "#556" }}>
-              Selecciona cómo deseas jugar a Wingspread:
-            </p>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ background: "#f8faf8", border: "1px solid #d2ded0", borderRadius: 12, padding: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <Bot size={20} color="#235c3a" />
-                  <strong>Modo Solitario (vs Automa)</strong>
-                </div>
-                <p style={{ margin: "0 0 10px 0", fontSize: "0.85rem", color: "#667" }}>
-                  Enfréntate a la IA oficial con mazo de acciones y 3 niveles de desafío.
-                </p>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {(["easy", "normal", "hard"] as AutomaDifficulty[]).map((diff) => (
-                    <button
-                      key={diff}
-                      onClick={() => handleStartGame("solo", diff)}
-                      style={{ flex: 1, fontSize: "0.8rem", justifyContent: "center", padding: "6px 8px" }}
-                    >
-                      {difficultyLabels[diff]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ background: "#f8faf8", border: "1px solid #d2ded0", borderRadius: 12, padding: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <Users size={20} color="#235c3a" />
-                  <strong>Modo 2 Jugadores Local</strong>
-                </div>
-                <p style={{ margin: "0 0 10px 0", fontSize: "0.85rem", color: "#667" }}>
-                  Partida local por turnos entre Nico y Santi en la misma pantalla.
-                </p>
-                <button
-                  onClick={() => handleStartGame("local2p")}
-                  style={{ width: "100%", justifyContent: "center", backgroundColor: "#235c3a" }}
-                >
-                  Iniciar Partida 2 Jugadores
-                </button>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-              <button onClick={() => setShowModeModal(false)} style={{ backgroundColor: "#e2e8f0", color: "#334155" }}>
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Online Lobby Modal */}
+      {showLobbyModal && (
+        <OnlineLobbyModal
+          onStartSolo={handleStartSolo}
+          onCreateOnlineRoom={handleCreateOnlineRoom}
+          onJoinOnlineRoom={handleJoinOnlineRoom}
+          onClose={() => setShowLobbyModal(false)}
+          defaultJoinCode={urlJoinCode}
+        />
       )}
 
       {/* Game Over Victory Modal */}
       {gameState.phase === "gameEnd" && (
         <GameOverModal
           gameState={gameState}
-          onRestart={() => setShowModeModal(true)}
+          onRestart={() => setShowLobbyModal(true)}
         />
       )}
     </div>

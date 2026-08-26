@@ -87,19 +87,17 @@ export interface CreateGameOptions {
 }
 
 export function createInitialState(
-  optionsOrPlayerIds: CreateGameOptions | PlayerId[] = ["nico", "santi"],
+  optionsOrPlayerIds: CreateGameOptions | PlayerId[] = { mode: "solo", automaDifficulty: "normal" },
 ): GameState {
-  let mode: GameMode = "local2p";
+  let mode: GameMode = "solo";
   let automaDifficulty: AutomaDifficulty = "normal";
-  let playerIds: PlayerId[] = ["nico", "santi"];
+  let playerIds: PlayerId[] = ["nico", "automa"];
 
   if (Array.isArray(optionsOrPlayerIds)) {
     playerIds = optionsOrPlayerIds;
-    if (playerIds.includes("automa")) {
-      mode = "solo";
-    }
+    mode = playerIds.includes("automa") ? "solo" : "online";
   } else if (typeof optionsOrPlayerIds === "object") {
-    mode = optionsOrPlayerIds.mode ?? "local2p";
+    mode = optionsOrPlayerIds.mode ?? "solo";
     automaDifficulty = optionsOrPlayerIds.automaDifficulty ?? "normal";
     playerIds = optionsOrPlayerIds.playerIds ?? (mode === "solo" ? ["nico", "automa"] : ["nico", "santi"]);
   }
@@ -152,7 +150,11 @@ export function createInitialState(
     cards: speciesCards,
     bonusCardsCatalog,
     automaState,
-    log: [{ message: `Partida iniciada (${mode === "solo" ? `Modo Solitario vs Automa [${automaDifficulty}]` : "Modo 2 Jugadores Local"}).` }],
+    log: [{
+      message: mode === "solo"
+        ? `Partida iniciada en Modo Solitario vs Automa [${automaDifficulty}].`
+        : "Partida Multijugador Online iniciada.",
+    }],
   };
 }
 

@@ -12,7 +12,7 @@ export type HabitatId = "forest" | "grassland" | "wetland";
 export type CardId = string;
 export type PlayerId = string;
 
-export type GameMode = "local2p" | "solo";
+export type GameMode = "solo" | "online";
 export type AutomaDifficulty = "easy" | "normal" | "hard";
 
 export type PowerTiming =
@@ -255,3 +255,9 @@ export type Move =
   | {
       type: "rerollFeeder";
     };
+
+export type NetworkMessage =
+  | { type: "SYNC_STATE"; state: GameState; roomCode?: string }
+  | { type: "APPLY_MOVE"; move: Move; playerId: PlayerId }
+  | { type: "RESTART_GAME" }
+  | { type: "PING" };

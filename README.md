@@ -1,19 +1,32 @@
 # Wingspread
 
-Prototipo web interactivo de un juego de mesa de construcción de motor ecológico inspirado en **Wingspan**.
+Juego web interactivo de construcción de motor ecológico inspirado en **Wingspan**.
+
+## Modos de Juego
+
+1. **🤖 Modo Solitario (vs Automa)**:
+   - Partidas individuales contra el oponente IA oficial de Wingspan.
+   - 3 niveles de dificultad: **Fácil (Pichón)**, **Normal (Águila)** y **Difícil (Halcón)**.
+   - Mazo de acciones dinámico con interacción en comedero, mercado, reservas y objetivos de ronda.
+
+2. **🌐 Multijugador Online con Salas P2P (PeerJS / WebRTC)**:
+   - Crea salas privadas con códigos únicos (ej. `wingspread.vercel.app?room=halcon-482`).
+   - Comparte el enlace con un amigo para jugar desde diferentes dispositivos en tiempo real sin registros ni servidores externos.
+   - Sincronización de estado instantánea bidireccional.
 
 ## Stack Técnico
 
 - **Vite 8**
 - **React 19**
 - **TypeScript 5**
+- **PeerJS (WebRTC P2P)**
 - **Lucide Icons**
 - **Vitest**
 
 ## Características Principales
 
 - **Motor de Reglas Completo**:
-  - Comedero con 5 dados de alimento y relanzamiento dinámico.
+  - Comedero con 5 dados aleatorios de 6 caras y relanzamiento dinámico.
   - Regla de sustitución de recursos 2:1 y costes de alimento comodín (`wild`).
   - Filas de hábitat con beneficios progresivos por columna (Bosque, Pradera, Río) y costes en huevos.
   - Poderes de aves: almacenamiento de comida (*cache*), solapamiento (*tuck*), depredadores/caza (*predator*) y beneficios colectivos.
@@ -53,10 +66,6 @@ El proyecto cuenta con configuración lista para Vercel (`vercel.json`):
 4. Haz clic en **Deploy**.
 
 ### Opción 2: Usar Vercel CLI
-```bash
-npx vercel
-```
-O para desplegar directamente a producción:
 ```bash
 npx vercel --prod
 ```
