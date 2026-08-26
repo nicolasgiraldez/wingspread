@@ -1,3 +1,4 @@
+import { automaCardsCatalog } from "./automaCards";
 import { rollInitialFeeder } from "./setup";
 import type {
   BoardSlot,
@@ -63,7 +64,7 @@ export function getHabitatActionAllowance(player: PlayerState, habitat: HabitatI
 export function isLegalMove(state: GameState, playerId: string, move: Move): boolean {
   if (state.phase !== "round" || state.currentPlayerId !== playerId) return false;
   const player = state.players[playerId];
-  if (!player || player.actionCubesAvailable <= 0) return false;
+  if (!player || player.actionCubesAvailable <= 0 || player.isAutoma) return false;
 
   if (move.type === "rerollFeeder") {
     return canRerollFeeder(state.feeder);
@@ -88,7 +89,6 @@ export function isLegalMove(state: GameState, playerId: string, move: Move): boo
 
     if (move.rerollBefore) {
       if (!canRerollFeeder(state.feeder)) return false;
-      // If valid reroll, we assume a full feeder is available
       availableFeeder = ["seed", "fruit", "insect", "fish", "rodent"];
     }
 
@@ -120,7 +120,6 @@ export function isLegalMove(state: GameState, playerId: string, move: Move): boo
       return false;
     }
 
-    // Verify placements capacity
     const simulatedEggs: Record<string, number> = {};
     for (const ref of move.eggPlacements) {
       const key = `${ref.habitat}:${ref.slotIndex}`;
@@ -169,7 +168,7 @@ export function applyMove(state: GameState, playerId: string, move: Move): GameS
     throw new Error(`Movimiento ilegal: ${move.type}`);
   }
 
-  const next = structuredClone(state) as GameState;
+  let next = structuredClone(state) as GameState;
   const player = next.players[playerId];
 
   if (move.type === "rerollFeeder") {
@@ -195,6 +194,85 @@ export function applyMove(state: GameState, playerId: string, move: Move): GameS
   });
 
   advanceTurn(next);
+
+  // Auto execute Automa turn if next player is Automa
+  while (
+    next.phase === "round" &&
+    next.currentPlayerId === "automa" &&
+    next.players.automa?.actionCubesAvailable > 0
+  ) {
+    next = executeAutomaTurn(next);
+  }
+
+  return next;
+}
+
+export function executeAutomaTurn(state: GameState): GameState {
+  const next = structuredClone(state) as GameState;
+  const automa = next.players.automa;
+  if (!automa || !next.automaState || automa.actionCubesAvailable <= 0) {
+    return next;
+  }
+
+  // Draw Automa card
+  if (next.automaState.deck.length === 0) {
+    next.automaState.deck = [...next.automaState.discard];
+    next.automaState.discard = [];
+  }
+
+  const cardId = next.automaState.deck.shift() ?? Object.keys(automaCardsCatalog)[0];
+  const automaCard = automaCardsCatalog[cardId];
+  next.automaState.currentCard = automaCard;
+  next.automaState.discard.push(cardId);
+
+  const actions = automaCard.roundActions[next.round] ?? [];
+  const actionDescriptions: string[] = [];
+
+  for (const act of actions) {
+    if (act.type === "gainFoodFromFeeder") {
+      for (let i = 0; i < act.count; i += 1) {
+        if (next.feeder.length > 0) {
+          const removed = next.feeder.shift();
+          actionDescriptions.push(`tomó 1 ${removed} del comedero`);
+        }
+      }
+      if (next.feeder.length === 0) {
+        next.feeder = rollInitialFeeder(5);
+      }
+    } else if (act.type === "drawMarketCard") {
+      const count = act.count ?? 1;
+      for (let i = 0; i < count; i += 1) {
+        if (next.market.length > 0) {
+          const cardDrawn = next.market.shift();
+          actionDescriptions.push(`robó 1 carta del mercado`);
+          const rep = next.deck.shift();
+          if (rep) next.market.push(rep);
+        }
+      }
+    } else if (act.type === "stashCardFromDeck") {
+      for (let i = 0; i < act.count; i += 1) {
+        const stashed = next.deck.shift();
+        if (stashed) {
+          next.automaState.stashedCardsCount += 1;
+        }
+      }
+      actionDescriptions.push(`guardó ${act.count} ave(s) en su reserva`);
+    } else if (act.type === "layEggs") {
+      next.automaState.eggs += act.count;
+      actionDescriptions.push(`acumuló ${act.count} huevo(s)`);
+    } else if (act.type === "advanceGoal") {
+      next.automaState.roundGoalMetric += act.metricBonus;
+      actionDescriptions.push(`+${act.metricBonus} progreso en objetivo`);
+    }
+  }
+
+  automa.actionCubesAvailable -= 1;
+  next.log.push({
+    playerId: "automa",
+    message: `[${automaCard.name}]: ${actionDescriptions.join(", ")}.`,
+  });
+
+  advanceTurn(next);
   return next;
 }
 
@@ -203,7 +281,6 @@ export function canPayResources(
   paidResources: ResourceFace[],
   cost: Partial<Record<ResourceFace, number>>,
 ): boolean {
-  // 1. Check if player has all resources in paidResources
   const tallyPaid = tally(paidResources);
   for (const [res, count] of Object.entries(tallyPaid)) {
     if ((player.resources[res as ResourceFace] ?? 0) < (count ?? 0)) {
@@ -211,7 +288,6 @@ export function canPayResources(
     }
   }
 
-  // 2. Try to satisfy specific costs directly
   const remainingPaid = [...paidResources];
   const requiredSpecific: ResourceFace[] = [];
   let requiredWildCount = cost.wild ?? 0;
@@ -223,7 +299,6 @@ export function canPayResources(
     }
   }
 
-  // Satisfy exact matches first
   const unsatisfiedRequirements: ResourceFace[] = [];
   for (const req of requiredSpecific) {
     const idx = remainingPaid.indexOf(req);
@@ -234,17 +309,12 @@ export function canPayResources(
     }
   }
 
-  // Satisfy wild requirements 1-for-1 with any remaining resource
   while (requiredWildCount > 0 && remainingPaid.length > 0) {
-    // Pick first available resource to fulfill 1 wild
     remainingPaid.shift();
     requiredWildCount -= 1;
   }
 
-  // Remaining unsatisfied specific requirements + unsatisfied wild requirements
   const totalUnsatisfiedCostUnits = unsatisfiedRequirements.length + requiredWildCount;
-
-  // Wingspan 2:1 rule: each unsatisfied cost unit requires exactly 2 remaining paid resources
   if (remainingPaid.length !== totalUnsatisfiedCostUnits * 2) {
     return false;
   }
@@ -278,7 +348,6 @@ function gainFood(state: GameState, player: PlayerState, move: Extract<Move, { t
     state.discard.push(move.tradeCardId);
   }
 
-  // Sort descending to remove correctly by index
   const sortedIndexes = [...move.dieIndexes].sort((a, b) => b - a);
   for (const index of sortedIndexes) {
     const resource = state.feeder[index];
@@ -288,7 +357,6 @@ function gainFood(state: GameState, player: PlayerState, move: Extract<Move, { t
     }
   }
 
-  // If feeder is empty, automatically refill 5 dice
   if (state.feeder.length === 0) {
     state.feeder = rollInitialFeeder(5);
   }
@@ -430,7 +498,9 @@ export function resolvePower(
   if (power.kind === "allPlayersGain") {
     const res = power.resource ?? "seed";
     for (const p of Object.values(state.players)) {
-      p.resources[res] = (p.resources[res] ?? 0) + 1;
+      if (!p.isAutoma) {
+        p.resources[res] = (p.resources[res] ?? 0) + 1;
+      }
     }
     return;
   }
@@ -448,6 +518,10 @@ export function evaluateRoundGoalMetric(
   state: GameState,
   goal: RoundGoal,
 ): number {
+  if (player.isAutoma && state.automaState) {
+    return state.automaState.roundGoalMetric;
+  }
+
   if (goal.type === "eggsInHabitat" && goal.habitat) {
     return player.board[goal.habitat].reduce((sum, slot) => sum + slot.eggs, 0);
   }
@@ -509,7 +583,6 @@ export function resolveRoundEnd(state: GameState) {
       metric: evaluateRoundGoalMetric(state.players[id], state, currentGoal),
     }));
 
-    // Sort by metric descending
     playerMetrics.sort((a, b) => b.metric - a.metric);
 
     if (playerMetrics[0].metric > playerMetrics[1]?.metric) {
@@ -518,7 +591,6 @@ export function resolveRoundEnd(state: GameState) {
         scoresByPlayer[playerMetrics[1].playerId] = playerMetrics[1].metric > 0 ? pointTiers[1] : 0;
       }
     } else if (playerMetrics[0].metric > 0 && playerMetrics[0].metric === playerMetrics[1]?.metric) {
-      // Tie for 1st place
       const tiedPoints = Math.floor((pointTiers[0] + pointTiers[1]) / 2);
       scoresByPlayer[playerMetrics[0].playerId] = tiedPoints;
       scoresByPlayer[playerMetrics[1].playerId] = tiedPoints;
@@ -536,6 +608,10 @@ export function resolveRoundEnd(state: GameState) {
 
   for (const [id, score] of Object.entries(scoresByPlayer)) {
     state.players[id].roundGoalScores.push(score);
+  }
+
+  if (state.automaState) {
+    state.automaState.roundGoalMetric = 0;
   }
 
   // Refresh market
@@ -618,6 +694,28 @@ export function calculateBonusPoints(
 
 export function scorePlayerDetails(state: GameState, playerId: string): ScoreBreakdown {
   const player = state.players[playerId];
+
+  if (playerId === "automa" && state.automaState) {
+    const diffMultipliers = { easy: 3, normal: 4, hard: 5 };
+    const diffBonus = { easy: 0, normal: 3, hard: 6 };
+    const multiplier = diffMultipliers[state.automaState.difficulty] ?? 4;
+    const birds = state.automaState.stashedCardsCount * multiplier;
+    const eggs = state.automaState.eggs;
+    const roundGoals = player.roundGoalScores.reduce((sum, v) => sum + v, 0);
+    const bonusCards = diffBonus[state.automaState.difficulty] ?? 3;
+    const total = birds + eggs + roundGoals + bonusCards;
+
+    return {
+      birds,
+      eggs,
+      cachedFood: 0,
+      tuckedCards: 0,
+      roundGoals,
+      bonusCards,
+      total,
+    };
+  }
+
   let birds = 0;
   let eggs = 0;
   let cachedFood = 0;

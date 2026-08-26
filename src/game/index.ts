@@ -1,5 +1,5 @@
+export * from "./automaCards";
 export * from "./cards";
 export * from "./engine";
 export * from "./setup";
 export * from "./types";
-

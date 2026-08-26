@@ -1,5 +1,5 @@
 import React from "react";
-import { Award, RefreshCw, Trophy } from "lucide-react";
+import { Award, Bot, RefreshCw, Trophy } from "lucide-react";
 import { scorePlayerDetails } from "../../game";
 import type { GameState } from "../../game";
 import { playerNames } from "../labels";
@@ -16,6 +16,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const playerScores = gameState.playerOrder.map((pId) => ({
     id: pId,
     name: playerNames[pId] ?? pId,
+    isAutoma: gameState.players[pId]?.isAutoma,
     details: scorePlayerDetails(gameState, pId),
   }));
 
@@ -27,9 +28,17 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     <div className="modal-backdrop">
       <div className="modal-content" style={{ maxWidth: 640 }}>
         <div style={{ textAlign: "center", padding: "10px 0" }}>
-          <Trophy size={48} color="#e6a834" style={{ margin: "0 auto 10px auto" }} />
+          {winner.isAutoma ? (
+            <Bot size={48} color="#57606a" style={{ margin: "0 auto 10px auto" }} />
+          ) : (
+            <Trophy size={48} color="#e6a834" style={{ margin: "0 auto 10px auto" }} />
+          )}
           <h2 style={{ margin: "0 0 6px 0", fontSize: "1.7rem" }}>
-            {isTie ? "¡Empate en la Partida!" : `¡Victoria de ${winner.name}!`}
+            {isTie
+              ? "¡Empate en la Partida!"
+              : winner.isAutoma
+                ? "¡Victoria de Automa!"
+                : `¡Victoria de ${winner.name}!`}
           </h2>
           <p style={{ margin: 0, color: "#667", fontSize: "0.95rem" }}>
             Fin de la Ronda 4. Desglose final de puntuaciones ecológicas.
@@ -50,7 +59,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </thead>
           <tbody>
             <tr style={{ borderBottom: "1px solid #eef2ed" }}>
-              <td style={{ padding: "8px 12px" }}>🪶 Puntos de Aves</td>
+              <td style={{ padding: "8px 12px" }}>🪶 Puntos de Aves / Reserva</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.birds}
@@ -66,7 +75,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               ))}
             </tr>
             <tr style={{ borderBottom: "1px solid #eef2ed" }}>
-              <td style={{ padding: "8px 12px" }}>🌾 Alimentos Almacenados (1 pt c/u)</td>
+              <td style={{ padding: "8px 12px" }}>🌾 Alimentos Almacenados</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.cachedFood}
@@ -74,7 +83,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               ))}
             </tr>
             <tr style={{ borderBottom: "1px solid #eef2ed" }}>
-              <td style={{ padding: "8px 12px" }}>📑 Cartas Solapadas (1 pt c/u)</td>
+              <td style={{ padding: "8px 12px" }}>📑 Cartas Solapadas</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.tuckedCards}
@@ -90,7 +99,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               ))}
             </tr>
             <tr style={{ borderBottom: "2px solid #d2ded0" }}>
-              <td style={{ padding: "8px 12px" }}>⭐ Cartas de Bonificación</td>
+              <td style={{ padding: "8px 12px" }}>⭐ Cartas de Bonificación / Dificultad</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.bonusCards}

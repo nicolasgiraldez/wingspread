@@ -1,8 +1,15 @@
-import type { HabitatId, NestType, PowerTiming, ResourceFace } from "../game";
+import type { AutomaDifficulty, HabitatId, NestType, PowerTiming, ResourceFace } from "../game";
 
 export const playerNames: Record<string, string> = {
   nico: "Nico",
   santi: "Santi",
+  automa: "Automa (IA)",
+};
+
+export const difficultyLabels: Record<AutomaDifficulty, string> = {
+  easy: "Fácil (Pichón)",
+  normal: "Normal (Águila)",
+  hard: "Difícil (Halcón)",
 };
 
 export const habitatLabels: Record<HabitatId, string> = {

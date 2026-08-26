@@ -6,6 +6,7 @@ import {
   canRerollFeeder,
   createInitialState,
   evaluateRoundGoalMetric,
+  executeAutomaTurn,
   isLegalMove,
   resolveRoundEnd,
   scorePlayer,
@@ -47,12 +48,10 @@ describe("motor de reglas expandido de wingspread", () => {
     const player = state.players.nico;
     player.resources = { fruit: 2, insect: 0, seed: 0 };
 
-    // Cost is 1 seed -> can be paid with 2 fruits
     const cost = { seed: 1 };
     expect(canPayResources(player, ["fruit", "fruit"], cost)).toBe(true);
     expect(canPayResources(player, ["fruit"], cost)).toBe(false);
 
-    // Wild cost: can be paid with 1 single food or 2 other foods
     const wildCost = { wild: 1 };
     expect(canPayResources(player, ["fruit"], wildCost)).toBe(true);
   });
@@ -73,7 +72,6 @@ describe("motor de reglas expandido de wingspread", () => {
 
   it("ejecuta el poder de almacenar alimento (caching) al activar el bosque", () => {
     const state = createInitialState(["nico", "santi"]);
-    // Place acornJay (Arrendajo Bellotero) in forest
     state.players.nico.board.forest[0].cardId = "acornJay";
 
     const move: Move = { type: "gainFood", dieIndexes: [0] };
@@ -97,13 +95,12 @@ describe("motor de reglas expandido de wingspread", () => {
     const next = applyMove(state, "nico", move);
     const slot = next.players.nico.board.wetland[0];
     expect(slot.tucked.length).toBe(1);
-    expect(next.deck.length).toBe(initialDeckCount - 2); // 1 drawn to hand + 1 tucked
+    expect(next.deck.length).toBe(initialDeckCount - 2);
   });
 
   it("ejecuta el poder de caza depredador (huntPredator)", () => {
     const state = createInitialState(["nico", "santi"]);
-    state.players.nico.board.forest[0].cardId = "redTailedHawk"; // maxWingspan 65
-    // Force top of deck to be marshWren (wingspan 15 <= 65)
+    state.players.nico.board.forest[0].cardId = "redTailedHawk";
     state.deck.unshift("marshWren");
 
     const move: Move = { type: "gainFood", dieIndexes: [0] };
@@ -115,36 +112,33 @@ describe("motor de reglas expandido de wingspread", () => {
 
   it("evalúa y puntúa los objetivos de fin de ronda y reinicia cubos de acción", () => {
     const state = createInitialState(["nico", "santi"]);
-    // Goal for round 1: eggsInGrassland
     state.players.nico.board.grassland[0].cardId = "meadowSparrow";
     state.players.nico.board.grassland[0].eggs = 3;
     state.players.santi.board.grassland[0].cardId = "cliffSwallow";
     state.players.santi.board.grassland[0].eggs = 1;
 
-    // Evaluate metric
     const nicoEggs = evaluateRoundGoalMetric(state.players.nico, state, state.roundGoals[0]);
     const santiEggs = evaluateRoundGoalMetric(state.players.santi, state, state.roundGoals[0]);
     expect(nicoEggs).toBe(3);
     expect(santiEggs).toBe(1);
 
-    // End round 1
     resolveRoundEnd(state);
     expect(state.round).toBe(2);
-    expect(state.players.nico.roundGoalScores[0]).toBe(4); // 1st place in round 1
-    expect(state.players.santi.roundGoalScores[0]).toBe(1); // 2nd place in round 1
-    expect(state.players.nico.actionCubesAvailable).toBe(7); // Round 2 has 7 cubes
-    expect(state.firstPlayerId).toBe("santi"); // Rotated first player
+    expect(state.players.nico.roundGoalScores[0]).toBe(4);
+    expect(state.players.santi.roundGoalScores[0]).toBe(1);
+    expect(state.players.nico.actionCubesAvailable).toBe(7);
+    expect(state.firstPlayerId).toBe("santi");
     expect(state.currentPlayerId).toBe("santi");
   });
 
   it("calcula la puntuación detallada incluyendo bonificaciones, huevos y cartas solapadas", () => {
     const state = createInitialState(["nico", "santi"]);
     const slot = state.players.nico.board.wetland[0];
-    slot.cardId = "riverHeron"; // 5 points
-    slot.eggs = 2;              // 2 points
-    slot.cached = ["fish"];     // 1 point
-    slot.tucked = ["marshWren"];// 1 point
-    state.players.nico.roundGoalScores = [4, 5]; // 9 points
+    slot.cardId = "riverHeron";
+    slot.eggs = 2;
+    slot.cached = ["fish"];
+    slot.tucked = ["marshWren"];
+    state.players.nico.roundGoalScores = [4, 5];
 
     state.players.nico.bonusCards = [
       {
@@ -166,5 +160,45 @@ describe("motor de reglas expandido de wingspread", () => {
     expect(breakdown.bonusCards).toBe(3);
     expect(breakdown.total).toBe(21);
     expect(scorePlayer(state, "nico")).toBe(21);
+  });
+
+  // Tests para Modo Solitario con Automa
+  it("inicializa correctamente el modo solitario contra el Automa", () => {
+    const state = createInitialState({ mode: "solo", automaDifficulty: "hard" });
+
+    expect(state.gameMode).toBe("solo");
+    expect(state.players.nico).toBeDefined();
+    expect(state.players.automa).toBeDefined();
+    expect(state.players.automa.isAutoma).toBe(true);
+    expect(state.automaState).toBeDefined();
+    expect(state.automaState?.difficulty).toBe("hard");
+    expect(state.automaState?.deck.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("ejecuta el turno del Automa tras la jugada del jugador humano", () => {
+    const state = createInitialState({ mode: "solo", automaDifficulty: "normal" });
+    const move: Move = { type: "gainFood", dieIndexes: [0] };
+
+    const next = applyMove(state, "nico", move);
+    expect(next.players.nico.actionCubesAvailable).toBe(7);
+    expect(next.players.automa.actionCubesAvailable).toBe(7); // Automa automatically played its turn
+    expect(next.automaState?.currentCard).toBeDefined();
+    expect(next.currentPlayerId).toBe("nico"); // Control returns to Nico
+  });
+
+  it("calcula la puntuación del Automa según su dificultad", () => {
+    const state = createInitialState({ mode: "solo", automaDifficulty: "hard" });
+    if (state.automaState) {
+      state.automaState.stashedCardsCount = 4; // 4 * 5 = 20 pts
+      state.automaState.eggs = 5;              // 5 pts
+    }
+    state.players.automa.roundGoalScores = [4, 5]; // 9 pts
+
+    const breakdown = scorePlayerDetails(state, "automa");
+    expect(breakdown.birds).toBe(20);
+    expect(breakdown.eggs).toBe(5);
+    expect(breakdown.roundGoals).toBe(9);
+    expect(breakdown.bonusCards).toBe(6); // 6 pts bonus for hard
+    expect(breakdown.total).toBe(40);
   });
 });

@@ -1,6 +1,10 @@
+import { automaCardsCatalog } from "./automaCards";
 import { bonusCardsCatalog, speciesCards } from "./cards";
 import type {
+  AutomaDifficulty,
+  AutomaState,
   BoardSlot,
+  GameMode,
   GameState,
   HabitatId,
   PlayerId,
@@ -66,7 +70,30 @@ export const defaultRoundGoals: RoundGoal[] = [
   },
 ];
 
-export function createInitialState(playerIds: PlayerId[] = ["nico", "santi"]): GameState {
+export interface CreateGameOptions {
+  mode?: GameMode;
+  automaDifficulty?: AutomaDifficulty;
+  playerIds?: PlayerId[];
+}
+
+export function createInitialState(
+  optionsOrPlayerIds: CreateGameOptions | PlayerId[] = ["nico", "santi"],
+): GameState {
+  let mode: GameMode = "local2p";
+  let automaDifficulty: AutomaDifficulty = "normal";
+  let playerIds: PlayerId[] = ["nico", "santi"];
+
+  if (Array.isArray(optionsOrPlayerIds)) {
+    playerIds = optionsOrPlayerIds;
+    if (playerIds.includes("automa")) {
+      mode = "solo";
+    }
+  } else if (typeof optionsOrPlayerIds === "object") {
+    mode = optionsOrPlayerIds.mode ?? "local2p";
+    automaDifficulty = optionsOrPlayerIds.automaDifficulty ?? "normal";
+    playerIds = optionsOrPlayerIds.playerIds ?? (mode === "solo" ? ["nico", "automa"] : ["nico", "santi"]);
+  }
+
   if (playerIds.length < 2) {
     throw new Error("Wingspread requiere al menos 2 jugadores.");
   }
@@ -76,14 +103,30 @@ export function createInitialState(playerIds: PlayerId[] = ["nico", "santi"]): G
 
   const players: Record<PlayerId, PlayerState> = Object.fromEntries(
     playerIds.map((id) => {
-      const hand = deck.splice(0, 2);
-      const bonusIds = bonusDeck.splice(0, 1);
+      const isAutoma = id === "automa";
+      const hand = isAutoma ? [] : deck.splice(0, 2);
+      const bonusIds = isAutoma ? [] : bonusDeck.splice(0, 1);
       const bonusCards = bonusIds.map((bId) => bonusCardsCatalog[bId]);
-      return [id, createPlayer(id, hand, bonusCards)];
+      return [id, createPlayer(id, hand, bonusCards, isAutoma)];
     }),
   );
 
+  let automaState: AutomaState | undefined;
+  if (mode === "solo" || playerIds.includes("automa")) {
+    const automaDeck = Object.keys(automaCardsCatalog);
+    automaState = {
+      difficulty: automaDifficulty,
+      deck: [...automaDeck],
+      discard: [],
+      currentCard: null,
+      stashedCardsCount: 0,
+      eggs: 0,
+      roundGoalMetric: 0,
+    };
+  }
+
   return {
+    gameMode: mode,
     phase: "round",
     round: 1,
     currentPlayerId: playerIds[0],
@@ -98,20 +141,27 @@ export function createInitialState(playerIds: PlayerId[] = ["nico", "santi"]): G
     roundGoalResults: {},
     cards: speciesCards,
     bonusCardsCatalog,
-    log: [{ message: "Partida iniciada." }],
+    automaState,
+    log: [{ message: `Partida iniciada (${mode === "solo" ? `Modo Solitario vs Automa [${automaDifficulty}]` : "Modo 2 Jugadores Local"}).` }],
   };
 }
 
-function createPlayer(id: PlayerId, hand: string[], bonusCards = [] as PlayerState["bonusCards"]): PlayerState {
+function createPlayer(
+  id: PlayerId,
+  hand: string[],
+  bonusCards = [] as PlayerState["bonusCards"],
+  isAutoma = false,
+): PlayerState {
   return {
     id,
     hand,
     bonusCards,
-    resources: { seed: 1, fruit: 1, insect: 1 },
+    resources: isAutoma ? {} : { seed: 1, fruit: 1, insect: 1 },
     board: Object.fromEntries(
       habitats.map((habitat) => [habitat, makeSlots()]),
     ) as Record<HabitatId, BoardSlot[]>,
     actionCubesAvailable: 8,
     roundGoalScores: [],
+    isAutoma,
   };
 }

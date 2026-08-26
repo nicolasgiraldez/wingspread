@@ -12,6 +12,9 @@ export type HabitatId = "forest" | "grassland" | "wetland";
 export type CardId = string;
 export type PlayerId = string;
 
+export type GameMode = "local2p" | "solo";
+export type AutomaDifficulty = "easy" | "normal" | "hard";
+
 export type PowerTiming =
   | "onPlay"
   | "onActivate"
@@ -158,6 +161,7 @@ export type PlayerState = {
   board: Record<HabitatId, BoardSlot[]>;
   actionCubesAvailable: number;
   roundGoalScores: number[];
+  isAutoma?: boolean;
 };
 
 export type GameLogEntry = {
@@ -175,7 +179,32 @@ export type ScoreBreakdown = {
   total: number;
 };
 
+export type AutomaCardAction =
+  | { type: "gainFoodFromFeeder"; foodType?: ResourceFace | "any"; count: number }
+  | { type: "drawMarketCard"; slotIndex?: number; count?: number }
+  | { type: "stashCardFromDeck"; count: number }
+  | { type: "layEggs"; count: number }
+  | { type: "advanceGoal"; metricBonus: number };
+
+export type AutomaCard = {
+  id: string;
+  name: string;
+  description?: string;
+  roundActions: Record<1 | 2 | 3 | 4, AutomaCardAction[]>;
+};
+
+export type AutomaState = {
+  difficulty: AutomaDifficulty;
+  deck: string[];
+  discard: string[];
+  currentCard: AutomaCard | null;
+  stashedCardsCount: number;
+  eggs: number;
+  roundGoalMetric: number;
+};
+
 export type GameState = {
+  gameMode: GameMode;
   phase: "setup" | "round" | "roundEnd" | "gameEnd";
   round: 1 | 2 | 3 | 4;
   currentPlayerId: PlayerId;
@@ -190,6 +219,7 @@ export type GameState = {
   roundGoalResults?: Record<number, Record<PlayerId, number>>;
   cards: Record<CardId, SpeciesCard>;
   bonusCardsCatalog?: Record<string, BonusCard>;
+  automaState?: AutomaState;
   log: GameLogEntry[];
 };
 
