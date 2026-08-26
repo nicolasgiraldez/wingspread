@@ -15,12 +15,13 @@ import type {
 
 const habitats: HabitatId[] = ["forest", "grassland", "wetland"];
 
-const defaultDieFaces: ResourceFace[] = [
+export const standardDieFaces: ResourceFace[] = [
   "seed",
   "fruit",
   "insect",
   "fish",
   "rodent",
+  "wild",
 ];
 
 export const makeSlots = (): BoardSlot[] =>
@@ -31,9 +32,18 @@ export const makeSlots = (): BoardSlot[] =>
     tucked: [],
   }));
 
+export function shuffle<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export function rollRandomDie(): ResourceFace {
-  const index = Math.floor(Math.random() * defaultDieFaces.length);
-  return defaultDieFaces[index];
+  const index = Math.floor(Math.random() * standardDieFaces.length);
+  return standardDieFaces[index];
 }
 
 export function rollInitialFeeder(count: number = 5): ResourceFace[] {
@@ -98,8 +108,8 @@ export function createInitialState(
     throw new Error("Wingspread requiere al menos 2 jugadores.");
   }
 
-  const deck = Object.keys(speciesCards);
-  const bonusDeck = Object.keys(bonusCardsCatalog);
+  const deck = shuffle(Object.keys(speciesCards));
+  const bonusDeck = shuffle(Object.keys(bonusCardsCatalog));
 
   const players: Record<PlayerId, PlayerState> = Object.fromEntries(
     playerIds.map((id) => {
@@ -113,10 +123,10 @@ export function createInitialState(
 
   let automaState: AutomaState | undefined;
   if (mode === "solo" || playerIds.includes("automa")) {
-    const automaDeck = Object.keys(automaCardsCatalog);
+    const automaDeck = shuffle(Object.keys(automaCardsCatalog));
     automaState = {
       difficulty: automaDifficulty,
-      deck: [...automaDeck],
+      deck: automaDeck,
       discard: [],
       currentCard: null,
       stashedCardsCount: 0,
@@ -136,7 +146,7 @@ export function createInitialState(
     deck,
     discard: [],
     market: deck.splice(0, 3),
-    feeder: ["seed", "fruit", "insect", "fish", "rodent"],
+    feeder: rollInitialFeeder(5),
     roundGoals: defaultRoundGoals,
     roundGoalResults: {},
     cards: speciesCards,

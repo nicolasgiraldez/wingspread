@@ -85,11 +85,11 @@ export function isLegalMove(state: GameState, playerId: string, move: Move): boo
 
   if (move.type === "gainFood") {
     const allowance = getHabitatActionAllowance(player, "forest");
-    let availableFeeder = [...state.feeder];
+    let feederLength = state.feeder.length;
 
     if (move.rerollBefore) {
       if (!canRerollFeeder(state.feeder)) return false;
-      availableFeeder = ["seed", "fruit", "insect", "fish", "rodent"];
+      feederLength = 5;
     }
 
     const uniqueIndexes = new Set(move.dieIndexes);
@@ -102,7 +102,7 @@ export function isLegalMove(state: GameState, playerId: string, move: Move): boo
     }
 
     if (move.dieIndexes.length === 0 || move.dieIndexes.length > allowedCount) return false;
-    return move.dieIndexes.every((index) => index >= 0 && index < availableFeeder.length);
+    return move.dieIndexes.every((index) => index >= 0 && index < feederLength);
   }
 
   if (move.type === "layEggs") {

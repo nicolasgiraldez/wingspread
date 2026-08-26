@@ -9,13 +9,16 @@ import {
   executeAutomaTurn,
   isLegalMove,
   resolveRoundEnd,
+  rollInitialFeeder,
   scorePlayer,
   scorePlayerDetails,
+  shuffle,
+  standardDieFaces,
 } from ".";
 import type { Move, SpeciesCard } from "./types";
 
 describe("motor de reglas expandido de wingspread", () => {
-  it("crea una partida para Nico y Santi con comedero, mercado y cartas iniciales", () => {
+  it("crea una partida para Nico y Santi con comedero de 5 dados aleatorios y mazo barajado", () => {
     const state = createInitialState(["nico", "santi"]);
 
     expect(state.phase).toBe("round");
@@ -27,6 +30,29 @@ describe("motor de reglas expandido de wingspread", () => {
     expect(state.players.nico.actionCubesAvailable).toBe(8);
     expect(state.players.santi.actionCubesAvailable).toBe(8);
     expect(state.players.nico.bonusCards.length).toBeGreaterThanOrEqual(1);
+
+    // Todos los dados del comedero deben ser caras válidas de las 6 caras estándar
+    for (const face of state.feeder) {
+      expect(standardDieFaces).toContain(face);
+    }
+  });
+
+  it("garantiza que rollInitialFeeder genera 5 dados de 6 caras", () => {
+    const feeder = rollInitialFeeder(5);
+    expect(feeder).toHaveLength(5);
+    expect(standardDieFaces).toContain("wild");
+    for (const die of feeder) {
+      expect(standardDieFaces).toContain(die);
+    }
+  });
+
+  it("baraja elementos correctamente con shuffle", () => {
+    const original = ["a", "b", "c", "d", "e", "f", "g", "h"];
+    const shuffled = shuffle(original);
+    expect(shuffled).toHaveLength(original.length);
+    for (const item of original) {
+      expect(shuffled).toContain(item);
+    }
   });
 
   it("permite que Nico obtenga alimento del comedero y reduce los dados disponibles", () => {
@@ -177,28 +203,29 @@ describe("motor de reglas expandido de wingspread", () => {
 
   it("ejecuta el turno del Automa tras la jugada del jugador humano", () => {
     const state = createInitialState({ mode: "solo", automaDifficulty: "normal" });
+    state.feeder = ["seed", "fruit", "insect", "fish", "rodent"];
     const move: Move = { type: "gainFood", dieIndexes: [0] };
 
     const next = applyMove(state, "nico", move);
     expect(next.players.nico.actionCubesAvailable).toBe(7);
-    expect(next.players.automa.actionCubesAvailable).toBe(7); // Automa automatically played its turn
+    expect(next.players.automa.actionCubesAvailable).toBe(7);
     expect(next.automaState?.currentCard).toBeDefined();
-    expect(next.currentPlayerId).toBe("nico"); // Control returns to Nico
+    expect(next.currentPlayerId).toBe("nico");
   });
 
   it("calcula la puntuación del Automa según su dificultad", () => {
     const state = createInitialState({ mode: "solo", automaDifficulty: "hard" });
     if (state.automaState) {
-      state.automaState.stashedCardsCount = 4; // 4 * 5 = 20 pts
-      state.automaState.eggs = 5;              // 5 pts
+      state.automaState.stashedCardsCount = 4;
+      state.automaState.eggs = 5;
     }
-    state.players.automa.roundGoalScores = [4, 5]; // 9 pts
+    state.players.automa.roundGoalScores = [4, 5];
 
     const breakdown = scorePlayerDetails(state, "automa");
     expect(breakdown.birds).toBe(20);
     expect(breakdown.eggs).toBe(5);
     expect(breakdown.roundGoals).toBe(9);
-    expect(breakdown.bonusCards).toBe(6); // 6 pts bonus for hard
+    expect(breakdown.bonusCards).toBe(6);
     expect(breakdown.total).toBe(40);
   });
 });
