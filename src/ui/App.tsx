@@ -34,6 +34,7 @@ import { BirdMarket } from "./components/BirdMarket";
 import { ConnectionStatusBar } from "./components/ConnectionStatusBar";
 import { GameOverModal } from "./components/GameOverModal";
 import { HomePage, HomePageConfig } from "./components/HomePage";
+import { LayEggsModal } from "./components/LayEggsModal";
 import { PlayBirdModal } from "./components/PlayBirdModal";
 import { PlayerBoard } from "./components/PlayerBoard";
 import { RoundGoalsMat } from "./components/RoundGoalsMat";
@@ -65,6 +66,11 @@ export const App: React.FC = () => {
   const [selectedHabitat, setSelectedHabitat] = useState<HabitatId>("forest");
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<PlayerId>("nico");
+
+  const [layEggsModalOpen, setLayEggsModalOpen] = useState<boolean>(false);
+  const [layEggsInitialBird, setLayEggsInitialBird] = useState<
+    { habitat: HabitatId; slotIndex: number } | undefined
+  >(undefined);
 
   const gameStateRef = useRef<GameState | null>(null);
   gameStateRef.current = gameState;
@@ -241,8 +247,16 @@ export const App: React.FC = () => {
   const handleDrawFromMarket = (cardId: string) =>
     executeLocalMove({ type: "drawBirdCards", draws: [{ source: "market", marketCardId: cardId }] });
 
-  const handleLayEggOnSlot = (habitat: HabitatId, slotIndex: number) =>
-    executeLocalMove({ type: "layEggs", eggPlacements: [{ habitat, slotIndex }] });
+  const handleOpenLayEggs = (initialBird?: { habitat: HabitatId; slotIndex: number }) => {
+    setLayEggsInitialBird(initialBird);
+    setLayEggsModalOpen(true);
+  };
+
+  const handleConfirmLayEggs = (move: Extract<Move, { type: "layEggs" }>) => {
+    executeLocalMove(move);
+    setLayEggsModalOpen(false);
+    setLayEggsInitialBird(undefined);
+  };
 
   const handleConfirmPlayBird = (move: Extract<Move, { type: "playBird" }>) => {
     executeLocalMove(move);
@@ -577,7 +591,7 @@ export const App: React.FC = () => {
             player={viewedPlayer}
             gameState={gameState}
             isOwner={activeTab === localPlayerId}
-            onLayEggOnSlot={handleLayEggOnSlot}
+            onOpenLayEggsModal={handleOpenLayEggs}
             onSelectEmptySlot={(hab, sIdx) => {
               setSelectedHabitat(hab);
               setSelectedSlotIndex(sIdx);
@@ -731,6 +745,19 @@ export const App: React.FC = () => {
           gameState={gameState}
           onConfirmPlay={handleConfirmPlayBird}
           onClose={() => setSelectedCardForPlay(null)}
+        />
+      )}
+
+      {layEggsModalOpen && gameState.players[localPlayerId] && (
+        <LayEggsModal
+          player={gameState.players[localPlayerId]}
+          gameState={gameState}
+          initialBird={layEggsInitialBird}
+          onConfirmLayEggs={handleConfirmLayEggs}
+          onClose={() => {
+            setLayEggsModalOpen(false);
+            setLayEggsInitialBird(undefined);
+          }}
         />
       )}
 

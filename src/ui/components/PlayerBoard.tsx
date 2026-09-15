@@ -1,6 +1,6 @@
 import React from "react";
-import { Egg, Feather, TreePine, Utensils, Waves, Wind } from "lucide-react";
-import { getHabitatActiveColumn } from "../../game";
+import { TreePine, Waves, Wind } from "lucide-react";
+import { getHabitatActionAllowance, getHabitatActiveColumn } from "../../game";
 import type { GameState, HabitatId, PlayerState } from "../../game";
 import { habitatLabels, playerNames } from "../labels";
 import { BirdCard } from "./BirdCard";
@@ -9,7 +9,7 @@ interface PlayerBoardProps {
   player: PlayerState;
   gameState: GameState;
   isOwner?: boolean;
-  onLayEggOnSlot?: (habitat: HabitatId, slotIndex: number) => void;
+  onOpenLayEggsModal?: (initialBird?: { habitat: HabitatId; slotIndex: number }) => void;
   onSelectEmptySlot?: (habitat: HabitatId, slotIndex: number) => void;
   selectedHabitat?: HabitatId;
   selectedSlotIndex?: number;
@@ -28,7 +28,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
   player,
   gameState,
   isOwner = true,
-  onLayEggOnSlot,
+  onOpenLayEggsModal,
   onSelectEmptySlot,
   selectedHabitat,
   selectedSlotIndex,
@@ -36,6 +36,24 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
 }) => {
   const habitats: HabitatId[] = ["forest", "grassland", "wetland"];
   const displayName = player.name || playerNames[player.id] || player.id;
+
+  const grasslandAllowance = getHabitatActionAllowance(player, "grassland");
+
+  // Espacio total de huevos disponible en todo el tablero del jugador
+  let totalEggCapacity = 0;
+  let totalEggsOnBoard = 0;
+  habitats.forEach((h) => {
+    player.board[h].forEach((s) => {
+      if (s.cardId) {
+        const c = gameState.cards[s.cardId];
+        if (c) {
+          totalEggCapacity += c.eggCapacity;
+          totalEggsOnBoard += s.eggs;
+        }
+      }
+    });
+  });
+  const totalFreeEggSpace = totalEggCapacity - totalEggsOnBoard;
 
   return (
     <div className="habitat-section">
@@ -88,6 +106,39 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
               <div style={{ fontSize: "0.75rem", color: "#667", background: "rgba(255,255,255,0.7)", padding: "4px 6px", borderRadius: 4 }}>
                 Aves: <strong>{player.board[hab].filter((s) => s.cardId !== null).length} / 5</strong>
               </div>
+
+              {hab === "grassland" && isOwner && (
+                <button
+                  type="button"
+                  onClick={() => onOpenLayEggsModal?.()}
+                  disabled={!isCurrentPlayerTurn || totalFreeEggSpace <= 0}
+                  style={{
+                    marginTop: 8,
+                    padding: "6px 10px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: isCurrentPlayerTurn && totalFreeEggSpace > 0 ? "#9c6c16" : "#d0dad0",
+                    color: "#ffffff",
+                    fontWeight: 700,
+                    fontSize: "0.78rem",
+                    cursor: isCurrentPlayerTurn && totalFreeEggSpace > 0 ? "pointer" : "not-allowed",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    boxShadow: isCurrentPlayerTurn && totalFreeEggSpace > 0 ? "0 2px 6px rgba(156,108,22,0.3)" : "none",
+                    width: "100%",
+                  }}
+                  title={
+                    totalFreeEggSpace <= 0
+                      ? "Tus aves no tienen espacio libre para huevos"
+                      : `Poner hasta ${grasslandAllowance.baseAmount} huevos en tus aves`
+                  }
+                >
+                  <span>🥚</span>
+                  <span>Poner {grasslandAllowance.baseAmount} Huevos</span>
+                </button>
+              )}
             </div>
 
             {/* 5 Slots Grid */}
@@ -121,12 +172,14 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                           tucked={slot.tucked}
                           compact
                           actionLabel={
-                            isOwner && hab === "grassland" && slot.eggs < card.eggCapacity && isCurrentPlayerTurn
-                              ? "+ 1 Huevo"
+                            isOwner && slot.eggs < card.eggCapacity && isCurrentPlayerTurn && onOpenLayEggsModal
+                              ? "+ 🥚 Poner"
                               : undefined
                           }
                           onAction={() => {
-                            if (isOwner && onLayEggOnSlot) onLayEggOnSlot(hab, sIdx);
+                            if (isOwner && onOpenLayEggsModal) {
+                              onOpenLayEggsModal({ habitat: hab, slotIndex: sIdx });
+                            }
                           }}
                         />
                       </div>

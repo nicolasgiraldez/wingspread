@@ -257,5 +257,36 @@ describe("motor de reglas expandido de wingspread", () => {
     expect(nextWithSeed.players.nico.resources.seed).toBe(initialSeeds + 1);
     expect(nextWithSeed.players.nico.resources.insect).toBe(initialInsects);
   });
+
+  it("permite distribuir la cantidad de huevos asignada entre varias aves de distintos hábitats respetando sus límites", () => {
+    const state = createInitialState({ mode: "solo" });
+    // Jugar un ave en bosque (capacidad 4) y un ave en pradera (capacidad 2)
+    state.players.nico.board.forest[0].cardId = "acornJay"; // eggCapacity: 4
+    state.players.nico.board.grassland[0].cardId = "meadowSparrow"; // eggCapacity: 3
+
+    // La cuota de pradera con 1 ave es 2 huevos (columna 1)
+    const move: Move = {
+      type: "layEggs",
+      eggPlacements: [
+        { habitat: "forest", slotIndex: 0 },
+        { habitat: "grassland", slotIndex: 0 },
+      ],
+    };
+
+    expect(isLegalMove(state, "nico", move)).toBe(true);
+
+    const next = applyMove(state, "nico", move);
+    expect(next.players.nico.board.forest[0].eggs).toBe(1);
+    expect(next.players.nico.board.grassland[0].eggs).toBe(1);
+
+    // No debe permitir exceder la capacidad del ave
+    next.players.nico.board.forest[0].eggs = 4; // Lleno
+    const illegalMove: Move = {
+      type: "layEggs",
+      eggPlacements: [{ habitat: "forest", slotIndex: 0 }],
+    };
+    expect(isLegalMove(next, "nico", illegalMove)).toBe(false);
+  });
 });
+
 
