@@ -228,4 +228,34 @@ describe("motor de reglas expandido de wingspread", () => {
     expect(breakdown.bonusCards).toBe(6);
     expect(breakdown.total).toBe(40);
   });
+
+  it("permite elegir entre insecto o trigo al tomar un dado con cara comodín", () => {
+    const state = createInitialState({ mode: "solo" });
+    state.feeder = ["wild", "fruit", "fish"];
+    const initialInsects = state.players.nico.resources.insect ?? 0;
+    const initialSeeds = state.players.nico.resources.seed ?? 0;
+
+    // Elegir insecto (gusano)
+    const moveInsect: Move = {
+      type: "gainFood",
+      dieIndexes: [0],
+      wildChoices: { 0: "insect" },
+    };
+    const nextWithInsect = applyMove(state, "nico", moveInsect);
+    expect(nextWithInsect.players.nico.resources.insect).toBe(initialInsects + 1);
+    expect(nextWithInsect.players.nico.resources.seed).toBe(initialSeeds);
+
+    // Elegir semilla (trigo)
+    const state2 = createInitialState({ mode: "solo" });
+    state2.feeder = ["wild", "fruit", "fish"];
+    const moveSeed: Move = {
+      type: "gainFood",
+      dieIndexes: [0],
+      wildChoices: { 0: "seed" },
+    };
+    const nextWithSeed = applyMove(state2, "nico", moveSeed);
+    expect(nextWithSeed.players.nico.resources.seed).toBe(initialSeeds + 1);
+    expect(nextWithSeed.players.nico.resources.insect).toBe(initialInsects);
+  });
 });
+

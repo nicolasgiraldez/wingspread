@@ -241,6 +241,8 @@ export type Move =
   | {
       type: "gainFood";
       dieIndexes: number[];
+      /** Para dados que muestran "wild": el jugador elige "insect" o "seed" por cada índice wild */
+      wildChoices?: Record<number, "insect" | "seed">;
       rerollBefore?: boolean;
       tradeCardId?: CardId;
     }

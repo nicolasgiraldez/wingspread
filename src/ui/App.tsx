@@ -222,8 +222,12 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleGainFood = (dieIndex: number) =>
-    executeLocalMove({ type: "gainFood", dieIndexes: [dieIndex] });
+  const handleGainFood = (dieIndex: number, wildChoice?: "insect" | "seed") =>
+    executeLocalMove({
+      type: "gainFood",
+      dieIndexes: [dieIndex],
+      ...(wildChoice ? { wildChoices: { [dieIndex]: wildChoice } } : {}),
+    });
 
   const handleRerollFeeder = () =>
     executeLocalMove({ type: "rerollFeeder" });

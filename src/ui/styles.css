@@ -293,6 +293,19 @@ button:disabled {
   margin-top: 1px;
 }
 
+/* Dado comodín (cara insecto/semilla) */
+.die-token.die-wild {
+  border-color: #235c3a;
+  background: linear-gradient(135deg, #f0f9f0 0%, #fff8e6 100%);
+  border-style: dashed;
+}
+
+.die-token.die-wild:hover {
+  border-color: #1a4530;
+  background: linear-gradient(135deg, #e0f3e0 0%, #fff0c0 100%);
+}
+
+
 /* Habitat Row Board */
 .habitat-section {
   display: flex;

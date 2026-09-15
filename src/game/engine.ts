@@ -350,8 +350,13 @@ function gainFood(state: GameState, player: PlayerState, move: Extract<Move, { t
 
   const sortedIndexes = [...move.dieIndexes].sort((a, b) => b - a);
   for (const index of sortedIndexes) {
-    const resource = state.feeder[index];
-    if (resource) {
+    const face = state.feeder[index];
+    if (face) {
+      // La cara "wild" representa insecto/semilla a elección del jugador
+      const resource: ResourceFace =
+        face === "wild"
+          ? (move.wildChoices?.[index] ?? "insect")
+          : face;
       player.resources[resource] = (player.resources[resource] ?? 0) + 1;
       state.feeder.splice(index, 1);
     }

@@ -45,7 +45,7 @@ export const resourceLabels: Record<ResourceFace, string> = {
   insect: "insecto",
   fish: "pez",
   rodent: "roedor",
-  wild: "comodín",
+  wild: "comodín (gusano/trigo)",
 };
 
 export const resourceIcons: Record<ResourceFace, string> = {
@@ -54,7 +54,7 @@ export const resourceIcons: Record<ResourceFace, string> = {
   insect: "🐛",
   fish: "🐟",
   rodent: "🐁",
-  wild: "✨",
+  wild: "🐛/🌾",
 };
 
 export const nestLabels: Record<NestType, string> = {
