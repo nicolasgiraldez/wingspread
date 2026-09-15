@@ -2,8 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Bird,
   Bot,
+  Eye,
+  EyeOff,
   Feather,
   Globe,
+  Lock,
   RefreshCw,
   Sparkles,
   Trophy,
@@ -390,25 +393,49 @@ export const App: React.FC = () => {
             <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Sparkles size={14} color="#235c3a" /> Cartas de Bonificación
             </h4>
-            {viewedPlayer.bonusCards?.length > 0 ? (
-              viewedPlayer.bonusCards.map((b) => (
-                <div
-                  key={b.id}
-                  style={{
-                    fontSize: "0.8rem",
-                    background: "#ffffff",
-                    padding: "6px 8px",
-                    borderRadius: 6,
-                    border: "1px solid #d2ded0",
-                    marginTop: 4,
-                  }}
-                >
-                  <strong>{b.name}</strong>
-                  <p style={{ margin: "2px 0 0 0", color: "#556" }}>{b.description}</p>
-                </div>
-              ))
+            {activeTab === localPlayerId || gameState.phase === "gameEnd" ? (
+              viewedPlayer.bonusCards?.length > 0 ? (
+                viewedPlayer.bonusCards.map((b) => (
+                  <div
+                    key={b.id}
+                    style={{
+                      fontSize: "0.8rem",
+                      background: "#ffffff",
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      border: "1px solid #d2ded0",
+                      marginTop: 4,
+                    }}
+                  >
+                    <strong>{b.name}</strong>
+                    <p style={{ margin: "2px 0 0 0", color: "#556" }}>{b.description}</p>
+                  </div>
+                ))
+              ) : (
+                <span style={{ fontSize: "0.8rem", color: "#889" }}>Sin cartas de bonificación</span>
+              )
             ) : (
-              <span style={{ fontSize: "0.8rem", color: "#889" }}>Sin cartas de bonificación</span>
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  color: "#556",
+                  background: "#f4f6f3",
+                  padding: "8px 10px",
+                  borderRadius: 6,
+                  border: "1px dashed #d2ded0",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Lock size={15} color="#889" />
+                <div>
+                  <strong>{viewedPlayer.bonusCards?.length ?? 0} carta(s) secreta(s)</strong>
+                  <div style={{ fontSize: "0.7rem", color: "#778", marginTop: 2 }}>
+                    Se revelan al finalizar la partida.
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -493,10 +520,63 @@ export const App: React.FC = () => {
           disabled={!isControlsActive}
         />
 
+        {/* Selector de Tablero */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#445" }}>
+            Tablero mostrado:
+          </span>
+          {gameState.playerOrder.map((pId) => {
+            const isMe = pId === localPlayerId;
+            const isAut = gameState.players[pId]?.isAutoma;
+            const pName = getDisplayName(gameState, pId);
+            const isCurrentActive = activeTab === pId;
+
+            return (
+              <button
+                key={pId}
+                onClick={() => setActiveTab(pId)}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 8,
+                  border: isCurrentActive ? "2px solid #235c3a" : "1px solid #c2cec0",
+                  backgroundColor: isCurrentActive ? "#235c3a" : "#ffffff",
+                  color: isCurrentActive ? "#ffffff" : "#334",
+                  fontWeight: isCurrentActive ? 700 : 500,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: "0.85rem",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {isMe ? <Feather size={14} /> : isAut ? <Bot size={14} /> : <Eye size={14} />}
+                {isMe ? `Mi Tablero (${pName})` : isAut ? "Tablero Automa" : `Tablero de ${pName}`}
+                {!isMe && !isAut && (
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      opacity: 0.9,
+                      background: isCurrentActive ? "rgba(255,255,255,0.25)" : "#eef2ed",
+                      color: isCurrentActive ? "#ffffff" : "#235c3a",
+                      padding: "1px 6px",
+                      borderRadius: 10,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {gameState.players[pId]?.hand?.length ?? 0} en mano
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
         {viewedPlayer && !viewedPlayer.isAutoma && (
           <PlayerBoard
             player={viewedPlayer}
             gameState={gameState}
+            isOwner={activeTab === localPlayerId}
             onLayEggOnSlot={handleLayEggOnSlot}
             onSelectEmptySlot={(hab, sIdx) => {
               setSelectedHabitat(hab);
@@ -508,7 +588,80 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* Hand */}
+        {/* Opponent's Hand (Cartas ocultas / boca abajo) */}
+        {activeTab !== localPlayerId && viewedPlayer && !viewedPlayer.isAutoma && (
+          <section
+            style={{
+              background: "#fafbf9",
+              padding: 16,
+              borderRadius: 16,
+              border: "1px dashed #b8c9b6",
+              boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <EyeOff size={18} color="#667" />
+                <h4 style={{ margin: 0, fontSize: "1rem", color: "#334" }}>
+                  Mano de {getDisplayName(gameState, viewedPlayer.id)} ({viewedPlayer.hand.length} carta{viewedPlayer.hand.length !== 1 ? "s" : ""} oculta{viewedPlayer.hand.length !== 1 ? "s" : ""})
+                </h4>
+              </div>
+              <span style={{ fontSize: "0.75rem", color: "#778" }}>
+                🔒 Las cartas de la mano del rival permanecen en secreto
+              </span>
+            </div>
+
+            {viewedPlayer.hand.length > 0 ? (
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {viewedPlayer.hand.map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: 95,
+                      height: 130,
+                      borderRadius: 10,
+                      background: "linear-gradient(145deg, #1c4a2e 0%, #0e2a19 100%)",
+                      border: "2px solid #366947",
+                      boxShadow: "0 3px 6px rgba(0,0,0,0.12)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#e2ede3",
+                      fontSize: "0.72rem",
+                      fontWeight: 600,
+                      textAlign: "center",
+                      padding: 6,
+                      userSelect: "none",
+                    }}
+                    title="Carta oculta en la mano del oponente"
+                  >
+                    <Bird size={24} style={{ marginBottom: 6, opacity: 0.85, color: "#8bd4a0" }} />
+                    <span style={{ letterSpacing: "0.5px" }}>Wingspread</span>
+                    <span style={{ fontSize: "0.62rem", opacity: 0.7, marginTop: 4, background: "rgba(255,255,255,0.15)", padding: "1px 6px", borderRadius: 6 }}>
+                      Oculta #{i + 1}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: 10, color: "#889", fontSize: "0.85rem" }}>
+                {getDisplayName(gameState, viewedPlayer.id)} no tiene cartas en su mano actualmente.
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Local Player's Hand */}
         {gameState.players[localPlayerId] && (
           <section
             style={{
@@ -524,13 +677,15 @@ export const App: React.FC = () => {
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: 14,
+                flexWrap: "wrap",
+                gap: 8,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Feather size={20} color="#235c3a" />
                 <h3 style={{ margin: 0, fontSize: "1.15rem" }}>
-                  Tu Mano ({gameState.players[localPlayerId].hand.length} carta
-                  {gameState.players[localPlayerId].hand.length !== 1 ? "s" : ""})
+                  Tu Mano ({getDisplayName(gameState, localPlayerId)}) — {gameState.players[localPlayerId].hand.length} carta
+                  {gameState.players[localPlayerId].hand.length !== 1 ? "s" : ""}
                 </h3>
               </div>
               <span style={{ fontSize: "0.8rem", color: "#667" }}>

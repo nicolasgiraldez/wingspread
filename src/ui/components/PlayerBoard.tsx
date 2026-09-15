@@ -8,6 +8,7 @@ import { BirdCard } from "./BirdCard";
 interface PlayerBoardProps {
   player: PlayerState;
   gameState: GameState;
+  isOwner?: boolean;
   onLayEggOnSlot?: (habitat: HabitatId, slotIndex: number) => void;
   onSelectEmptySlot?: (habitat: HabitatId, slotIndex: number) => void;
   selectedHabitat?: HabitatId;
@@ -26,6 +27,7 @@ const columnEggCosts = [0, 1, 1, 2, 2];
 export const PlayerBoard: React.FC<PlayerBoardProps> = ({
   player,
   gameState,
+  isOwner = true,
   onLayEggOnSlot,
   onSelectEmptySlot,
   selectedHabitat,
@@ -33,15 +35,35 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
   isCurrentPlayerTurn,
 }) => {
   const habitats: HabitatId[] = ["forest", "grassland", "wetland"];
+  const displayName = player.name || playerNames[player.id] || player.id;
 
   return (
     <div className="habitat-section">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3 style={{ margin: 0, fontSize: "1.15rem" }}>
-          Tablero de Hábitats: {playerNames[player.id]}
-        </h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h3 style={{ margin: 0, fontSize: "1.15rem" }}>
+            Tablero de Hábitats: {displayName}
+          </h3>
+          {!isOwner && (
+            <span
+              style={{
+                fontSize: "0.75rem",
+                backgroundColor: "#eef2ed",
+                color: "#235c3a",
+                padding: "2px 8px",
+                borderRadius: 12,
+                fontWeight: 600,
+                border: "1px solid #d2ded0",
+              }}
+            >
+              👁️ Tablero del Oponente (Solo lectura)
+            </span>
+          )}
+        </div>
         <span style={{ fontSize: "0.8rem", color: "#667" }}>
-          La columna con borde verde es la ranura activa de acción
+          {isOwner
+            ? "La columna con borde verde es la ranura activa de acción"
+            : "Viendo aves y recursos jugados por tu oponente"}
         </span>
       </div>
 
@@ -85,7 +107,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                       borderColor: isSelected ? "#235c3a" : undefined,
                     }}
                     onClick={() => {
-                      if (!card && onSelectEmptySlot) {
+                      if (isOwner && !card && onSelectEmptySlot) {
                         onSelectEmptySlot(hab, sIdx);
                       }
                     }}
@@ -99,12 +121,12 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                           tucked={slot.tucked}
                           compact
                           actionLabel={
-                            hab === "grassland" && slot.eggs < card.eggCapacity && isCurrentPlayerTurn
+                            isOwner && hab === "grassland" && slot.eggs < card.eggCapacity && isCurrentPlayerTurn
                               ? "+ 1 Huevo"
                               : undefined
                           }
                           onAction={() => {
-                            if (onLayEggOnSlot) onLayEggOnSlot(hab, sIdx);
+                            if (isOwner && onLayEggOnSlot) onLayEggOnSlot(hab, sIdx);
                           }}
                         />
                       </div>
