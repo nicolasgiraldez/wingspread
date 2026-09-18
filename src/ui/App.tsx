@@ -20,6 +20,7 @@ import {
 } from "../game";
 import type {
   AutomaDifficulty,
+  BonusCard,
   DrawCardSelection,
   GameState,
   HabitatId,
@@ -35,6 +36,7 @@ import { AutomaPanel } from "./components/AutomaPanel";
 import { BirdCard } from "./components/BirdCard";
 import { BirdFeeder } from "./components/BirdFeeder";
 import { BirdMarket } from "./components/BirdMarket";
+import { ChooseBonusCardModal } from "./components/ChooseBonusCardModal";
 import { ConnectingScreen } from "./components/ConnectingScreen";
 import { ConnectionStatusBar } from "./components/ConnectionStatusBar";
 import { GameOverModal } from "./components/GameOverModal";
@@ -251,6 +253,28 @@ export const App: React.FC = () => {
   const executeLocalMove = (move: Move) => {
     if (!gameState) return;
     if (gameState.currentPlayerId !== localPlayerId) return;
+
+    if (gameState.gameMode === "solo") {
+      if (isLegalMove(gameState, localPlayerId, move)) {
+        setGameState(applyMove(gameState, localPlayerId, move));
+      }
+    } else if (gameState.gameMode === "online") {
+      if (isHost) {
+        if (isLegalMove(gameState, localPlayerId, move)) {
+          const next = applyMove(gameState, localPlayerId, move);
+          setGameState(next);
+          networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode });
+        }
+      } else {
+        networkManager.sendMessage({ type: "APPLY_MOVE", move, playerId: localPlayerId });
+      }
+    }
+  };
+
+  // Como executeLocalMove, pero sin exigir que sea el turno del jugador local: la elección de
+  // carta de bonificación inicial (fase "setup") es simultánea, no por turnos.
+  const executeSetupMove = (move: Move) => {
+    if (!gameState) return;
 
     if (gameState.gameMode === "solo") {
       if (isLegalMove(gameState, localPlayerId, move)) {
@@ -887,6 +911,18 @@ export const App: React.FC = () => {
           gameState={gameState}
           onConfirm={handleConfirmDraw}
           onClose={() => setPendingDraw(null)}
+        />
+      )}
+
+      {gameState.phase === "setup" && gameState.players[localPlayerId] && (
+        <ChooseBonusCardModal
+          playerName={getDisplayName(gameState, localPlayerId)}
+          options={
+            (gameState.players[localPlayerId].pendingBonusChoice ?? [])
+              .map((id) => gameState.bonusCardsCatalog?.[id])
+              .filter((b): b is BonusCard => !!b)
+          }
+          onChoose={(bonusCardId) => executeSetupMove({ type: "chooseBonusCard", bonusCardId })}
         />
       )}
 

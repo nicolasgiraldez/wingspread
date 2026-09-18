@@ -122,11 +122,16 @@ export function createInitialState(
     playerIds.map((id) => {
       const isAutoma = id === "automa";
       const hand = isAutoma ? [] : deck.splice(0, 2);
-      const bonusIds = isAutoma ? [] : bonusDeck.splice(0, 1);
-      const bonusCards = bonusIds.map((bId) => bonusCardsCatalog[bId]);
+      // Cada jugador humano recibe 2 cartas de bonificación al azar y elige 1 para conservar
+      // (pendingBonusChoice); la partida no empieza a jugarse hasta que todos hayan elegido.
+      const pendingBonusChoice = isAutoma ? [] : bonusDeck.splice(0, 2);
       const name = customNames[id] || defaultNames[id] || id;
-      return [id, createPlayer(id, name, hand, bonusCards, isAutoma)];
+      return [id, createPlayer(id, name, hand, pendingBonusChoice, isAutoma)];
     }),
+  );
+
+  const hasPendingBonusChoice = Object.values(players).some(
+    (p) => !p.isAutoma && p.pendingBonusChoice && p.pendingBonusChoice.length > 0,
   );
 
   let automaState: AutomaState | undefined;
@@ -145,7 +150,7 @@ export function createInitialState(
 
   return {
     gameMode: mode,
-    phase: "round",
+    phase: hasPendingBonusChoice ? "setup" : "round",
     round: 1,
     currentPlayerId: playerIds[0],
     firstPlayerId: playerIds[0],
@@ -177,14 +182,15 @@ function createPlayer(
   id: PlayerId,
   name: string,
   hand: string[],
-  bonusCards = [] as PlayerState["bonusCards"],
+  pendingBonusChoice: string[] = [],
   isAutoma = false,
 ): PlayerState {
   return {
     id,
     name,
     hand,
-    bonusCards,
+    bonusCards: [],
+    pendingBonusChoice: pendingBonusChoice.length > 0 ? pendingBonusChoice : undefined,
     resources: isAutoma ? {} : { seed: 1, fruit: 1, insect: 1 },
     board: Object.fromEntries(
       habitats.map((habitat) => [habitat, makeSlots()]),

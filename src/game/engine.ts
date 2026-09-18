@@ -36,6 +36,7 @@ const moveLogLabels: Record<Move["type"], string> = {
   layEggs: "Puso huevos.",
   drawBirdCards: "Robó cartas de ave.",
   rerollFeeder: "Relanzó los dados del comedero.",
+  chooseBonusCard: "Eligió su carta de bonificación inicial.",
 };
 
 export function canRerollFeeder(feeder: ResourceFace[]): boolean {
@@ -96,6 +97,16 @@ export function getActivatablePowers(
 }
 
 export function isLegalMove(state: GameState, playerId: string, move: Move): boolean {
+  if (move.type === "chooseBonusCard") {
+    const player = state.players[playerId];
+    return (
+      state.phase === "setup" &&
+      !!player &&
+      !player.isAutoma &&
+      !!player.pendingBonusChoice?.includes(move.bonusCardId)
+    );
+  }
+
   if (state.phase !== "round" || state.currentPlayerId !== playerId) return false;
   const player = state.players[playerId];
   if (!player || player.actionCubesAvailable <= 0 || player.isAutoma) return false;
@@ -205,6 +216,11 @@ export function applyMove(state: GameState, playerId: string, move: Move): GameS
   let next = structuredClone(state) as GameState;
   const player = next.players[playerId];
 
+  if (move.type === "chooseBonusCard") {
+    resolveBonusCardChoice(next, player, move.bonusCardId);
+    return next;
+  }
+
   if (move.type === "rerollFeeder") {
     next.feeder = rollInitialFeeder(5);
     next.log.push({ playerId, message: moveLogLabels.rerollFeeder });
@@ -242,6 +258,32 @@ export function applyMove(state: GameState, playerId: string, move: Move): GameS
   }
 
   return next;
+}
+
+/**
+ * Resuelve la elección de carta de bonificación inicial: conserva la elegida, descarta la otra
+ * ofrecida, y arranca la Ronda 1 (fase "round") una vez que todos los jugadores humanos eligieron.
+ */
+function resolveBonusCardChoice(state: GameState, player: PlayerState, chosenId: string) {
+  const offered = player.pendingBonusChoice ?? [];
+  const discarded = offered.filter((id) => id !== chosenId);
+  const chosen = state.bonusCardsCatalog?.[chosenId];
+  if (chosen) player.bonusCards.push(chosen);
+  state.bonusDiscard.push(...discarded);
+  player.pendingBonusChoice = undefined;
+
+  state.log.push({
+    playerId: player.id,
+    message: `Eligió su carta de bonificación inicial: [${chosen?.name ?? chosenId}].`,
+  });
+
+  const stillPending = Object.values(state.players).some(
+    (p) => !p.isAutoma && p.pendingBonusChoice && p.pendingBonusChoice.length > 0,
+  );
+  if (state.phase === "setup" && !stillPending) {
+    state.phase = "round";
+    state.log.push({ message: "¡Todos eligieron su carta de bonificación! Comienza la Ronda 1." });
+  }
 }
 
 export function executeAutomaTurn(state: GameState): GameState {

@@ -180,8 +180,20 @@ const TEST_CARDS: Record<string, SpeciesCard> = {
 };
 
 function createTestState(...args: Parameters<typeof createInitialState>): ReturnType<typeof createInitialState> {
-  const state = createInitialState(...args);
+  let state = createInitialState(...args);
   Object.assign(state.cards, TEST_CARDS);
+  // Resuelve automáticamente la elección de carta de bonificación inicial (primera opción
+  // ofrecida) para que los tests de mecánica arranquen directo en fase "round", como antes de
+  // que existiera este paso de setup. Los tests que sí quieren cubrir el paso de elección usan
+  // createInitialState directamente.
+  for (const player of Object.values(state.players)) {
+    if (!player.isAutoma && player.pendingBonusChoice && player.pendingBonusChoice.length > 0) {
+      state = applyMove(state, player.id, {
+        type: "chooseBonusCard",
+        bonusCardId: player.pendingBonusChoice[0],
+      });
+    }
+  }
   return state;
 }
 
@@ -669,6 +681,9 @@ describe("motor de reglas expandido de wingspread", () => {
         ],
       };
       state.bonusDeck = ["forester", "wetlandScientist", "visionaryLeader"];
+      // El setup ya descartó 1 de las 2 cartas repartidas al crear la partida; lo limpiamos para
+      // que la aserción de abajo sobre bonusDiscard sea determinista.
+      state.bonusDiscard = [];
       const bonusCountBefore = state.players.nico.bonusCards.length;
 
       const move: Move = {
@@ -691,9 +706,10 @@ describe("motor de reglas expandido de wingspread", () => {
       const state = createTestState({ mode: "solo" });
       state.players.nico.hand = ["acornJay"];
       state.players.nico.resources = { seed: 1, fruit: 1 };
-      // El setup reparte una carta de bonificación inicial al azar; la limpiamos para que la
-      // aserción "not.toContain forester" no dependa de esa asignación aleatoria.
+      // El setup reparte 2 cartas de bonificación al azar y ya se resolvió 1 elección (createTestState);
+      // los limpiamos para que las aserciones de abajo no dependan de esa asignación aleatoria.
       state.players.nico.bonusCards = [];
+      state.bonusDiscard = [];
       state.cards.acornJay = {
         ...state.cards.acornJay,
         powers: [
@@ -1578,7 +1594,74 @@ describe("motor de reglas expandido de wingspread", () => {
       expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(4); // 2 aves × 2 pts
     });
   });
+
+  describe("elección de carta de bonificación inicial (fase setup)", () => {
+    it("reparte 2 cartas de bonificación por jugador humano y arranca en fase 'setup'", () => {
+      const state = createInitialState(["nico", "santi"]);
+
+      expect(state.phase).toBe("setup");
+      expect(state.players.nico.pendingBonusChoice).toHaveLength(2);
+      expect(state.players.santi.pendingBonusChoice).toHaveLength(2);
+      expect(state.players.nico.bonusCards).toHaveLength(0);
+      expect(state.players.santi.bonusCards).toHaveLength(0);
+    });
+
+    it("no reparte cartas de bonificación al Automa (modo solo)", () => {
+      const state = createInitialState({ mode: "solo" });
+      expect(state.players.automa.pendingBonusChoice ?? []).toHaveLength(0);
+    });
+
+    it("ningún movimiento de juego es legal mientras la fase siga en 'setup'", () => {
+      const state = createInitialState({ mode: "solo" });
+      expect(state.phase).toBe("setup");
+      expect(isLegalMove(state, "nico", { type: "gainFood", dieIndexes: [0] })).toBe(false);
+    });
+
+    it("chooseBonusCard conserva la elegida, descarta la otra, y pasa a fase 'round' (modo solo)", () => {
+      const state = createInitialState({ mode: "solo" });
+      const [chosenId, otherId] = state.players.nico.pendingBonusChoice!;
+
+      expect(isLegalMove(state, "nico", { type: "chooseBonusCard", bonusCardId: chosenId })).toBe(true);
+      const next = applyMove(state, "nico", { type: "chooseBonusCard", bonusCardId: chosenId });
+
+      expect(next.players.nico.bonusCards.map((b) => b.id)).toEqual([chosenId]);
+      expect(next.players.nico.pendingBonusChoice).toBeUndefined();
+      expect(next.bonusDiscard).toContain(otherId);
+      // Único jugador humano en modo solo: al elegir, la partida arranca sola.
+      expect(next.phase).toBe("round");
+    });
+
+    it("en modo online, la fase permanece en 'setup' hasta que TODOS los jugadores eligieron", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      const nicoChoice = state.players.nico.pendingBonusChoice![0];
+      const santiChoice = state.players.santi.pendingBonusChoice![0];
+
+      const afterNico = applyMove(state, "nico", { type: "chooseBonusCard", bonusCardId: nicoChoice });
+      expect(afterNico.phase).toBe("setup"); // santi todavía no eligió
+      expect(afterNico.players.nico.pendingBonusChoice).toBeUndefined();
+
+      const afterSanti = applyMove(afterNico, "santi", { type: "chooseBonusCard", bonusCardId: santiChoice });
+      expect(afterSanti.phase).toBe("round");
+    });
+
+    it("chooseBonusCard no depende de currentPlayerId (elección simultánea, no por turnos)", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      expect(state.currentPlayerId).toBe("nico");
+      const santiChoice = state.players.santi.pendingBonusChoice![0];
+      // Santi puede elegir aunque currentPlayerId sea "nico": la elección inicial es simultánea.
+      expect(isLegalMove(state, "santi", { type: "chooseBonusCard", bonusCardId: santiChoice })).toBe(true);
+    });
+
+    it("chooseBonusCard es ilegal con un id no ofrecido, fuera de fase 'setup', o para el Automa", () => {
+      const state = createInitialState({ mode: "solo" });
+      const [chosenId] = state.players.nico.pendingBonusChoice!;
+
+      expect(isLegalMove(state, "nico", { type: "chooseBonusCard", bonusCardId: "not-offered" })).toBe(false);
+      expect(isLegalMove(state, "automa", { type: "chooseBonusCard", bonusCardId: chosenId })).toBe(false);
+
+      const resolved = applyMove(state, "nico", { type: "chooseBonusCard", bonusCardId: chosenId });
+      expect(resolved.phase).toBe("round");
+      expect(isLegalMove(resolved, "nico", { type: "chooseBonusCard", bonusCardId: chosenId })).toBe(false);
+    });
+  });
 });
-
-
-

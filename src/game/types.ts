@@ -293,6 +293,11 @@ export type PlayerState = {
   isAutoma?: boolean;
   /** IDs de poderes "entre turnos" (rosa) ya activados desde el último turno propio de este jugador. */
   pinkPowersUsed?: string[];
+  /**
+   * IDs de las 2 cartas de bonificación repartidas al inicio de la partida, entre las que el
+   * jugador debe elegir 1 para conservar (la otra se descarta). undefined una vez resuelto.
+   */
+  pendingBonusChoice?: string[];
 };
 
 export type GameLogEntry = {
@@ -445,6 +450,11 @@ export type Move =
     }
   | {
       type: "rerollFeeder";
+    }
+  | {
+      /** Elección de la carta de bonificación inicial a conservar (fase "setup"). */
+      type: "chooseBonusCard";
+      bonusCardId: string;
     };
 
 export type NetworkMessage =
