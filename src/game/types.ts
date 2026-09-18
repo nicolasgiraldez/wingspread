@@ -31,6 +31,10 @@ export type Power =
       amount: number;
       from?: "supply" | "feeder";
       habitat?: HabitatId;
+      /** Si es true, el poder cuesta descartar 1 huevo de una de las aves del jugador. */
+      costsEgg?: boolean;
+      /** Solo con costsEgg: el huevo no puede salir de esta misma carta ("otra ave"). */
+      costEggExcludesSelf?: boolean;
     }
   | {
       id: string;
@@ -58,6 +62,9 @@ export type Power =
       kind: "drawCard";
       amount: number;
       thenDiscard?: boolean;
+      /** Si es true, el poder cuesta descartar 1 huevo de una de las aves del jugador. */
+      costsEgg?: boolean;
+      costEggExcludesSelf?: boolean;
     }
   | {
       id: string;
@@ -97,6 +104,12 @@ export type Power =
       kind: "playSecondBird";
       /** Hábitat(s) donde se puede jugar la segunda ave; el jugador elige si hay más de uno. */
       habitats: HabitatId[];
+    }
+  | {
+      id: string;
+      timing: PowerTiming;
+      kind: "moveToHabitat";
+      /** Solo funciona si esta carta está en la columna más a la derecha ocupada de su hábitat. */
     }
   | {
       id: string;
@@ -307,6 +320,12 @@ export type PowerPlayBirdChoices = Record<string, PowerPlayBirdChoice>;
  */
 export type PowerEggChoices = Record<string, SlotRef>;
 
+/**
+ * Elección del jugador del hábitat de destino para un poder "moveToHabitat" (cuando la carta
+ * admite más de un hábitat alternativo). Clave = Power["id"].
+ */
+export type PowerMoveChoices = Record<string, HabitatId>;
+
 export type Move =
   | {
       type: "playBird";
@@ -319,6 +338,7 @@ export type Move =
       powerCardChoices?: PowerCardChoices;
       powerPlayBirdChoices?: PowerPlayBirdChoices;
       powerEggChoices?: PowerEggChoices;
+      powerMoveChoices?: PowerMoveChoices;
     }
   | {
       type: "gainFood";
@@ -330,6 +350,7 @@ export type Move =
       skipPowerIds?: SkipPowerIds;
       powerCardChoices?: PowerCardChoices;
       powerEggChoices?: PowerEggChoices;
+      powerMoveChoices?: PowerMoveChoices;
     }
   | {
       type: "layEggs";
@@ -338,6 +359,7 @@ export type Move =
       skipPowerIds?: SkipPowerIds;
       powerCardChoices?: PowerCardChoices;
       powerEggChoices?: PowerEggChoices;
+      powerMoveChoices?: PowerMoveChoices;
     }
   | {
       type: "drawBirdCards";
@@ -346,6 +368,7 @@ export type Move =
       skipPowerIds?: SkipPowerIds;
       powerCardChoices?: PowerCardChoices;
       powerEggChoices?: PowerEggChoices;
+      powerMoveChoices?: PowerMoveChoices;
     }
   | {
       type: "rerollFeeder";

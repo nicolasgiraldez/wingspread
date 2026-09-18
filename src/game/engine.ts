@@ -14,6 +14,7 @@ import type {
   Power,
   PowerCardChoices,
   PowerEggChoices,
+  PowerMoveChoices,
   PowerPlayBirdChoices,
   ResourceFace,
   RoundGoal,
@@ -387,6 +388,7 @@ function playBird(
     cardChoices: move.powerCardChoices,
     playBirdChoices: move.powerPlayBirdChoices,
     eggChoices: move.powerEggChoices,
+    moveChoices: move.powerMoveChoices,
   });
 }
 
@@ -408,6 +410,7 @@ function placeBird(
     cardChoices?: PowerCardChoices;
     playBirdChoices?: PowerPlayBirdChoices;
     eggChoices?: PowerEggChoices;
+    moveChoices?: PowerMoveChoices;
   },
 ) {
   const card = state.cards[params.cardId];
@@ -427,6 +430,7 @@ function placeBird(
       params.cardChoices,
       params.playBirdChoices,
       params.eggChoices,
+      params.moveChoices,
     );
   }
   triggerPinkPowers(state, player.id, { type: "playBird", habitat: params.habitat });
@@ -468,6 +472,7 @@ function gainFood(state: GameState, player: PlayerState, move: Extract<Move, { t
     move.powerCardChoices,
     undefined,
     move.powerEggChoices,
+    move.powerMoveChoices,
   );
   triggerPinkPowers(state, player.id, { type: "gainFood" });
 }
@@ -490,6 +495,7 @@ function layEggs(state: GameState, player: PlayerState, move: Extract<Move, { ty
     move.powerCardChoices,
     undefined,
     move.powerEggChoices,
+    move.powerMoveChoices,
   );
   triggerPinkPowers(state, player.id, { type: "layEggs" });
 }
@@ -541,6 +547,7 @@ function drawBirdCards(
     move.powerCardChoices,
     undefined,
     move.powerEggChoices,
+    move.powerMoveChoices,
   );
   triggerPinkPowers(state, player.id, { type: "drawBirdCards" });
 }
@@ -553,10 +560,11 @@ function activateHabitat(
   cardChoices?: PowerCardChoices,
   playBirdChoices?: PowerPlayBirdChoices,
   eggChoices?: PowerEggChoices,
+  moveChoices?: PowerMoveChoices,
 ) {
   for (const { source, power } of getActivatablePowers(state, player, habitat)) {
     if (skipIds.has(power.id)) continue;
-    resolvePower(state, player, power, source, cardChoices, playBirdChoices, eggChoices);
+    resolvePower(state, player, power, source, cardChoices, playBirdChoices, eggChoices, moveChoices);
   }
 }
 
@@ -631,13 +639,31 @@ export function resolvePower(
   cardChoices?: PowerCardChoices,
   playBirdChoices?: PowerPlayBirdChoices,
   eggChoices?: PowerEggChoices,
+  moveChoices?: PowerMoveChoices,
 ) {
   const currentSlot = player.board[source.habitat]?.[source.slotIndex];
   const birdCard = currentSlot?.cardId ? state.cards[currentSlot.cardId] : null;
   const birdName = birdCard?.name ?? "Ave";
 
   if (power.kind === "gainResource") {
+    if (power.costsEgg) {
+      const paid = tryPayEggCost(
+        player,
+        power.costsEgg,
+        power.costEggExcludesSelf,
+        source,
+        eggChoices?.[power.id],
+      );
+      if (!paid) {
+        state.log.push({
+          playerId: player.id,
+          message: `Poder de [${birdName}]: no tenía ningún huevo disponible para pagar este poder.`,
+        });
+        return;
+      }
+    }
     const res = power.resource ?? "seed";
+    const eggNote = power.costsEgg ? " (descartando 1 huevo)" : "";
     if (power.from === "feeder") {
       const dieIdx = state.feeder.indexOf(res);
       if (dieIdx !== -1) {
@@ -645,7 +671,7 @@ export function resolvePower(
         player.resources[res] = (player.resources[res] ?? 0) + power.amount;
         state.log.push({
           playerId: player.id,
-          message: `Poder de [${birdName}]: tomó 1 ${res} del comedero.`,
+          message: `Poder de [${birdName}]: tomó 1 ${res} del comedero${eggNote}.`,
         });
         if (state.feeder.length === 0) {
           state.feeder = rollInitialFeeder(5);
@@ -655,13 +681,23 @@ export function resolvePower(
       player.resources[res] = (player.resources[res] ?? 0) + power.amount;
       state.log.push({
         playerId: player.id,
-        message: `Poder de [${birdName}]: obtuvo ${power.amount} ${res} de la reserva.`,
+        message: `Poder de [${birdName}]: obtuvo ${power.amount} ${res} de la reserva${eggNote}.`,
       });
     }
     return;
   }
 
   if (power.kind === "drawCard") {
+    if (power.costsEgg) {
+      const paid = tryPayEggCost(player, power.costsEgg, power.costEggExcludesSelf, source, eggChoices?.[power.id]);
+      if (!paid) {
+        state.log.push({
+          playerId: player.id,
+          message: `Poder de [${birdName}]: no tenía ningún huevo disponible para pagar este poder.`,
+        });
+        return;
+      }
+    }
     let drawnCount = 0;
     for (let index = 0; index < power.amount; index += 1) {
       const drawn = drawCardFromDeck(state);
@@ -930,6 +966,43 @@ export function resolvePower(
     state.log.push({
       playerId: player.id,
       message: `Poder de [${birdName}]: jugó una segunda ave, [${secondCard.name}], en ${targetHabitat}.`,
+    });
+    return;
+  }
+
+  if (power.kind === "moveToHabitat") {
+    if (!birdCard || !isRightmostInHabitat(player, source)) {
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: no está en la columna más a la derecha de su hábitat, no se puede mover.`,
+      });
+      return;
+    }
+
+    const hasOpenSlot = (h: HabitatId) => player.board[h].some((slot) => !slot.cardId);
+    const candidateHabitats = birdCard.habitats.filter((h) => h !== source.habitat);
+    const chosenHabitat = moveChoices?.[power.id];
+    const targetHabitat =
+      chosenHabitat && candidateHabitats.includes(chosenHabitat) && hasOpenSlot(chosenHabitat)
+        ? chosenHabitat
+        : candidateHabitats.find(hasOpenSlot);
+
+    if (!targetHabitat) {
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: no hay otro hábitat con espacio libre para moverla.`,
+      });
+      return;
+    }
+
+    const targetSlotIndex = player.board[targetHabitat].findIndex((slot) => !slot.cardId);
+    const movedSlot = { ...currentSlot! };
+    player.board[source.habitat][source.slotIndex] = { cardId: null, eggs: 0, cached: [], tucked: [] };
+    player.board[targetHabitat][targetSlotIndex] = movedSlot;
+
+    state.log.push({
+      playerId: player.id,
+      message: `Poder de [${birdName}]: se movió de ${source.habitat} a ${targetHabitat}.`,
     });
   }
 }
@@ -1296,6 +1369,52 @@ function applyEggsToTarget(
     playerId: player.id,
     message: `Poder de [${birdName}]: puso ${eggsToAdd} huevo(s) en [${targetCard.name}] (${player.name}).`,
   });
+}
+
+/** Busca cualquier ranura con al menos 1 huevo, opcionalmente ignorando una ranura dada. */
+function findAnyEggSlot(player: PlayerState, excludeSlot?: SlotRef): SlotRef | null {
+  for (const habitat of Object.keys(player.board) as HabitatId[]) {
+    for (let slotIndex = 0; slotIndex < player.board[habitat].length; slotIndex += 1) {
+      if (excludeSlot && excludeSlot.habitat === habitat && excludeSlot.slotIndex === slotIndex) continue;
+      if (player.board[habitat][slotIndex].eggs > 0) return { habitat, slotIndex };
+    }
+  }
+  return null;
+}
+
+/**
+ * Intenta pagar el costo de 1 huevo de un poder (p. ej. "descartá 1 huevo para ganar X").
+ * Usa la elección del jugador si es válida; si no, autoselecciona cualquier huevo disponible.
+ * Devuelve false (sin cobrar nada) si no había ningún huevo pagable.
+ */
+function tryPayEggCost(
+  player: PlayerState,
+  costsEgg: boolean,
+  excludesSelf: boolean | undefined,
+  source: SlotRef,
+  chosen: SlotRef | undefined,
+): boolean {
+  if (!costsEgg) return true;
+  const excludeRef = excludesSelf ? source : undefined;
+  const isExcluded = (ref: SlotRef) =>
+    excludeRef !== undefined && ref.habitat === excludeRef.habitat && ref.slotIndex === excludeRef.slotIndex;
+  const chosenValid =
+    chosen && !isExcluded(chosen) && (player.board[chosen.habitat]?.[chosen.slotIndex]?.eggs ?? 0) > 0;
+
+  const eggSlot = chosenValid ? chosen! : findAnyEggSlot(player, excludeRef);
+  if (!eggSlot) return false;
+
+  player.board[eggSlot.habitat][eggSlot.slotIndex].eggs -= 1;
+  return true;
+}
+
+/** Verdadero si no hay ninguna otra ave del mismo jugador más a la derecha en ese hábitat. */
+function isRightmostInHabitat(player: PlayerState, source: SlotRef): boolean {
+  const row = player.board[source.habitat];
+  for (let i = source.slotIndex + 1; i < row.length; i += 1) {
+    if (row[i].cardId) return false;
+  }
+  return true;
 }
 
 function tally(resources: ResourceFace[]) {

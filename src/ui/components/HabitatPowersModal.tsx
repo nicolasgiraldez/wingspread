@@ -1,8 +1,15 @@
 import React, { useState } from "react";
 import { Check, X } from "lucide-react";
 import { getActivatablePowers } from "../../game";
-import type { GameState, HabitatId, PlayerState, PowerEggChoices } from "../../game";
-import { buildEggTargetOptions, decodeSlotKey, PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
+import type { GameState, HabitatId, PlayerState, PowerEggChoices, PowerMoveChoices } from "../../game";
+import {
+  buildEggSourceOptions,
+  buildEggTargetOptions,
+  decodeSlotKey,
+  PowerChecklist,
+  PowerChecklistEntry,
+} from "./PowerChecklist";
+import { habitatLabels } from "../labels";
 
 interface HabitatPowersModalProps {
   title: string;
@@ -14,6 +21,7 @@ interface HabitatPowersModalProps {
     skipPowerIds: string[],
     powerCardChoices: Record<string, string>,
     powerEggChoices: PowerEggChoices,
+    powerMoveChoices: PowerMoveChoices,
   ) => void;
   onClose: () => void;
 }
@@ -36,6 +44,7 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [eggChoiceKeys, setEggChoiceKeys] = useState<Record<string, string>>({});
+  const [moveChoices, setMoveChoices] = useState<PowerMoveChoices>({});
 
   const toggle = (powerId: string) => {
     setSkipped((prev) => {
@@ -51,7 +60,7 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
     name: gameState.cards[id]?.name ?? id,
   }));
 
-  const entries: PowerChecklistEntry[] = activatable.map(({ card, power }) => {
+  const entries: PowerChecklistEntry[] = activatable.map(({ source, card, power }) => {
     let cardChoice: PowerChecklistEntry["cardChoice"];
     if (power.kind === "tuckCard" && power.source === "hand") {
       cardChoice = {
@@ -98,6 +107,31 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
           }),
         defaultOptionLabel: "Automático (la primera ave con espacio)",
       };
+    } else if ((power.kind === "gainResource" || power.kind === "drawCard") && power.costsEgg) {
+      slotChoice = {
+        label: "¿De qué ave descartás el huevo? (opcional)",
+        options: buildEggSourceOptions(gameState, player, power.costEggExcludesSelf ? source : undefined),
+        selected: eggChoiceKeys[power.id] ?? null,
+        onSelect: (key) =>
+          setEggChoiceKeys((prev) => {
+            const next = { ...prev };
+            if (key) next[power.id] = key;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Automático (la primera ave con huevos)",
+      };
+    }
+
+    let habitatChoice: PowerChecklistEntry["habitatChoice"];
+    if (power.kind === "moveToHabitat") {
+      const otherHabitats = card.habitats.filter((h) => h !== source.habitat);
+      habitatChoice = {
+        label: "¿A qué hábitat la movés?",
+        options: otherHabitats.map((h) => ({ id: h, name: habitatLabels[h] })),
+        selected: moveChoices[power.id] ?? null,
+        onSelect: (h) => setMoveChoices((prev) => ({ ...prev, [power.id]: h })),
+      };
     }
 
     return {
@@ -107,12 +141,14 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
       onToggle: () => toggle(power.id),
       cardChoice,
       slotChoice,
+      habitatChoice,
     };
   });
 
   const handleConfirm = () => {
     const activeChoices: Record<string, string> = {};
     const activeEggChoices: PowerEggChoices = {};
+    const activeMoveChoices: PowerMoveChoices = {};
     for (const entry of entries) {
       if (!entry.checked) continue;
       if (entry.cardChoice?.selected) {
@@ -121,8 +157,11 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
       if (entry.slotChoice?.selected) {
         activeEggChoices[entry.power.id] = decodeSlotKey(entry.slotChoice.selected);
       }
+      if (entry.habitatChoice?.selected) {
+        activeMoveChoices[entry.power.id] = entry.habitatChoice.selected;
+      }
     }
-    onConfirm(Array.from(skipped), activeChoices, activeEggChoices);
+    onConfirm(Array.from(skipped), activeChoices, activeEggChoices, activeMoveChoices);
   };
 
   return (

@@ -22,6 +22,14 @@ export interface PowerSlotChoiceConfig {
   defaultOptionLabel: string;
 }
 
+export interface PowerHabitatChoiceConfig {
+  /** Texto explicando qué hábitat hay que elegir (p. ej. "¿A qué hábitat la movés?"). */
+  label: string;
+  options: { id: HabitatId; name: string }[];
+  selected: HabitatId | null;
+  onSelect: (id: HabitatId) => void;
+}
+
 export interface PowerChecklistEntry {
   power: Power;
   birdName: string;
@@ -29,6 +37,7 @@ export interface PowerChecklistEntry {
   onToggle: () => void;
   cardChoice?: PowerCardChoiceConfig;
   slotChoice?: PowerSlotChoiceConfig;
+  habitatChoice?: PowerHabitatChoiceConfig;
 }
 
 /** Codifica un SlotRef como string para usarlo de value en un <select>. */
@@ -55,6 +64,27 @@ export function buildEggTargetOptions(
       options.push({
         key: encodeSlotKey({ habitat: hab, slotIndex }),
         name: `${card.name} (${habitatLabels[hab]}, ${slot.eggs}/${card.eggCapacity} 🥚)`,
+      });
+    });
+  }
+  return options;
+}
+
+/** Aves del jugador con al menos 1 huevo, para poderes que cuestan "descartar 1 huevo". */
+export function buildEggSourceOptions(
+  gameState: GameState,
+  player: PlayerState,
+  excludeSlot?: SlotRef,
+): { key: string; name: string }[] {
+  const options: { key: string; name: string }[] = [];
+  for (const hab of ["forest", "grassland", "wetland"] as HabitatId[]) {
+    player.board[hab].forEach((slot, slotIndex) => {
+      if (excludeSlot && excludeSlot.habitat === hab && excludeSlot.slotIndex === slotIndex) return;
+      if (!slot.cardId || slot.eggs <= 0) return;
+      const card = gameState.cards[slot.cardId];
+      options.push({
+        key: encodeSlotKey({ habitat: hab, slotIndex }),
+        name: `${card?.name ?? slot.cardId} (${habitatLabels[hab]}, ${slot.eggs} 🥚)`,
       });
     });
   }
@@ -124,6 +154,33 @@ export const PowerChecklist: React.FC<PowerChecklistProps> = ({ title, entries }
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {entry.checked && entry.habitatChoice && entry.habitatChoice.options.length > 1 && (
+              <div className="power-checklist-choice">
+                <span style={{ fontSize: "0.75rem", color: "#667" }}>{entry.habitatChoice.label}</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {entry.habitatChoice.options.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => entry.habitatChoice!.onSelect(opt.id)}
+                      style={{
+                        flex: 1,
+                        padding: "5px 8px",
+                        borderRadius: 6,
+                        border: "1px solid #b8dbc0",
+                        background: entry.habitatChoice!.selected === opt.id ? "#235c3a" : "#eaf4ed",
+                        color: entry.habitatChoice!.selected === opt.id ? "#ffffff" : "#235c3a",
+                        fontSize: "0.78rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {opt.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

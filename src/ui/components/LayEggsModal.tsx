@@ -8,6 +8,7 @@ import type {
   Move,
   PlayerState,
   PowerEggChoices,
+  PowerMoveChoices,
   ResourceFace,
   SpeciesCard,
 } from "../../game";
@@ -18,7 +19,13 @@ import {
   resourceIcons,
   resourceLabels,
 } from "../labels";
-import { buildEggTargetOptions, decodeSlotKey, PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
+import {
+  buildEggSourceOptions,
+  buildEggTargetOptions,
+  decodeSlotKey,
+  PowerChecklist,
+  PowerChecklistEntry,
+} from "./PowerChecklist";
 
 interface LayEggsModalProps {
   player: PlayerState;
@@ -105,6 +112,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
   const [skippedPowerIds, setSkippedPowerIds] = useState<Set<string>>(new Set());
   const [powerCardChoices, setPowerCardChoices] = useState<Record<string, CardId>>({});
   const [powerEggChoiceKeys, setPowerEggChoiceKeys] = useState<Record<string, string>>({});
+  const [powerMoveChoices, setPowerMoveChoices] = useState<PowerMoveChoices>({});
 
   const togglePower = (powerId: string) => {
     setSkippedPowerIds((prev) => {
@@ -117,7 +125,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
 
   const handOptions = player.hand.map((id) => ({ id, name: gameState.cards[id]?.name ?? id }));
 
-  const powerChecklistEntries: PowerChecklistEntry[] = activatablePowers.map(({ card, power }) => {
+  const powerChecklistEntries: PowerChecklistEntry[] = activatablePowers.map(({ source, card, power }) => {
     let cardChoice: PowerChecklistEntry["cardChoice"];
     if (
       (power.kind === "tuckCard" && power.source === "hand") ||
@@ -157,6 +165,31 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
           }),
         defaultOptionLabel: "Automático (la primera ave con espacio)",
       };
+    } else if ((power.kind === "gainResource" || power.kind === "drawCard") && power.costsEgg) {
+      slotChoice = {
+        label: "¿De qué ave descartás el huevo? (opcional)",
+        options: buildEggSourceOptions(gameState, player, power.costEggExcludesSelf ? source : undefined),
+        selected: powerEggChoiceKeys[power.id] ?? null,
+        onSelect: (key) =>
+          setPowerEggChoiceKeys((prev) => {
+            const next = { ...prev };
+            if (key) next[power.id] = key;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Automático (la primera ave con huevos)",
+      };
+    }
+
+    let habitatChoice: PowerChecklistEntry["habitatChoice"];
+    if (power.kind === "moveToHabitat") {
+      const otherHabitats = card.habitats.filter((h) => h !== source.habitat);
+      habitatChoice = {
+        label: "¿A qué hábitat la movés?",
+        options: otherHabitats.map((h) => ({ id: h, name: habitatLabels[h] })),
+        selected: powerMoveChoices[power.id] ?? null,
+        onSelect: (h) => setPowerMoveChoices((prev) => ({ ...prev, [power.id]: h })),
+      };
     }
 
     return {
@@ -166,6 +199,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       onToggle: () => togglePower(power.id),
       cardChoice,
       slotChoice,
+      habitatChoice,
     };
   });
 
@@ -203,6 +237,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
 
     const activePowerCardChoices: Record<string, CardId> = {};
     const activePowerEggChoices: PowerEggChoices = {};
+    const activePowerMoveChoices: PowerMoveChoices = {};
     for (const entry of powerChecklistEntries) {
       if (!entry.checked) continue;
       if (entry.cardChoice?.selected) {
@@ -210,6 +245,9 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       }
       if (entry.slotChoice?.selected) {
         activePowerEggChoices[entry.power.id] = decodeSlotKey(entry.slotChoice.selected);
+      }
+      if (entry.habitatChoice?.selected) {
+        activePowerMoveChoices[entry.power.id] = entry.habitatChoice.selected;
       }
     }
 
@@ -220,6 +258,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       ...(skippedPowerIds.size > 0 ? { skipPowerIds: Array.from(skippedPowerIds) } : {}),
       ...(Object.keys(activePowerCardChoices).length > 0 ? { powerCardChoices: activePowerCardChoices } : {}),
       ...(Object.keys(activePowerEggChoices).length > 0 ? { powerEggChoices: activePowerEggChoices } : {}),
+      ...(Object.keys(activePowerMoveChoices).length > 0 ? { powerMoveChoices: activePowerMoveChoices } : {}),
     });
   };
 

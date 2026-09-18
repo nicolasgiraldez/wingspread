@@ -27,6 +27,7 @@ import type {
   NetworkMessage,
   PlayerId,
   PowerEggChoices,
+  PowerMoveChoices,
   ResourceFace,
   SpeciesCard,
 } from "../game";
@@ -288,6 +289,7 @@ export const App: React.FC = () => {
     skipPowerIds: string[],
     powerCardChoices: Record<string, string>,
     powerEggChoices: PowerEggChoices,
+    powerMoveChoices: PowerMoveChoices,
   ) => {
     if (!pendingGainFood) return;
     const { dieIndex, wildChoice } = pendingGainFood;
@@ -298,6 +300,7 @@ export const App: React.FC = () => {
       ...(skipPowerIds.length ? { skipPowerIds } : {}),
       ...(Object.keys(powerCardChoices).length ? { powerCardChoices } : {}),
       ...(Object.keys(powerEggChoices).length ? { powerEggChoices } : {}),
+      ...(Object.keys(powerMoveChoices).length ? { powerMoveChoices } : {}),
     });
     setPendingGainFood(null);
   };
@@ -323,6 +326,7 @@ export const App: React.FC = () => {
     skipPowerIds: string[],
     powerCardChoices: Record<string, string>,
     powerEggChoices: PowerEggChoices,
+    powerMoveChoices: PowerMoveChoices,
   ) => {
     if (!pendingDraw) return;
     executeLocalMove({
@@ -331,6 +335,7 @@ export const App: React.FC = () => {
       ...(skipPowerIds.length ? { skipPowerIds } : {}),
       ...(Object.keys(powerCardChoices).length ? { powerCardChoices } : {}),
       ...(Object.keys(powerEggChoices).length ? { powerEggChoices } : {}),
+      ...(Object.keys(powerMoveChoices).length ? { powerMoveChoices } : {}),
     });
     setPendingDraw(null);
   };

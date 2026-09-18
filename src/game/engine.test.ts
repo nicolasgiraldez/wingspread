@@ -523,6 +523,9 @@ describe("motor de reglas expandido de wingspread", () => {
       const state = createInitialState({ mode: "solo" });
       state.players.nico.hand = ["acornJay"];
       state.players.nico.resources = { seed: 1, fruit: 1 };
+      // El setup reparte una carta de bonificación inicial al azar; la limpiamos para que la
+      // aserción "not.toContain forestGuardian" no dependa de esa asignación aleatoria.
+      state.players.nico.bonusCards = [];
       state.cards.acornJay = {
         ...state.cards.acornJay,
         powers: [
@@ -648,6 +651,128 @@ describe("motor de reglas expandido de wingspread", () => {
       const next = applyMove(state, "nico", move);
       expect(next.players.santi.board.forest[0].eggs).toBe(1);
       expect(next.players.nico.board.forest[0].eggs).toBe(2);
+    });
+  });
+
+  describe("poder moveToHabitat (mover ave entre hábitats)", () => {
+    it("mueve el ave a otro hábitat cuando está en la columna más a la derecha, y los huevos viajan con ella", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "americanRobin"; // forest + grassland
+      state.players.nico.board.forest[0].eggs = 1;
+      state.cards.americanRobin = {
+        ...state.cards.americanRobin,
+        powers: [{ id: "test.move", timing: "onActivate", kind: "moveToHabitat" }],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.board.forest[0].cardId).toBeNull();
+      expect(next.players.nico.board.grassland[0].cardId).toBe("americanRobin");
+      expect(next.players.nico.board.grassland[0].eggs).toBe(1);
+    });
+
+    it("no mueve el ave si NO está en la columna más a la derecha ocupada de su hábitat", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "americanRobin";
+      state.players.nico.board.forest[1].cardId = "acornJay"; // ocupa la columna siguiente
+      state.cards.americanRobin = {
+        ...state.cards.americanRobin,
+        powers: [{ id: "test.move2", timing: "onActivate", kind: "moveToHabitat" }],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.board.forest[0].cardId).toBe("americanRobin");
+      expect(next.players.nico.board.grassland[0].cardId).toBeNull();
+    });
+
+    it("respeta la elección del jugador de hábitat de destino cuando hay más de una opción", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "rubyThroatedHummingbird"; // forest+grassland+wetland
+      state.cards.rubyThroatedHummingbird = {
+        ...state.cards.rubyThroatedHummingbird,
+        powers: [{ id: "test.move3", timing: "onActivate", kind: "moveToHabitat" }],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = {
+        type: "gainFood",
+        dieIndexes: [0],
+        powerMoveChoices: { "test.move3": "wetland" },
+      };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.board.wetland[0].cardId).toBe("rubyThroatedHummingbird");
+      expect(next.players.nico.board.grassland[0].cardId).toBeNull();
+    });
+  });
+
+  describe("poderes con costo en huevo (gainResource/drawCard costsEgg)", () => {
+    it("gainResource con costsEgg descuenta 1 huevo de OTRA ave (costEggExcludesSelf) y otorga el recurso", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.players.nico.board.forest[1].cardId = "tuftedTitmouse";
+      state.players.nico.board.forest[1].eggs = 1;
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [
+          {
+            id: "test.eggCost",
+            timing: "onActivate",
+            kind: "gainResource",
+            resource: "seed",
+            amount: 1,
+            costsEgg: true,
+            costEggExcludesSelf: true,
+          },
+        ],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.board.forest[1].eggs).toBe(0);
+      expect(next.players.nico.resources.seed).toBe(3); // 1 inicial + 1 del dado + 1 del poder
+    });
+
+    it("gainResource con costsEgg no hace nada si no hay ningún huevo disponible para pagarlo", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [
+          { id: "test.eggCostFail", timing: "onActivate", kind: "gainResource", resource: "fruit", amount: 5, costsEgg: true },
+        ],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.resources.fruit).toBe(1); // sin cambios: el poder no se pudo pagar
+    });
+
+    it("drawCard con costsEgg descuenta 1 huevo antes de robar", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.hand = [];
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.players.nico.board.forest[0].eggs = 1;
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.drawEggCost", timing: "onActivate", kind: "drawCard", amount: 2, costsEgg: true }],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.board.forest[0].eggs).toBe(0);
+      expect(next.players.nico.hand.length).toBe(2);
     });
   });
 
