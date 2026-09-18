@@ -176,13 +176,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
               ✏️ Introduce tu nombre para comenzar
             </p>
           )}
-
-          {/* Feature pills */}
-          <div style={styles.featurePills}>
-            {["🌲 Bosque", "🌾 Pradera", "🌊 Humedal", "🎲 Dados de alimento", "🐦 17+ aves", "🃏 Objetivos de ronda"].map((f) => (
-              <span key={f} style={styles.pill}>{f}</span>
-            ))}
-          </div>
         </div>
       </div>
     );
@@ -500,20 +493,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#9ca3af",
     fontSize: "0.82rem",
     margin: "0 0 16px 0",
-  },
-  featurePills: {
-    display: "flex",
-    flexWrap: "wrap" as const,
-    gap: 6,
-    justifyContent: "center",
-    marginTop: 8,
-  },
-  pill: {
-    background: "#f0f4f0",
-    color: "#445",
-    borderRadius: 20,
-    padding: "4px 10px",
-    fontSize: "0.75rem",
   },
   fieldGroup: {
     marginBottom: 14,
