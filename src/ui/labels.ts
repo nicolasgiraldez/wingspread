@@ -57,6 +57,22 @@ export const resourceIcons: Record<ResourceFace, string> = {
   wild: "🐛/🌾",
 };
 
+/**
+ * Ícono/etiqueta para "wild" cuando aparece como costo de comida de una carta (acepta CUALQUIER
+ * tipo de alimento, no solo insecto/semilla). Distinto de resourceIcons.wild, que representa
+ * específicamente la cara "comodín" del dado del comedero (ahí sí es insecto o semilla).
+ */
+export const wildCostIcon = "🃏";
+export const wildCostLabel = "comodín (cualquier alimento)";
+
+export function costIcon(res: ResourceFace): string {
+  return res === "wild" ? wildCostIcon : resourceIcons[res];
+}
+
+export function costLabel(res: ResourceFace): string {
+  return res === "wild" ? wildCostLabel : resourceLabels[res];
+}
+
 export const nestLabels: Record<NestType, string> = {
   bowl: "Nido de copa",
   cavity: "Nido en cavidad",

@@ -2,6 +2,8 @@ import React from "react";
 import { Egg, Feather, Layers, Sparkles } from "lucide-react";
 import type { ResourceFace, SpeciesCard } from "../../game";
 import {
+  costIcon,
+  costLabel,
   describePower,
   habitatIcons,
   habitatLabels,
@@ -116,8 +118,8 @@ export const BirdCard: React.FC<BirdCardProps> = ({
         {Object.entries(card.cost).length > 0 || (card.costAnyOf && card.costAnyOf.length > 0) ? (
           <>
             {Object.entries(card.cost).map(([res, count]) => (
-              <span key={res} className="cost-pill">
-                {count} {resourceIcons[res as ResourceFace] ?? res}
+              <span key={res} className="cost-pill" title={costLabel(res as ResourceFace)}>
+                {count} {costIcon(res as ResourceFace) ?? res}
               </span>
             ))}
             {card.costAnyOf && card.costAnyOf.length > 0 && (
