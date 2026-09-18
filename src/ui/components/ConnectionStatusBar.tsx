@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { Check, Copy, Globe, Link, Share2, Wifi, WifiOff } from "lucide-react";
 import type { ConnectionStatus } from "../network/peerManager";
-import { playerNames } from "../labels";
 
 interface ConnectionStatusBarProps {
   roomCode: string;
   isHost: boolean;
   status: ConnectionStatus;
   statusMessage?: string;
-  localPlayerId: string;
+  localPlayerName: string;
 }
 
 export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
@@ -16,7 +15,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
   isHost,
   status,
   statusMessage,
-  localPlayerId,
+  localPlayerName,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -94,7 +93,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
             <span style={{ fontSize: "0.85rem", color: "#556" }}>Sala Online:</span>
             <strong style={{ fontSize: "0.95rem", letterSpacing: 0.5 }}>{roomCode}</strong>
             <span style={{ fontSize: "0.75rem", background: "#f0f3f0", padding: "1px 6px", borderRadius: 4, color: "#445" }}>
-              Rol: <strong>{playerNames[localPlayerId]} ({isHost ? "Host" : "Invitado"})</strong>
+              Rol: <strong>{localPlayerName} ({isHost ? "Host" : "Invitado"})</strong>
             </span>
           </div>
           {statusMessage && (

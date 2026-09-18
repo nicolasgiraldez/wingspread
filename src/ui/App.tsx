@@ -33,6 +33,7 @@ import { AutomaPanel } from "./components/AutomaPanel";
 import { BirdCard } from "./components/BirdCard";
 import { BirdFeeder } from "./components/BirdFeeder";
 import { BirdMarket } from "./components/BirdMarket";
+import { ConnectingScreen } from "./components/ConnectingScreen";
 import { ConnectionStatusBar } from "./components/ConnectionStatusBar";
 import { GameOverModal } from "./components/GameOverModal";
 import { HabitatPowersModal } from "./components/HabitatPowersModal";
@@ -64,6 +65,12 @@ export const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
   const [connectionMessage, setConnectionMessage] = useState<string>("");
   const [urlJoinCode, setUrlJoinCode] = useState<string>("");
+  // Mientras el invitado espera el primer SYNC_STATE del anfitrión (todavía no hay gameState),
+  // esto mantiene los datos necesarios para mostrar una pantalla de "conectando" en vez de
+  // dejar la pantalla de inicio sin ningún indicio de que hay una conexión en curso.
+  const [pendingOnlineJoin, setPendingOnlineJoin] = useState<
+    { roomCode: string; playerName: string } | null
+  >(null);
 
   const [selectedCardForPlay, setSelectedCardForPlay] = useState<SpeciesCard | null>(null);
   const [selectedHabitat, setSelectedHabitat] = useState<HabitatId>("forest");
@@ -178,6 +185,7 @@ export const App: React.FC = () => {
       setIsHost(false);
       setRoomCode(code);
       setConnectionStatus("connecting");
+      setPendingOnlineJoin({ roomCode: code, playerName: config.playerName });
 
       networkManager.initGuest(code, {
         onStatusChange: (status, message) => {
@@ -202,10 +210,28 @@ export const App: React.FC = () => {
                 },
               };
             });
+            setPendingOnlineJoin(null);
           }
         },
       });
     }
+  };
+
+  const handleCancelJoin = () => {
+    networkManager.cleanup();
+    setPendingOnlineJoin(null);
+    setConnectionStatus("disconnected");
+    setConnectionMessage("");
+    setRoomCode("");
+  };
+
+  const handleRetryJoin = () => {
+    if (!pendingOnlineJoin) return;
+    handleHomeStart({
+      mode: "online-join",
+      playerName: pendingOnlineJoin.playerName,
+      roomCode: pendingOnlineJoin.roomCode,
+    });
   };
 
   // ── Return to homepage ────────────────────────────────────────────────────
@@ -216,6 +242,7 @@ export const App: React.FC = () => {
     setConnectionMessage("");
     setRoomCode("");
     setSelectedCardForPlay(null);
+    setPendingOnlineJoin(null);
   };
 
   // ── Game moves ────────────────────────────────────────────────────────────
@@ -313,8 +340,20 @@ export const App: React.FC = () => {
     setSelectedCardForPlay(null);
   };
 
-  // ── Show HomePage ─────────────────────────────────────────────────────────
+  // ── Show HomePage / connecting screen ─────────────────────────────────────
   if (!gameState) {
+    if (pendingOnlineJoin) {
+      return (
+        <ConnectingScreen
+          roomCode={pendingOnlineJoin.roomCode}
+          playerName={pendingOnlineJoin.playerName}
+          status={connectionStatus}
+          statusMessage={connectionMessage}
+          onCancel={handleCancelJoin}
+          onRetry={handleRetryJoin}
+        />
+      );
+    }
     return <HomePage onStart={handleHomeStart} defaultJoinCode={urlJoinCode} />;
   }
 
@@ -536,7 +575,7 @@ export const App: React.FC = () => {
             isHost={isHost}
             status={connectionStatus}
             statusMessage={connectionMessage}
-            localPlayerId={localPlayerId}
+            localPlayerName={getDisplayName(gameState, localPlayerId)}
           />
         )}
 

@@ -22,6 +22,31 @@ export function generateRoomCode(): string {
   return `${word}-${num}`;
 }
 
+/**
+ * Interpreta lo que el jugador escribió/pegó en el campo de "código de sala": puede ser
+ * un código simple (ej. "halcon-482") o un enlace completo compartido (ej.
+ * "https://wingspread.vercel.app/?room=halcon-482"). Devuelve siempre el código normalizado
+ * (minúsculas, sin espacios), o "" si no se pudo reconocer nada útil.
+ */
+export function extractRoomCode(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+
+  const looksLikeLink = /^https?:\/\//i.test(trimmed) || trimmed.includes("room=") || trimmed.includes("join=");
+  if (looksLikeLink) {
+    try {
+      const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+      const fromParam = url.searchParams.get("room") || url.searchParams.get("join");
+      if (fromParam) return fromParam.trim().toLowerCase();
+      return "";
+    } catch {
+      return "";
+    }
+  }
+
+  return trimmed.toLowerCase();
+}
+
 export type ConnectionStatus =
   | "disconnected"
   | "connecting"

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { AutomaDifficulty } from "../../game";
 import { difficultyLabels } from "../labels";
-import { generateRoomCode } from "../network/peerManager";
+import { extractRoomCode, generateRoomCode } from "../network/peerManager";
 
 export interface HomePageConfig {
   mode: "solo" | "online-host" | "online-join";
@@ -67,19 +67,38 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
     });
   };
 
+  // El código puede venir tipeado a mano o pegado como el enlace completo de invitación
+  // (ej. "https://wingspread.vercel.app/?room=halcon-482"); extractRoomCode reconoce ambos.
+  const parsedJoinCode = extractRoomCode(joinCode);
+
+  const handleJoinCodeChange = (raw: string) => {
+    setJoinError("");
+    // Si pegaron un enlace completo, colapsamos el campo al código solo: así no queda
+    // una URL larga ocupando el input y el jugador ve al instante qué se reconoció.
+    const looksLikeLink = /^https?:\/\//i.test(raw) || raw.includes("room=") || raw.includes("join=");
+    if (looksLikeLink) {
+      setJoinCode(extractRoomCode(raw) || raw);
+    } else {
+      setJoinCode(raw);
+    }
+  };
+
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validName) return;
-    const code = joinCode.trim().toLowerCase();
-    if (!code) {
-      setJoinError("Por favor, introduce un código de sala.");
+    if (!parsedJoinCode) {
+      setJoinError(
+        joinCode.trim()
+          ? "No reconocemos ese código o enlace. Revisá que esté completo."
+          : "Por favor, introduce un código de sala.",
+      );
       return;
     }
     setJoinError("");
     onStart({
       mode: "online-join",
       playerName: playerName.trim(),
-      roomCode: code,
+      roomCode: parsedJoinCode,
     });
   };
 
@@ -318,16 +337,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
               <input
                 type="text"
                 value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value)}
-                placeholder="ej. halcon-428"
-                maxLength={32}
-                style={{ ...styles.input, flex: 1 }}
+                onChange={(e) => handleJoinCodeChange(e.target.value)}
+                placeholder="ej. halcon-428 (o pegá el enlace de invitación)"
+                style={{ ...styles.input, flex: 1, minWidth: 0 }}
               />
               <button
                 type="submit"
                 disabled={!validName}
                 style={{
                   ...styles.startBtn,
+                  width: "auto",
                   padding: "0 18px",
                   minWidth: 0,
                   flexShrink: 0,
@@ -338,6 +357,17 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
                 <LogIn size={15} /> Unirse
               </button>
             </div>
+            {joinCode.trim() && !joinError && (
+              parsedJoinCode ? (
+                <span style={{ fontSize: "0.78rem", color: "#235c3a" }}>
+                  ✓ Te unirás a la sala: <strong>{parsedJoinCode}</strong>
+                </span>
+              ) : (
+                <span style={{ fontSize: "0.78rem", color: "#b06d00" }}>
+                  No reconocemos ese código o enlace todavía.
+                </span>
+              )
+            )}
             {joinError && <span style={{ fontSize: "0.78rem", color: "#b91c1c" }}>{joinError}</span>}
           </div>
         </form>
