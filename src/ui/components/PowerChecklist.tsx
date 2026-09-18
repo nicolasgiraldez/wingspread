@@ -1,4 +1,5 @@
 import React from "react";
+import { getActivatablePowers } from "../../game";
 import type { CardId, GameState, HabitatId, PlayerState, Power, SlotRef } from "../../game";
 import { describePower, habitatLabels } from "../labels";
 
@@ -89,6 +90,26 @@ export function buildEggSourceOptions(
     });
   }
   return options;
+}
+
+/** Otras aves con poder "Al activar" en el mismo hábitat, para el poder "repeatPower". */
+export function buildRepeatPowerOptions(
+  gameState: GameState,
+  player: PlayerState,
+  habitat: HabitatId,
+  excludeSlot: SlotRef,
+  predatorOnly?: boolean,
+): { key: string; name: string }[] {
+  return getActivatablePowers(gameState, player, habitat)
+    .filter(({ source: s, power: p }) => {
+      if (s.habitat === excludeSlot.habitat && s.slotIndex === excludeSlot.slotIndex) return false;
+      if (predatorOnly) return p.kind === "huntPredator" || p.kind === "diceHuntPredator";
+      return true;
+    })
+    .map(({ source: s, card, power: p }) => ({
+      key: encodeSlotKey(s),
+      name: `${card.name}: ${describePower(p)}`,
+    }));
 }
 
 interface PowerChecklistProps {

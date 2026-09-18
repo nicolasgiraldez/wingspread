@@ -602,7 +602,11 @@ export function triggerPinkPowers(
             (!power.habitat || power.habitat === event.habitat)
           ) {
             matched = true;
-          } else if (event.type === "playBird" && power.kind === "tuckCard") {
+          } else if (
+            event.type === "playBird" &&
+            power.kind === "tuckCard" &&
+            (!power.habitat || power.habitat === event.habitat)
+          ) {
             matched = true;
           } else if (
             event.type === "predatorSuccess" &&
@@ -662,22 +666,46 @@ export function resolvePower(
         return;
       }
     }
-    const res = power.resource ?? "seed";
     const eggNote = power.costsEgg ? " (descartando 1 huevo)" : "";
     if (power.from === "feeder") {
-      const dieIdx = state.feeder.indexOf(res);
-      if (dieIdx !== -1) {
-        state.feeder.splice(dieIdx, 1);
-        player.resources[res] = (player.resources[res] ?? 0) + power.amount;
-        state.log.push({
-          playerId: player.id,
-          message: `Poder de [${birdName}]: tomó 1 ${res} del comedero${eggNote}.`,
-        });
-        if (state.feeder.length === 0) {
-          state.feeder = rollInitialFeeder(5);
+      // Si el tipo principal no está en el comedero, probamos con el alternativo (si existe).
+      let res = power.resource ?? "seed";
+      if (!state.feeder.includes(res) && power.resourceAlt && state.feeder.includes(power.resourceAlt)) {
+        res = power.resourceAlt;
+      }
+
+      if (power.gainAllMatching) {
+        let count = 0;
+        while (state.feeder.includes(res)) {
+          state.feeder.splice(state.feeder.indexOf(res), 1);
+          count += 1;
+        }
+        if (count > 0) {
+          player.resources[res] = (player.resources[res] ?? 0) + count;
+          state.log.push({
+            playerId: player.id,
+            message: `Poder de [${birdName}]: tomó ${count} ${res} del comedero (todos los disponibles)${eggNote}.`,
+          });
+          if (state.feeder.length === 0) {
+            state.feeder = rollInitialFeeder(5);
+          }
+        }
+      } else {
+        const dieIdx = state.feeder.indexOf(res);
+        if (dieIdx !== -1) {
+          state.feeder.splice(dieIdx, 1);
+          player.resources[res] = (player.resources[res] ?? 0) + power.amount;
+          state.log.push({
+            playerId: player.id,
+            message: `Poder de [${birdName}]: tomó 1 ${res} del comedero${eggNote}.`,
+          });
+          if (state.feeder.length === 0) {
+            state.feeder = rollInitialFeeder(5);
+          }
         }
       }
     } else {
+      const res = power.resource ?? "seed";
       player.resources[res] = (player.resources[res] ?? 0) + power.amount;
       state.log.push({
         playerId: player.id,
@@ -771,24 +799,39 @@ export function resolvePower(
 
   if (power.kind === "tuckCard") {
     if (currentSlot) {
-      let tuckedCard: string | undefined;
+      if (power.costResource) {
+        const need = power.costAmount ?? 1;
+        if ((player.resources[power.costResource] ?? 0) < need) {
+          state.log.push({
+            playerId: player.id,
+            message: `Poder de [${birdName}]: no tenía suficiente ${power.costResource} para pagar este poder.`,
+          });
+          return;
+        }
+        player.resources[power.costResource] = (player.resources[power.costResource] ?? 0) - need;
+      }
+
+      const tuckedCards: string[] = [];
       if (power.source === "deck") {
-        const drawn = drawCardFromDeck(state);
-        if (drawn) {
-          currentSlot.tucked.push(drawn);
-          tuckedCard = drawn;
+        for (let i = 0; i < power.amount; i += 1) {
+          const drawn = drawCardFromDeck(state);
+          if (drawn) {
+            currentSlot.tucked.push(drawn);
+            tuckedCards.push(drawn);
+          }
         }
       } else if (power.source === "hand" && player.hand.length > 0) {
         const fromHand = takeCardFromHand(player, cardChoices?.[power.id]);
         if (fromHand) {
           currentSlot.tucked.push(fromHand);
-          tuckedCard = fromHand;
+          tuckedCards.push(fromHand);
         }
       }
 
-      if (tuckedCard) {
-        const tuckedObj = state.cards[tuckedCard];
-        let msg = `Poder de [${birdName}]: solapó 1 carta (${tuckedObj?.name ?? "carta"}).`;
+      if (tuckedCards.length > 0) {
+        const names = tuckedCards.map((id) => state.cards[id]?.name ?? "carta").join(", ");
+        const costNote = power.costResource ? ` (pagando ${power.costAmount ?? 1} ${power.costResource})` : "";
+        let msg = `Poder de [${birdName}]: solapó ${tuckedCards.length} carta(s) (${names})${costNote}.`;
         if (power.thenDraw) {
           const newCard = drawCardFromDeck(state);
           if (newCard) {
@@ -801,6 +844,10 @@ export function resolvePower(
             currentSlot.eggs += 1;
             msg += ` Y puso 1 huevo en su nido.`;
           }
+        }
+        if (power.thenGainResource) {
+          player.resources[power.thenGainResource] = (player.resources[power.thenGainResource] ?? 0) + 1;
+          msg += ` Y ganó 1 ${power.thenGainResource} de la reserva.`;
         }
         state.log.push({ playerId: player.id, message: msg });
       }
@@ -875,6 +922,19 @@ export function resolvePower(
   }
 
   if (power.kind === "allPlayersGain") {
+    if (power.benefitType === "card") {
+      for (const p of Object.values(state.players)) {
+        if (p.isAutoma) continue;
+        const drawn = drawCardFromDeck(state);
+        if (drawn) p.hand.push(drawn);
+      }
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: todos los jugadores robaron 1 carta del mazo.`,
+      });
+      return;
+    }
+
     const res = power.resource ?? "seed";
     for (const p of Object.values(state.players)) {
       if (!p.isAutoma) {
@@ -1003,6 +1063,90 @@ export function resolvePower(
     state.log.push({
       playerId: player.id,
       message: `Poder de [${birdName}]: se movió de ${source.habitat} a ${targetHabitat}.`,
+    });
+    return;
+  }
+
+  if (power.kind === "repeatPower") {
+    const candidates = getActivatablePowers(state, player, source.habitat).filter(({ source: s, power: p }) => {
+      if (s.habitat === source.habitat && s.slotIndex === source.slotIndex) return false; // no a sí misma
+      if (power.predatorOnly) return p.kind === "huntPredator" || p.kind === "diceHuntPredator";
+      return true;
+    });
+
+    const chosen = eggChoices?.[power.id];
+    const target =
+      candidates.find(
+        ({ source: s }) => chosen && s.habitat === chosen.habitat && s.slotIndex === chosen.slotIndex,
+      ) ?? candidates[0];
+
+    if (!target) {
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: no había otro poder ${power.predatorOnly ? "de caza " : ""}para repetir en este hábitat.`,
+      });
+      return;
+    }
+
+    state.log.push({
+      playerId: player.id,
+      message: `Poder de [${birdName}]: repite el poder de [${target.card.name}].`,
+    });
+    resolvePower(state, player, target.power, target.source, cardChoices, playBirdChoices, eggChoices, moveChoices);
+    return;
+  }
+
+  if (power.kind === "fewestBirdsBenefit") {
+    const counts = Object.values(state.players)
+      .filter((p) => !p.isAutoma)
+      .map((p) => ({ player: p, count: p.board[power.habitat].filter((s) => s.cardId).length }));
+    if (counts.length === 0) return;
+
+    const minCount = Math.min(...counts.map((c) => c.count));
+    const winners = counts.filter((c) => c.count === minCount).map((c) => c.player);
+    const winnerNames = winners.map((w) => w.name).join(", ");
+
+    if (power.benefitType === "drawCard") {
+      for (const winner of winners) {
+        for (let i = 0; i < (power.amount ?? 1); i += 1) {
+          const drawn = drawCardFromDeck(state);
+          if (drawn) winner.hand.push(drawn);
+        }
+      }
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: [${winnerNames}] (menos aves en ${power.habitat}) robó(aron) ${power.amount ?? 1} carta(s).`,
+      });
+    } else {
+      for (const winner of winners) {
+        if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
+        const die = state.feeder.shift();
+        if (die) {
+          winner.resources[die] = (winner.resources[die] ?? 0) + 1;
+        }
+      }
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: [${winnerNames}] (menos aves en ${power.habitat}) tomó(aron) 1 dado del comedero.`,
+      });
+    }
+    return;
+  }
+
+  if (power.kind === "allPlayersGainDie") {
+    const order = [player.id, ...state.playerOrder.filter((id) => id !== player.id)];
+    for (const pId of order) {
+      const p = state.players[pId];
+      if (!p || p.isAutoma) continue;
+      if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
+      const die = state.feeder.shift();
+      if (die) {
+        p.resources[die] = (p.resources[die] ?? 0) + 1;
+      }
+    }
+    state.log.push({
+      playerId: player.id,
+      message: `Poder de [${birdName}]: cada jugador tomó 1 dado del comedero, empezando por ${player.name}.`,
     });
   }
 }

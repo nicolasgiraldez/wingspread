@@ -554,9 +554,9 @@ describe("motor de reglas expandido de wingspread", () => {
   describe("poder layEgg: objetivos reales (any / nestType / eachNestType / allPlayersNestType)", () => {
     it("target 'nestType' (rosa) filtra por tipo de nido real y excluye a la propia carta", () => {
       const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
-      state.players.santi.board.grassland[0].cardId = "meadowSparrow"; // nido "cup"
+      state.players.santi.board.grassland[0].cardId = "meadowSparrow"; // nido "bowl"
       state.players.santi.board.grassland[1].cardId = "barnOwl"; // nido "cavity"
-      state.players.santi.board.grassland[2].cardId = "cliffSwallow"; // nido "cup"; será el poder rosa
+      state.players.santi.board.grassland[2].cardId = "cliffSwallow"; // nido "bowl"; será el poder rosa
       state.cards.cliffSwallow.powers = [
         {
           id: "test.pinkNest",
@@ -651,6 +651,306 @@ describe("motor de reglas expandido de wingspread", () => {
       const next = applyMove(state, "nico", move);
       expect(next.players.santi.board.forest[0].eggs).toBe(1);
       expect(next.players.nico.board.forest[0].eggs).toBe(2);
+    });
+  });
+
+  describe("poder gainResource: gainAllMatching y resourceAlt", () => {
+    it("gainAllMatching toma TODOS los dados que coincidan, no solo 1", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [
+          {
+            id: "test.gainAll",
+            timing: "onActivate",
+            kind: "gainResource",
+            resource: "fish",
+            amount: 1,
+            from: "feeder",
+            gainAllMatching: true,
+          },
+        ],
+      };
+      state.feeder = ["fish", "seed", "fish", "fruit", "fish"];
+      // Evita que el Automa juegue su turno automáticamente después del de Nico dentro del
+      // mismo applyMove (podría tocar el comedero y volver no determinística la aserción).
+      state.players.automa.actionCubesAvailable = 0;
+
+      const move: Move = { type: "gainFood", dieIndexes: [1] }; // toma "seed", deja 3 fish + fruit
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.resources.fish).toBe(3);
+      expect(next.feeder.filter((f) => f === "fish")).toHaveLength(0);
+    });
+
+    it("resourceAlt se usa cuando el recurso principal no está en el comedero", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [
+          {
+            id: "test.gainAlt",
+            timing: "onActivate",
+            kind: "gainResource",
+            resource: "fish",
+            resourceAlt: "insect",
+            amount: 1,
+            from: "feeder",
+          },
+        ],
+      };
+      state.feeder = ["insect", "seed", "fruit"]; // sin "fish"
+
+      const move: Move = { type: "gainFood", dieIndexes: [1] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.resources.insect).toBe(2); // 1 inicial + 1 del poder
+    });
+  });
+
+  describe("poder allPlayersGain con benefitType 'card'", () => {
+    it("todos los jugadores no-automa roban 1 carta del mazo", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.allCard", timing: "onActivate", kind: "allPlayersGain", benefitType: "card" }],
+      };
+      const nicoBefore = state.players.nico.hand.length;
+      const santiBefore = state.players.santi.hand.length;
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.hand.length).toBe(nicoBefore + 1);
+      expect(next.players.santi.hand.length).toBe(santiBefore + 1);
+    });
+  });
+
+  describe("poder repeatPower (repetir un poder de otra ave en el hábitat)", () => {
+    it("repite el poder marrón de otra ave en el mismo hábitat", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay"; // cacheFood seed, onActivate
+      state.players.nico.board.forest[1].cardId = "pineGrosbeak";
+      state.cards.pineGrosbeak = {
+        ...state.cards.pineGrosbeak,
+        powers: [{ id: "test.repeat", timing: "onActivate", kind: "repeatPower" }],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      // acornJay se activa 2 veces: 1 por el repeatPower de pineGrosbeak (que se resuelve
+      // primero, derecha a izquierda) y 1 por su propia activación normal.
+      expect(next.players.nico.board.forest[0].cached).toHaveLength(2);
+    });
+
+    it("predatorOnly no repite un poder no-depredador aunque exista otro poder marrón", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay"; // cacheFood, no depredador
+      state.players.nico.board.forest[1].cardId = "pineGrosbeak";
+      state.cards.pineGrosbeak = {
+        ...state.cards.pineGrosbeak,
+        powers: [{ id: "test.repeatPredOnly", timing: "onActivate", kind: "repeatPower", predatorOnly: true }],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      // Sin ningún poder de caza disponible, repeatPower no hace nada: acornJay solo se
+      // activa por su propia cuenta (1 vez), no 2.
+      expect(next.players.nico.board.forest[0].cached).toHaveLength(1);
+    });
+  });
+
+  describe("poder fewestBirdsBenefit (jugador(es) con menos aves)", () => {
+    it("benefitType drawCard: solo el/los jugador(es) con menos aves en el hábitat indicado roban carta", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.santi.board.wetland[0].cardId = "riverHeron"; // santi tiene 1 ave en río
+      // nico tiene 0 aves en río: debería ganar el beneficio
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [
+          { id: "test.fewest", timing: "onActivate", kind: "fewestBirdsBenefit", habitat: "wetland", benefitType: "drawCard", amount: 1 },
+        ],
+      };
+      const nicoBefore = state.players.nico.hand.length;
+      const santiBefore = state.players.santi.hand.length;
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.hand.length).toBe(nicoBefore + 1);
+      expect(next.players.santi.hand.length).toBe(santiBefore); // no tiene menos aves, no gana
+    });
+
+    it("benefitType gainDieFromFeeder: el/los jugador(es) con menos aves ganan 1 dado del comedero", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.santi.board.forest[0].cardId = "acornJay";
+      // nico tiene 0 aves en bosque: gana el dado
+      state.players.nico.board.grassland[0].cardId = "meadowSparrow";
+      state.cards.meadowSparrow = {
+        ...state.cards.meadowSparrow,
+        powers: [
+          { id: "test.fewestDie", timing: "onActivate", kind: "fewestBirdsBenefit", habitat: "forest", benefitType: "gainDieFromFeeder" },
+        ],
+      };
+      state.players.nico.resources = {};
+      state.feeder = ["seed", "fruit", "insect", "fish", "rodent"];
+
+      const move: Move = { type: "layEggs", eggPlacements: [{ habitat: "grassland", slotIndex: 0 }] };
+      const next = applyMove(state, "nico", move);
+
+      const totalNicoResources = Object.values(next.players.nico.resources).reduce((a, b) => a + (b ?? 0), 0);
+      expect(totalNicoResources).toBe(1);
+    });
+  });
+
+  describe("poder allPlayersGainDie", () => {
+    it("cada jugador no-automa toma 1 dado del comedero", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.allDie", timing: "onActivate", kind: "allPlayersGainDie" }],
+      };
+      state.players.nico.resources = {};
+      state.players.santi.resources = {};
+      state.feeder = ["seed", "fruit", "insect", "fish", "rodent"];
+
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+
+      const totalNico = Object.values(next.players.nico.resources).reduce((a, b) => a + (b ?? 0), 0);
+      const totalSanti = Object.values(next.players.santi.resources).reduce((a, b) => a + (b ?? 0), 0);
+      // nico ya tomó 1 seed del dado elegido (dieIndexes:[0]); el poder le suma 1 más + 1 a santi.
+      expect(totalNico).toBe(2);
+      expect(totalSanti).toBe(1);
+    });
+  });
+
+  describe("poder tuckCard: costo en comida, ganar recurso extra y filtro rosa por hábitat", () => {
+    it("solapa varias cartas del mazo pagando el costo en comida indicado", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.wetland[0].cardId = "kelpGull";
+      state.players.nico.resources = { fish: 1 };
+      state.cards.kelpGull = {
+        ...state.cards.kelpGull,
+        powers: [
+          {
+            id: "test.tuckCost",
+            timing: "onActivate",
+            kind: "tuckCard",
+            amount: 2,
+            source: "deck",
+            costResource: "fish",
+            costAmount: 1,
+          },
+        ],
+      };
+      state.players.nico.hand = [];
+
+      const move: Move = { type: "drawBirdCards", draws: [{ source: "deck" }] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.resources.fish).toBe(0);
+      expect(next.players.nico.board.wetland[0].tucked).toHaveLength(2);
+    });
+
+    it("no solapa nada si no alcanza el recurso para pagar el costo", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.wetland[0].cardId = "kelpGull";
+      state.players.nico.resources = {};
+      state.cards.kelpGull = {
+        ...state.cards.kelpGull,
+        powers: [
+          {
+            id: "test.tuckCostFail",
+            timing: "onActivate",
+            kind: "tuckCard",
+            amount: 2,
+            source: "deck",
+            costResource: "fish",
+            costAmount: 1,
+          },
+        ],
+      };
+      state.players.nico.hand = [];
+
+      const move: Move = { type: "drawBirdCards", draws: [{ source: "deck" }] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.board.wetland[0].tucked).toHaveLength(0);
+    });
+
+    it("thenGainResource otorga 1 recurso de la reserva al solapar con éxito", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.wetland[0].cardId = "kelpGull";
+      state.players.nico.hand = ["mallard"];
+      state.cards.kelpGull = {
+        ...state.cards.kelpGull,
+        powers: [
+          {
+            id: "test.tuckGain",
+            timing: "onActivate",
+            kind: "tuckCard",
+            amount: 1,
+            source: "hand",
+            thenGainResource: "fruit",
+          },
+        ],
+      };
+
+      // La acción "robar cartas" agrega 1 carta más a la mano antes de activar el poder;
+      // elegimos explícitamente "mallard" para no depender de qué carta cayó del mazo.
+      const move: Move = {
+        type: "drawBirdCards",
+        draws: [{ source: "deck" }],
+        powerCardChoices: { "test.tuckGain": "mallard" },
+      };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.board.wetland[0].tucked).toContain("mallard");
+      expect(next.players.nico.resources.fruit).toBe(2); // 1 inicial + 1 del poder
+    });
+
+    it("el poder rosa de tuckCard con hábitat solo se activa cuando el ave jugada es de ese hábitat", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.santi.board.grassland[0].cardId = "cliffSwallow";
+      state.cards.cliffSwallow.powers = [
+        {
+          id: "test.pinkTuckHabitat",
+          timing: "onceBetweenTurns",
+          kind: "tuckCard",
+          amount: 1,
+          source: "hand",
+          habitat: "grassland",
+        },
+      ];
+      state.players.santi.hand = ["mallard"];
+      state.players.nico.hand = ["riverHeron"]; // wetland, no grassland
+      state.players.nico.resources = { fish: 1, insect: 1 };
+
+      const move: Move = {
+        type: "playBird",
+        cardId: "riverHeron",
+        habitat: "wetland",
+        slotIndex: 0,
+        paidResources: ["fish", "insect"],
+        paidEggsFrom: [],
+      };
+      const next = applyMove(state, "nico", move);
+
+      // Santi's pink power should NOT trigger: nico played a wetland bird, not grassland
+      expect(next.players.santi.board.grassland[0].tucked).toHaveLength(0);
+      expect(next.players.santi.hand).toContain("mallard");
     });
   });
 

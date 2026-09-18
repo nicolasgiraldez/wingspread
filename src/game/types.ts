@@ -6,7 +6,7 @@ export type ResourceFace =
   | "rodent"
   | "wild";
 
-export type NestType = "platform" | "cup" | "cavity" | "ground" | "wild";
+export type NestType = "platform" | "bowl" | "cavity" | "ground" | "wild";
 
 export type HabitatId = "forest" | "grassland" | "wetland";
 export type CardId = string;
@@ -35,6 +35,10 @@ export type Power =
       costsEgg?: boolean;
       /** Solo con costsEgg: el huevo no puede salir de esta misma carta ("otra ave"). */
       costEggExcludesSelf?: boolean;
+      /** Solo con from:"feeder": toma TODOS los dados que muestren `resource`, no solo 1. */
+      gainAllMatching?: boolean;
+      /** Solo con from:"feeder": si `resource` no está en el comedero, probá con este otro tipo. */
+      resourceAlt?: ResourceFace;
     }
   | {
       id: string;
@@ -74,6 +78,15 @@ export type Power =
       source: "deck" | "hand";
       thenDraw?: boolean;
       thenGainEgg?: boolean;
+      /** Costo en comida para activar este poder (p. ej. "descartá 1 pez para solapar 2 del mazo"). */
+      costResource?: ResourceFace;
+      costAmount?: number;
+      /** Si se solapó con éxito, además ganá este recurso de la reserva. */
+      thenGainResource?: ResourceFace;
+      /** Segunda opción de thenGainResource; hoy se prioriza siempre thenGainResource. */
+      thenGainResourceAlt?: ResourceFace;
+      /** Solo para el patrón rosa "cuando otro jugador juega un ave de [hábitat]": filtra el evento. */
+      habitat?: HabitatId;
     }
   | {
       id: string;
@@ -134,6 +147,29 @@ export type Power =
       drawCount: number;
       /** Cuántas de las reveladas se queda el jugador (el resto se descarta). */
       keepCount: number;
+    }
+  | {
+      id: string;
+      timing: PowerTiming;
+      kind: "repeatPower";
+      /** Si es true, solo puede repetir un poder de caza (huntPredator/diceHuntPredator). */
+      predatorOnly?: boolean;
+    }
+  | {
+      id: string;
+      timing: PowerTiming;
+      kind: "fewestBirdsBenefit";
+      /** Jugador(es) con menos aves en este hábitat reciben el beneficio (empates: todos). */
+      habitat: HabitatId;
+      benefitType: "drawCard" | "gainDieFromFeeder";
+      /** Solo para benefitType "drawCard". */
+      amount?: number;
+    }
+  | {
+      id: string;
+      timing: PowerTiming;
+      kind: "allPlayersGainDie";
+      /** Cada jugador (empezando por el activo) toma 1 dado del comedero, si queda alguno. */
     };
 
 export type SpeciesCard = {

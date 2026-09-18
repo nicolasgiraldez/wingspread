@@ -158,8 +158,10 @@ export function createInitialState(
     feeder: rollInitialFeeder(5),
     roundGoals: defaultRoundGoals,
     roundGoalResults: {},
-    cards: speciesCards,
-    bonusCardsCatalog,
+    // Copias del catálogo: cada partida debe poder personalizar sus propias cartas (usado por
+    // los tests para sobreescribir poderes puntuales) sin filtrar cambios a otras partidas.
+    cards: { ...speciesCards },
+    bonusCardsCatalog: { ...bonusCardsCatalog },
     bonusDeck,
     bonusDiscard: [],
     automaState,

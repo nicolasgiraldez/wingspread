@@ -5,6 +5,7 @@ import type { GameState, HabitatId, PlayerState, PowerEggChoices, PowerMoveChoic
 import {
   buildEggSourceOptions,
   buildEggTargetOptions,
+  buildRepeatPowerOptions,
   decodeSlotKey,
   PowerChecklist,
   PowerChecklistEntry,
@@ -120,6 +121,20 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
             return next;
           }),
         defaultOptionLabel: "Automático (la primera ave con huevos)",
+      };
+    } else if (power.kind === "repeatPower") {
+      slotChoice = {
+        label: "¿Qué poder repetís? (opcional)",
+        options: buildRepeatPowerOptions(gameState, player, habitat, source, power.predatorOnly),
+        selected: eggChoiceKeys[power.id] ?? null,
+        onSelect: (key) =>
+          setEggChoiceKeys((prev) => {
+            const next = { ...prev };
+            if (key) next[power.id] = key;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Automático (el primero disponible)",
       };
     }
 

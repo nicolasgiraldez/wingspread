@@ -22,6 +22,7 @@ import {
 import {
   buildEggSourceOptions,
   buildEggTargetOptions,
+  buildRepeatPowerOptions,
   decodeSlotKey,
   PowerChecklist,
   PowerChecklistEntry,
@@ -178,6 +179,20 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
             return next;
           }),
         defaultOptionLabel: "Automático (la primera ave con huevos)",
+      };
+    } else if (power.kind === "repeatPower") {
+      slotChoice = {
+        label: "¿Qué poder repetís? (opcional)",
+        options: buildRepeatPowerOptions(gameState, player, "grassland", source, power.predatorOnly),
+        selected: powerEggChoiceKeys[power.id] ?? null,
+        onSelect: (key) =>
+          setPowerEggChoiceKeys((prev) => {
+            const next = { ...prev };
+            if (key) next[power.id] = key;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Automático (el primero disponible)",
       };
     }
 

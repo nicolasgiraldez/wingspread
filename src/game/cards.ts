@@ -9,7 +9,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     cost: { seed: 1 },
     points: 2,
     eggCapacity: 4,
-    nestType: "cup",
+    nestType: "bowl",
     wingspanCm: 20,
     powers: [
       {
@@ -48,7 +48,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     cost: { fruit: 1 },
     points: 3,
     eggCapacity: 3,
-    nestType: "cup",
+    nestType: "bowl",
     wingspanCm: 22,
     powers: [
       {
@@ -88,7 +88,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     cost: { insect: 1, seed: 1 },
     points: 4,
     eggCapacity: 4,
-    nestType: "cup",
+    nestType: "bowl",
     wingspanCm: 28,
     powers: [
       {
@@ -150,7 +150,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     cost: { insect: 2 },
     points: 3,
     eggCapacity: 5,
-    nestType: "cup",
+    nestType: "bowl",
     wingspanCm: 19,
     powers: [
       {
@@ -169,7 +169,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     cost: { fruit: 2 },
     points: 5,
     eggCapacity: 3,
-    nestType: "cup",
+    nestType: "bowl",
     wingspanCm: 30,
     powers: [
       {
@@ -247,7 +247,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     cost: { insect: 1, fruit: 1 },
     points: 3,
     eggCapacity: 4,
-    nestType: "cup",
+    nestType: "bowl",
     wingspanCm: 38,
     powers: [
       {
@@ -328,7 +328,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     cost: { fruit: 1 },
     points: 2,
     eggCapacity: 2,
-    nestType: "cup",
+    nestType: "bowl",
     wingspanCm: 10,
     powers: [
       {
