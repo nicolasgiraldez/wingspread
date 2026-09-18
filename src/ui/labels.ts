@@ -86,8 +86,19 @@ export function describePower(power: Power): string {
   switch (power.kind) {
     case "gainResource":
       return `Obtén ${power.amount} ${power.resource ? resourceIcons[power.resource] : "alimento"}${power.from === "feeder" ? " del comedero" : ""}`;
-    case "layEgg":
-      return `Pon ${power.amount} huevo(s) en ${power.target === "self" ? "este nido" : "cualquier ave"}`;
+    case "layEgg": {
+      if (power.target === "self") return `Pon ${power.amount} huevo(s) en este nido`;
+      if (power.target === "eachNestType") {
+        return `Pon ${power.amount} huevo(s) en CADA una de tus aves con nido ${power.nestType ? nestLabels[power.nestType] : ""}`;
+      }
+      if (power.target === "allPlayersNestType") {
+        return `Todos ponen 1 huevo en 1 ave con nido ${power.nestType ? nestLabels[power.nestType] : ""}; vos ponés ${power.activePlayerBonus ?? 1} extra`;
+      }
+      if (power.target === "nestType") {
+        return `Pon ${power.amount} huevo(s) en otra ave con nido ${power.nestType ? nestLabels[power.nestType] : ""}`;
+      }
+      return `Pon ${power.amount} huevo(s) en cualquier ave`;
+    }
     case "drawCard":
       return `Roba ${power.amount} carta(s)${power.thenDiscard ? " y descarta 1" : ""}`;
     case "tuckCard":
@@ -96,10 +107,16 @@ export function describePower(power: Power): string {
       return `Almacena 1 ${power.resource ? resourceIcons[power.resource] : "semilla"} en esta carta`;
     case "huntPredator":
       return `Caza: si envergadura del mazo ≤ ${power.maxWingspanCm}cm, solapa como presa`;
+    case "diceHuntPredator":
+      return `Caza: relanza los dados fuera del comedero; si alguno muestra ${resourceIcons[power.resource]}, gana 1 y lo cachea en esta carta`;
+    case "playSecondBird":
+      return `Jugá una segunda ave en ${power.habitats.map((h) => habitatLabels[h]).join(" o ")}, pagando su costo normal`;
     case "allPlayersGain":
       return `Todos obtienen 1 ${power.resource ? resourceIcons[power.resource] : "recurso"}`;
     case "tradeResource":
       return `Cambia 1 ${resourceIcons[power.costResource]} por ${power.amount ?? 1} ${resourceIcons[power.gainResource]}`;
+    case "gainBonusCard":
+      return `Revela ${power.drawCount} carta(s) de bonificación y conservá ${power.keepCount}`;
     default:
       return "";
   }

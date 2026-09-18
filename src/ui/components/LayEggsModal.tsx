@@ -7,6 +7,7 @@ import type {
   HabitatId,
   Move,
   PlayerState,
+  PowerEggChoices,
   ResourceFace,
   SpeciesCard,
 } from "../../game";
@@ -17,7 +18,7 @@ import {
   resourceIcons,
   resourceLabels,
 } from "../labels";
-import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
+import { buildEggTargetOptions, decodeSlotKey, PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
 interface LayEggsModalProps {
   player: PlayerState;
@@ -103,6 +104,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
   const activatablePowers = getActivatablePowers(gameState, player, "grassland");
   const [skippedPowerIds, setSkippedPowerIds] = useState<Set<string>>(new Set());
   const [powerCardChoices, setPowerCardChoices] = useState<Record<string, CardId>>({});
+  const [powerEggChoiceKeys, setPowerEggChoiceKeys] = useState<Record<string, string>>({});
 
   const togglePower = (powerId: string) => {
     setSkippedPowerIds((prev) => {
@@ -140,12 +142,30 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       };
     }
 
+    let slotChoice: PowerChecklistEntry["slotChoice"];
+    if (power.kind === "layEgg" && power.target === "any") {
+      slotChoice = {
+        label: "¿En qué ave ponés el/los huevo(s)? (opcional)",
+        options: buildEggTargetOptions(gameState, player),
+        selected: powerEggChoiceKeys[power.id] ?? null,
+        onSelect: (key) =>
+          setPowerEggChoiceKeys((prev) => {
+            const next = { ...prev };
+            if (key) next[power.id] = key;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Automático (la primera ave con espacio)",
+      };
+    }
+
     return {
       power,
       birdName: card.name,
       checked: !skippedPowerIds.has(power.id),
       onToggle: () => togglePower(power.id),
       cardChoice,
+      slotChoice,
     };
   });
 
@@ -182,9 +202,14 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
     }
 
     const activePowerCardChoices: Record<string, CardId> = {};
+    const activePowerEggChoices: PowerEggChoices = {};
     for (const entry of powerChecklistEntries) {
-      if (entry.checked && entry.cardChoice?.selected) {
+      if (!entry.checked) continue;
+      if (entry.cardChoice?.selected) {
         activePowerCardChoices[entry.power.id] = entry.cardChoice.selected;
+      }
+      if (entry.slotChoice?.selected) {
+        activePowerEggChoices[entry.power.id] = decodeSlotKey(entry.slotChoice.selected);
       }
     }
 
@@ -194,6 +219,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       ...(tradeResource ? { tradeResource } : {}),
       ...(skippedPowerIds.size > 0 ? { skipPowerIds: Array.from(skippedPowerIds) } : {}),
       ...(Object.keys(activePowerCardChoices).length > 0 ? { powerCardChoices: activePowerCardChoices } : {}),
+      ...(Object.keys(activePowerEggChoices).length > 0 ? { powerEggChoices: activePowerEggChoices } : {}),
     });
   };
 

@@ -1,5 +1,5 @@
 import { automaCardsCatalog } from "./automaCards";
-import { rollInitialFeeder, shuffle } from "./setup";
+import { rollInitialFeeder, rollRandomDie, shuffle } from "./setup";
 import type {
   BoardSlot,
   BonusCard,
@@ -8,10 +8,13 @@ import type {
   GameState,
   HabitatId,
   Move,
+  NestType,
   PlayerId,
   PlayerState,
   Power,
   PowerCardChoices,
+  PowerEggChoices,
+  PowerPlayBirdChoices,
   ResourceFace,
   RoundGoal,
   ScoreBreakdown,
@@ -110,7 +113,7 @@ export function isLegalMove(state: GameState, playerId: string, move: Move): boo
     if (!canPayEggCost(player, move.paidEggsFrom, eggCostForSlot(move.slotIndex))) {
       return false;
     }
-    return canPayResources(player, move.paidResources, card.cost);
+    return canPayResources(player, move.paidResources, card.cost, card.costAnyOf);
   }
 
   if (move.type === "gainFood") {
@@ -313,6 +316,7 @@ export function canPayResources(
   player: PlayerState,
   paidResources: ResourceFace[],
   cost: Partial<Record<ResourceFace, number>>,
+  costAnyOf: ResourceFace[] = [],
 ): boolean {
   const tallyPaid = tally(paidResources);
   for (const [res, count] of Object.entries(tallyPaid)) {
@@ -342,12 +346,25 @@ export function canPayResources(
     }
   }
 
+  // Costo "O": 1 unidad pagable con cualquiera de los tipos en costAnyOf (set restringido,
+  // a diferencia de "wild" que acepta los 5 tipos). Si no hay un tipo aceptado entre lo
+  // pagado, cae al mismo colchón de sustitución 2-por-1 que cualquier otro faltante.
+  let anyOfUnsatisfied = 0;
+  if (costAnyOf.length > 0) {
+    const idx = remainingPaid.findIndex((res) => costAnyOf.includes(res));
+    if (idx !== -1) {
+      remainingPaid.splice(idx, 1);
+    } else {
+      anyOfUnsatisfied = 1;
+    }
+  }
+
   while (requiredWildCount > 0 && remainingPaid.length > 0) {
     remainingPaid.shift();
     requiredWildCount -= 1;
   }
 
-  const totalUnsatisfiedCostUnits = unsatisfiedRequirements.length + requiredWildCount;
+  const totalUnsatisfiedCostUnits = unsatisfiedRequirements.length + requiredWildCount + anyOfUnsatisfied;
   if (remainingPaid.length !== totalUnsatisfiedCostUnits * 2) {
     return false;
   }
@@ -360,24 +377,59 @@ function playBird(
   player: PlayerState,
   move: Extract<Move, { type: "playBird" }>,
 ) {
-  const card = state.cards[move.cardId];
-  spendResources(player, move.paidResources);
-  spendEggs(player, move.paidEggsFrom);
-  player.hand = player.hand.filter((cardId) => cardId !== move.cardId);
-  player.board[move.habitat][move.slotIndex].cardId = move.cardId;
+  placeBird(state, player, {
+    cardId: move.cardId,
+    habitat: move.habitat,
+    slotIndex: move.slotIndex,
+    paidResources: move.paidResources,
+    paidEggsFrom: move.paidEggsFrom,
+    skipPowerIds: move.skipPowerIds,
+    cardChoices: move.powerCardChoices,
+    playBirdChoices: move.powerPlayBirdChoices,
+    eggChoices: move.powerEggChoices,
+  });
+}
 
-  const skipIds = new Set(move.skipPowerIds ?? []);
+/**
+ * Coloca un ave en el tablero y resuelve sus poderes "Al jugar". Extraído de `playBird` para
+ * que también lo pueda invocar el poder "playSecondBird" (jugar una segunda ave como parte
+ * de resolver otro poder), que arma un payload equivalente al de un movimiento normal.
+ */
+function placeBird(
+  state: GameState,
+  player: PlayerState,
+  params: {
+    cardId: CardId;
+    habitat: HabitatId;
+    slotIndex: number;
+    paidResources: ResourceFace[];
+    paidEggsFrom: SlotRef[];
+    skipPowerIds?: string[];
+    cardChoices?: PowerCardChoices;
+    playBirdChoices?: PowerPlayBirdChoices;
+    eggChoices?: PowerEggChoices;
+  },
+) {
+  const card = state.cards[params.cardId];
+  spendResources(player, params.paidResources);
+  spendEggs(player, params.paidEggsFrom);
+  player.hand = player.hand.filter((id) => id !== params.cardId);
+  player.board[params.habitat][params.slotIndex].cardId = params.cardId;
+
+  const skipIds = new Set(params.skipPowerIds ?? []);
   for (const power of getOnPlayPowers(card)) {
     if (skipIds.has(power.id)) continue;
     resolvePower(
       state,
       player,
       power,
-      { habitat: move.habitat, slotIndex: move.slotIndex },
-      move.powerCardChoices,
+      { habitat: params.habitat, slotIndex: params.slotIndex },
+      params.cardChoices,
+      params.playBirdChoices,
+      params.eggChoices,
     );
   }
-  triggerPinkPowers(state, player.id, { type: "playBird", habitat: move.habitat });
+  triggerPinkPowers(state, player.id, { type: "playBird", habitat: params.habitat });
 }
 
 function gainFood(state: GameState, player: PlayerState, move: Extract<Move, { type: "gainFood" }>) {
@@ -408,7 +460,15 @@ function gainFood(state: GameState, player: PlayerState, move: Extract<Move, { t
     state.feeder = rollInitialFeeder(5);
   }
 
-  activateHabitat(state, player, "forest", new Set(move.skipPowerIds ?? []), move.powerCardChoices);
+  activateHabitat(
+    state,
+    player,
+    "forest",
+    new Set(move.skipPowerIds ?? []),
+    move.powerCardChoices,
+    undefined,
+    move.powerEggChoices,
+  );
   triggerPinkPowers(state, player.id, { type: "gainFood" });
 }
 
@@ -422,7 +482,15 @@ function layEggs(state: GameState, player: PlayerState, move: Extract<Move, { ty
     slot.eggs += 1;
   }
 
-  activateHabitat(state, player, "grassland", new Set(move.skipPowerIds ?? []), move.powerCardChoices);
+  activateHabitat(
+    state,
+    player,
+    "grassland",
+    new Set(move.skipPowerIds ?? []),
+    move.powerCardChoices,
+    undefined,
+    move.powerEggChoices,
+  );
   triggerPinkPowers(state, player.id, { type: "layEggs" });
 }
 
@@ -433,6 +501,14 @@ export function drawCardFromDeck(state: GameState): string | undefined {
     state.log.push({ message: "El mazo se agotó. Se barajó la pila de descarte para formar un nuevo mazo." });
   }
   return state.deck.shift();
+}
+
+export function drawBonusCardFromDeck(state: GameState): string | undefined {
+  if (state.bonusDeck.length === 0 && state.bonusDiscard.length > 0) {
+    state.bonusDeck = shuffle([...state.bonusDiscard]);
+    state.bonusDiscard = [];
+  }
+  return state.bonusDeck.shift();
 }
 
 function drawBirdCards(
@@ -457,7 +533,15 @@ function drawBirdCards(
     }
   }
 
-  activateHabitat(state, player, "wetland", new Set(move.skipPowerIds ?? []), move.powerCardChoices);
+  activateHabitat(
+    state,
+    player,
+    "wetland",
+    new Set(move.skipPowerIds ?? []),
+    move.powerCardChoices,
+    undefined,
+    move.powerEggChoices,
+  );
   triggerPinkPowers(state, player.id, { type: "drawBirdCards" });
 }
 
@@ -467,10 +551,12 @@ function activateHabitat(
   habitat: HabitatId,
   skipIds: Set<string> = new Set(),
   cardChoices?: PowerCardChoices,
+  playBirdChoices?: PowerPlayBirdChoices,
+  eggChoices?: PowerEggChoices,
 ) {
   for (const { source, power } of getActivatablePowers(state, player, habitat)) {
     if (skipIds.has(power.id)) continue;
-    resolvePower(state, player, power, source, cardChoices);
+    resolvePower(state, player, power, source, cardChoices, playBirdChoices, eggChoices);
   }
 }
 
@@ -543,6 +629,8 @@ export function resolvePower(
   power: Power,
   source: SlotRef,
   cardChoices?: PowerCardChoices,
+  playBirdChoices?: PowerPlayBirdChoices,
+  eggChoices?: PowerEggChoices,
 ) {
   const currentSlot = player.board[source.habitat]?.[source.slotIndex];
   const birdCard = currentSlot?.cardId ? state.cards[currentSlot.cardId] : null;
@@ -596,21 +684,52 @@ export function resolvePower(
   }
 
   if (power.kind === "layEgg") {
-    const target = power.target === "self" ? source : findFirstEggSpace(state, player);
-    if (!target) return;
-
-    const slot = player.board[target.habitat][target.slotIndex];
-    const targetCard = slot.cardId ? state.cards[slot.cardId] : null;
-    if (!targetCard) return;
-
-    if (slot.eggs < targetCard.eggCapacity) {
-      const eggsToAdd = Math.min(power.amount, targetCard.eggCapacity - slot.eggs);
-      slot.eggs += eggsToAdd;
-      state.log.push({
-        playerId: player.id,
-        message: `Poder de [${birdName}]: puso ${eggsToAdd} huevo(s) en [${targetCard.name}].`,
-      });
+    if (power.target === "self") {
+      applyEggsToTarget(state, player, source, power.amount, birdName);
+      return;
     }
+
+    if (power.target === "eachNestType") {
+      for (const hab of Object.keys(player.board) as HabitatId[]) {
+        player.board[hab].forEach((slot, sIdx) => {
+          if (!slot.cardId) return;
+          const targetCard = state.cards[slot.cardId];
+          if (targetCard && matchesNestType(targetCard.nestType, power.nestType)) {
+            applyEggsToTarget(state, player, { habitat: hab, slotIndex: sIdx }, power.amount, birdName);
+          }
+        });
+      }
+      return;
+    }
+
+    if (power.target === "allPlayersNestType") {
+      for (const p of Object.values(state.players)) {
+        if (p.isAutoma) continue;
+        const target = findEggTargetByNestType(state, p, power.nestType);
+        if (target) applyEggsToTarget(state, p, target, 1, birdName);
+      }
+      if (power.activePlayerBonus) {
+        const chosen = eggChoices?.[power.id];
+        const target = isValidEggTarget(state, player, chosen, power.nestType)
+          ? chosen!
+          : findEggTargetByNestType(state, player, power.nestType);
+        if (target) applyEggsToTarget(state, player, target, power.activePlayerBonus, birdName);
+      }
+      return;
+    }
+
+    // target "any" | "nestType": el jugador elige (o se autoselecciona el primero que califique).
+    // "nestType" en este mazo siempre es el patrón rosa "otra ave", por eso excluye la propia carta.
+    const chosen = eggChoices?.[power.id];
+    const chosenValid = power.target === "nestType"
+      ? isValidEggTarget(state, player, chosen, power.nestType)
+      : isValidEggTarget(state, player, chosen);
+    const target = chosenValid
+      ? chosen!
+      : power.target === "nestType"
+        ? findEggTargetByNestType(state, player, power.nestType, source)
+        : findFirstEggSpace(state, player);
+    if (target) applyEggsToTarget(state, player, target, power.amount, birdName);
     return;
   }
 
@@ -696,6 +815,29 @@ export function resolvePower(
     return;
   }
 
+  if (power.kind === "diceHuntPredator") {
+    // Relanza los dados que están fuera del comedero (los que los jugadores ya tomaron en
+    // este ciclo). Si el comedero está lleno, no hay nada que relanzar: la caza falla sola.
+    const diceOutside = Math.max(0, 5 - state.feeder.length);
+    const rerolled = Array.from({ length: diceOutside }, () => rollRandomDie());
+    const success = rerolled.includes(power.resource);
+
+    if (success && currentSlot) {
+      currentSlot.cached.push(power.resource);
+      state.log.push({
+        playerId: player.id,
+        message: `Depredador [${birdName}]: ¡Caza exitosa! Relanzó ${diceOutside} dado(s) fuera del comedero y obtuvo ${power.resource}, que quedó cacheado en la carta.`,
+      });
+      triggerPinkPowers(state, player.id, { type: "predatorSuccess" });
+    } else {
+      state.log.push({
+        playerId: player.id,
+        message: `Depredador [${birdName}]: Caza fallida (relanzó ${diceOutside} dado(s) fuera del comedero, ninguno coincidió).`,
+      });
+    }
+    return;
+  }
+
   if (power.kind === "allPlayersGain") {
     const res = power.resource ?? "seed";
     for (const p of Object.values(state.players)) {
@@ -719,6 +861,76 @@ export function resolvePower(
         message: `Poder de [${birdName}]: cambió 1 ${power.costResource} por ${power.amount ?? 1} ${power.gainResource}.`,
       });
     }
+    return;
+  }
+
+  if (power.kind === "gainBonusCard") {
+    const drawn: string[] = [];
+    for (let i = 0; i < power.drawCount; i += 1) {
+      const bonusId = drawBonusCardFromDeck(state);
+      if (bonusId) drawn.push(bonusId);
+    }
+
+    // El jugador elige cuál conservar vía cardChoices (misma clave power.id que en
+    // descartes/solapados); si no eligió (o el drawn ya no la contiene), se queda con
+    // la(s) primera(s) `keepCount` reveladas por defecto.
+    const chosenId = cardChoices?.[power.id];
+    const kept = chosenId && drawn.includes(chosenId) ? [chosenId] : drawn.slice(0, power.keepCount);
+    const discarded = drawn.filter((id) => !kept.includes(id));
+
+    for (const id of kept) {
+      const bonus = state.bonusCardsCatalog?.[id];
+      if (bonus) player.bonusCards.push(bonus);
+    }
+    state.bonusDiscard.push(...discarded);
+
+    const keptNames = kept.map((id) => state.bonusCardsCatalog?.[id]?.name ?? id).join(", ");
+    state.log.push({
+      playerId: player.id,
+      message: `Poder de [${birdName}]: reveló ${drawn.length} carta(s) de bonificación y conservó [${keptNames || "ninguna"}].`,
+    });
+    return;
+  }
+
+  if (power.kind === "playSecondBird") {
+    const choice = playBirdChoices?.[power.id];
+    if (!choice) return; // el jugador optó por no jugar una segunda ave
+
+    const secondCard = state.cards[choice.cardId];
+    const targetHabitat = choice.habitat;
+    const slotIndex = getHabitatActiveColumn(player, targetHabitat);
+
+    const isValid =
+      secondCard &&
+      player.hand.includes(choice.cardId) &&
+      power.habitats.includes(targetHabitat) &&
+      secondCard.habitats.includes(targetHabitat) &&
+      player.board[targetHabitat]?.[slotIndex] &&
+      !player.board[targetHabitat][slotIndex].cardId &&
+      canPayEggCost(player, choice.paidEggsFrom, eggCostForSlot(slotIndex)) &&
+      canPayResources(player, choice.paidResources, secondCard.cost, secondCard.costAnyOf);
+
+    if (!isValid) {
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: no se pudo jugar una segunda ave (elección inválida).`,
+      });
+      return;
+    }
+
+    placeBird(state, player, {
+      cardId: choice.cardId,
+      habitat: targetHabitat,
+      slotIndex,
+      paidResources: choice.paidResources,
+      paidEggsFrom: choice.paidEggsFrom,
+      skipPowerIds: choice.skipPowerIds,
+    });
+
+    state.log.push({
+      playerId: player.id,
+      message: `Poder de [${birdName}]: jugó una segunda ave, [${secondCard.name}], en ${targetHabitat}.`,
+    });
   }
 }
 
@@ -1024,6 +1236,66 @@ function findFirstEggSpace(state: GameState, player: PlayerState): SlotRef | nul
   }
 
   return null;
+}
+
+/** Un nido "wild" (comodín) siempre coincide, como en `evaluateRoundGoalMetric`. */
+function matchesNestType(cardNestType: NestType | undefined, wanted: NestType | undefined): boolean {
+  if (!wanted) return true;
+  return cardNestType === wanted || cardNestType === "wild";
+}
+
+function findEggTargetByNestType(
+  state: GameState,
+  player: PlayerState,
+  nestType: NestType | undefined,
+  excludeSlot?: SlotRef,
+): SlotRef | null {
+  for (const habitat of Object.keys(player.board) as HabitatId[]) {
+    for (let slotIndex = 0; slotIndex < player.board[habitat].length; slotIndex += 1) {
+      if (excludeSlot && excludeSlot.habitat === habitat && excludeSlot.slotIndex === slotIndex) continue;
+      const slot = player.board[habitat][slotIndex];
+      if (!slot?.cardId) continue;
+      const card = state.cards[slot.cardId];
+      if (card && matchesNestType(card.nestType, nestType) && slot.eggs < card.eggCapacity) {
+        return { habitat, slotIndex };
+      }
+    }
+  }
+  return null;
+}
+
+/** Valida que una elección del jugador para un poder "layEgg" sea realmente jugable ahora mismo. */
+function isValidEggTarget(
+  state: GameState,
+  player: PlayerState,
+  target: SlotRef | undefined,
+  nestType?: NestType,
+): boolean {
+  if (!target) return false;
+  const slot = player.board[target.habitat]?.[target.slotIndex];
+  if (!slot?.cardId) return false;
+  const card = state.cards[slot.cardId];
+  if (!card || slot.eggs >= card.eggCapacity) return false;
+  return matchesNestType(card.nestType, nestType);
+}
+
+function applyEggsToTarget(
+  state: GameState,
+  player: PlayerState,
+  target: SlotRef,
+  amount: number,
+  birdName: string,
+) {
+  const slot = player.board[target.habitat]?.[target.slotIndex];
+  const targetCard = slot?.cardId ? state.cards[slot.cardId] : null;
+  if (!slot || !targetCard || slot.eggs >= targetCard.eggCapacity) return;
+
+  const eggsToAdd = Math.min(amount, targetCard.eggCapacity - slot.eggs);
+  slot.eggs += eggsToAdd;
+  state.log.push({
+    playerId: player.id,
+    message: `Poder de [${birdName}]: puso ${eggsToAdd} huevo(s) en [${targetCard.name}] (${player.name}).`,
+  });
 }
 
 function tally(resources: ResourceFace[]) {

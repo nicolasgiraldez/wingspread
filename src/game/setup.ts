@@ -160,6 +160,8 @@ export function createInitialState(
     roundGoalResults: {},
     cards: speciesCards,
     bonusCardsCatalog,
+    bonusDeck,
+    bonusDiscard: [],
     automaState,
     log: [{
       message: mode === "solo"

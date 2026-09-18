@@ -113,12 +113,19 @@ export const BirdCard: React.FC<BirdCardProps> = ({
 
       {/* Food Cost */}
       <div className="card-cost-row">
-        {Object.entries(card.cost).length > 0 ? (
-          Object.entries(card.cost).map(([res, count]) => (
-            <span key={res} className="cost-pill">
-              {count} {resourceIcons[res as ResourceFace] ?? res}
-            </span>
-          ))
+        {Object.entries(card.cost).length > 0 || (card.costAnyOf && card.costAnyOf.length > 0) ? (
+          <>
+            {Object.entries(card.cost).map(([res, count]) => (
+              <span key={res} className="cost-pill">
+                {count} {resourceIcons[res as ResourceFace] ?? res}
+              </span>
+            ))}
+            {card.costAnyOf && card.costAnyOf.length > 0 && (
+              <span className="cost-pill" title="Pagá 1 usando cualquiera de estos tipos">
+                1 {card.costAnyOf.map((res) => resourceIcons[res]).join("/")}
+              </span>
+            )}
+          </>
         ) : (
           <span className="cost-pill" style={{ color: "#2f7d5b" }}>Gratis</span>
         )}

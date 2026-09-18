@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   applyMove,
   calculateBonusPoints,
@@ -434,6 +434,337 @@ describe("motor de reglas expandido de wingspread", () => {
     const next = applyMove(state, "nico", move);
     expect(next.players.nico.board.wetland[0].tucked).toContain("mallard");
     expect(next.players.nico.hand).toContain("marshWren");
+  });
+
+  describe("costo 'O' (costAnyOf)", () => {
+    it("permite pagar con cualquiera de los tipos listados en costAnyOf", () => {
+      const state = createInitialState({ mode: "solo" });
+      const player = state.players.nico;
+      player.resources = { insect: 1 };
+      // Pagando con "insect", que es uno de los dos tipos aceptados por costAnyOf
+      expect(canPayResources(player, ["insect"], {}, ["insect", "fruit"])).toBe(true);
+    });
+
+    it("rechaza el pago si no se aportó ningún tipo del set restringido ni sustitución 2x1", () => {
+      const state = createInitialState({ mode: "solo" });
+      const player = state.players.nico;
+      player.resources = { seed: 1 };
+      // "seed" no está en el set {insect, fruit} y solo hay 1 unidad pagada (no alcanza para 2x1)
+      expect(canPayResources(player, ["seed"], {}, ["insect", "fruit"])).toBe(false);
+    });
+
+    it("acepta la sustitución 2x1 cuando no se tiene ninguno de los tipos aceptados", () => {
+      const state = createInitialState({ mode: "solo" });
+      const player = state.players.nico;
+      player.resources = { seed: 2 };
+      expect(canPayResources(player, ["seed", "seed"], {}, ["insect", "fruit"])).toBe(true);
+    });
+
+    it("permite jugar un ave cuyo costo combina costAnyOf con un requisito fijo", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.cards.testAnyOf = {
+        id: "testAnyOf",
+        name: "Ave de prueba",
+        habitats: ["forest"],
+        cost: { seed: 1 },
+        costAnyOf: ["insect", "fruit"],
+        points: 1,
+        eggCapacity: 1,
+        powers: [],
+      };
+      state.players.nico.hand = ["testAnyOf"];
+      state.players.nico.resources = { seed: 1, fruit: 1 };
+
+      const move: Move = {
+        type: "playBird",
+        cardId: "testAnyOf",
+        habitat: "forest",
+        slotIndex: 0,
+        paidResources: ["seed", "fruit"],
+        paidEggsFrom: [],
+      };
+      expect(isLegalMove(state, "nico", move)).toBe(true);
+      const next = applyMove(state, "nico", move);
+      expect(next.players.nico.board.forest[0].cardId).toBe("testAnyOf");
+    });
+  });
+
+  describe("poder gainBonusCard", () => {
+    it("revela N cartas de bonificación y conserva la(s) primera(s) por defecto", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.hand = ["acornJay"];
+      state.players.nico.resources = { seed: 1, fruit: 1 };
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [
+          { id: "test.bonus", timing: "onPlay", kind: "gainBonusCard", drawCount: 2, keepCount: 1 },
+        ],
+      };
+      state.bonusDeck = ["forestGuardian", "wetlandEcologist", "largeBroods"];
+      const bonusCountBefore = state.players.nico.bonusCards.length;
+
+      const move: Move = {
+        type: "playBird",
+        cardId: "acornJay",
+        habitat: "forest",
+        slotIndex: 0,
+        paidResources: ["seed", "fruit"],
+        paidEggsFrom: [],
+      };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.bonusCards.length).toBe(bonusCountBefore + 1);
+      expect(next.players.nico.bonusCards.map((b) => b.id)).toContain("forestGuardian");
+      expect(next.bonusDeck).toEqual(["largeBroods"]);
+      expect(next.bonusDiscard).toEqual(["wetlandEcologist"]);
+    });
+
+    it("respeta la elección del jugador sobre cuál carta de bonificación conservar", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.hand = ["acornJay"];
+      state.players.nico.resources = { seed: 1, fruit: 1 };
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [
+          { id: "test.bonus", timing: "onPlay", kind: "gainBonusCard", drawCount: 2, keepCount: 1 },
+        ],
+      };
+      state.bonusDeck = ["forestGuardian", "wetlandEcologist", "largeBroods"];
+
+      const move: Move = {
+        type: "playBird",
+        cardId: "acornJay",
+        habitat: "forest",
+        slotIndex: 0,
+        paidResources: ["seed", "fruit"],
+        paidEggsFrom: [],
+        powerCardChoices: { "test.bonus": "wetlandEcologist" },
+      };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.nico.bonusCards.map((b) => b.id)).toContain("wetlandEcologist");
+      expect(next.players.nico.bonusCards.map((b) => b.id)).not.toContain("forestGuardian");
+      expect(next.bonusDiscard).toEqual(["forestGuardian"]);
+    });
+  });
+
+  describe("poder layEgg: objetivos reales (any / nestType / eachNestType / allPlayersNestType)", () => {
+    it("target 'nestType' (rosa) filtra por tipo de nido real y excluye a la propia carta", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.santi.board.grassland[0].cardId = "meadowSparrow"; // nido "cup"
+      state.players.santi.board.grassland[1].cardId = "barnOwl"; // nido "cavity"
+      state.players.santi.board.grassland[2].cardId = "cliffSwallow"; // nido "cup"; será el poder rosa
+      state.cards.cliffSwallow.powers = [
+        {
+          id: "test.pinkNest",
+          timing: "onceBetweenTurns",
+          kind: "layEgg",
+          amount: 1,
+          target: "nestType",
+          nestType: "cavity",
+        },
+      ];
+      state.players.nico.board.grassland[0].cardId = "meadowSparrow";
+
+      const move: Move = { type: "layEggs", eggPlacements: [{ habitat: "grassland", slotIndex: 0 }] };
+      const next = applyMove(state, "nico", move);
+
+      expect(next.players.santi.board.grassland[1].eggs).toBe(1); // barnOwl (cavity)
+      expect(next.players.santi.board.grassland[0].eggs).toBe(0); // meadowSparrow (cup) no califica
+    });
+
+    it("target 'any' respeta la elección del jugador de a qué ave apuntar", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.players.nico.board.grassland[0].cardId = "meadowSparrow";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.any", timing: "onActivate", kind: "layEgg", amount: 1, target: "any" }],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const move: Move = {
+        type: "gainFood",
+        dieIndexes: [0],
+        powerEggChoices: { "test.any": { habitat: "grassland", slotIndex: 0 } },
+      };
+      const next = applyMove(state, "nico", move);
+      expect(next.players.nico.board.grassland[0].eggs).toBe(1);
+      expect(next.players.nico.board.forest[0].eggs).toBe(0);
+    });
+
+    it("target 'any' sin elección cae al primer espacio disponible (comportamiento previo)", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.any2", timing: "onActivate", kind: "layEgg", amount: 1, target: "any" }],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+      expect(next.players.nico.board.forest[0].eggs).toBe(1);
+    });
+
+    it("target 'eachNestType' pone huevos en TODAS las aves propias con ese nido", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay"; // cavity
+      state.players.nico.board.forest[1].cardId = "tuftedTitmouse"; // cavity
+      state.players.nico.board.forest[2].cardId = "pineGrosbeak"; // cup, no debería recibir
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [
+          { id: "test.each", timing: "onActivate", kind: "layEgg", amount: 1, target: "eachNestType", nestType: "cavity" },
+        ],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+      expect(next.players.nico.board.forest[0].eggs).toBe(1);
+      expect(next.players.nico.board.forest[1].eggs).toBe(1);
+      expect(next.players.nico.board.forest[2].eggs).toBe(0);
+    });
+
+    it("target 'allPlayersNestType' pone 1 huevo base por jugador y un extra solo para el activo", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.nico.board.forest[0].cardId = "acornJay"; // cavity, jugador activo
+      state.players.santi.board.forest[0].cardId = "tuftedTitmouse"; // cavity
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [
+          {
+            id: "test.allPlayers",
+            timing: "onActivate",
+            kind: "layEgg",
+            amount: 1,
+            target: "allPlayersNestType",
+            nestType: "cavity",
+            activePlayerBonus: 1,
+          },
+        ],
+      };
+      state.feeder = ["seed", "fruit", "insect"];
+      const move: Move = { type: "gainFood", dieIndexes: [0] };
+      const next = applyMove(state, "nico", move);
+      expect(next.players.santi.board.forest[0].eggs).toBe(1);
+      expect(next.players.nico.board.forest[0].eggs).toBe(2);
+    });
+  });
+
+  describe("poder diceHuntPredator (caza por dados)", () => {
+    it("falla automáticamente si el comedero está lleno (no hay dados fuera para relanzar)", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.grassland[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.dice", timing: "onActivate", kind: "diceHuntPredator", resource: "rodent" }],
+      };
+      state.feeder = ["seed", "fruit", "insect", "fish", "rodent"]; // 5 = comedero lleno
+
+      const move: Move = {
+        type: "layEggs",
+        eggPlacements: [{ habitat: "grassland", slotIndex: 0 }],
+      };
+      const next = applyMove(state, "nico", move);
+      expect(next.players.nico.board.grassland[0].cached).toHaveLength(0);
+    });
+
+    it("cachea el recurso cuando el relanzamiento de los dados fuera del comedero coincide", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.grassland[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.dice", timing: "onActivate", kind: "diceHuntPredator", resource: "rodent" }],
+      };
+      state.feeder = ["seed"]; // 1 en el comedero → 4 dados "fuera" para relanzar
+
+      // standardDieFaces = [seed, fruit, insect, fish, rodent, wild]; floor(0.7*6) = 4 -> "rodent"
+      const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.7);
+      const move: Move = {
+        type: "layEggs",
+        eggPlacements: [{ habitat: "grassland", slotIndex: 0 }],
+      };
+      const next = applyMove(state, "nico", move);
+      randomSpy.mockRestore();
+
+      expect(next.players.nico.board.grassland[0].cached).toContain("rodent");
+      // El poder cachea directamente (como cacheFood): no se suma a la reserva general.
+      expect(next.players.nico.resources.rodent ?? 0).toBe(0);
+    });
+  });
+
+  describe("poder playSecondBird (jugar una segunda ave)", () => {
+    it("juega una segunda ave del mismo jugador como parte de resolver el poder", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.hand = ["orchardFinch", "meadowSparrow"];
+      state.players.nico.resources = { seed: 2, fruit: 1 };
+      state.cards.orchardFinch = {
+        ...state.cards.orchardFinch,
+        powers: [
+          ...state.cards.orchardFinch.powers,
+          { id: "test.secondBird", timing: "onPlay", kind: "playSecondBird", habitats: ["grassland"] },
+        ],
+      };
+
+      const move: Move = {
+        // orchardFinch se juega en bosque para dejar la pradera vacía: así la segunda ave
+        // (meadowSparrow) cae en la columna 1 de pradera, sin costo en huevos.
+        type: "playBird",
+        cardId: "orchardFinch",
+        habitat: "forest",
+        slotIndex: 0,
+        paidResources: ["fruit"],
+        paidEggsFrom: [],
+        powerPlayBirdChoices: {
+          "test.secondBird": {
+            cardId: "meadowSparrow",
+            habitat: "grassland",
+            paidResources: ["seed"],
+            paidEggsFrom: [],
+          },
+        },
+      };
+
+      const next = applyMove(state, "nico", move);
+      expect(next.players.nico.board.forest[0].cardId).toBe("orchardFinch");
+      expect(next.players.nico.board.grassland[0].cardId).toBe("meadowSparrow");
+      expect(next.players.nico.hand).toHaveLength(0);
+    });
+
+    it("no rompe el movimiento si la elección de segunda ave es inválida (no alcanza a pagarla)", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.hand = ["orchardFinch", "meadowSparrow"];
+      state.players.nico.resources = { fruit: 1 }; // no tiene semilla para meadowSparrow
+      state.cards.orchardFinch = {
+        ...state.cards.orchardFinch,
+        powers: [
+          ...state.cards.orchardFinch.powers,
+          { id: "test.secondBird", timing: "onPlay", kind: "playSecondBird", habitats: ["grassland"] },
+        ],
+      };
+
+      const move: Move = {
+        type: "playBird",
+        cardId: "orchardFinch",
+        habitat: "grassland",
+        slotIndex: 0,
+        paidResources: ["fruit"],
+        paidEggsFrom: [],
+        powerPlayBirdChoices: {
+          "test.secondBird": {
+            cardId: "meadowSparrow",
+            habitat: "grassland",
+            paidResources: [],
+            paidEggsFrom: [],
+          },
+        },
+      };
+
+      const next = applyMove(state, "nico", move);
+      expect(next.players.nico.board.grassland[0].cardId).toBe("orchardFinch");
+      expect(next.players.nico.board.grassland[1].cardId).toBeNull();
+      expect(next.players.nico.hand).toContain("meadowSparrow");
+    });
   });
 });
 

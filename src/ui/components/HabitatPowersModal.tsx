@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Check, X } from "lucide-react";
 import { getActivatablePowers } from "../../game";
-import type { GameState, HabitatId, PlayerState } from "../../game";
-import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
+import type { GameState, HabitatId, PlayerState, PowerEggChoices } from "../../game";
+import { buildEggTargetOptions, decodeSlotKey, PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
 interface HabitatPowersModalProps {
   title: string;
@@ -10,7 +10,11 @@ interface HabitatPowersModalProps {
   habitat: HabitatId;
   player: PlayerState;
   gameState: GameState;
-  onConfirm: (skipPowerIds: string[], powerCardChoices: Record<string, string>) => void;
+  onConfirm: (
+    skipPowerIds: string[],
+    powerCardChoices: Record<string, string>,
+    powerEggChoices: PowerEggChoices,
+  ) => void;
   onClose: () => void;
 }
 
@@ -31,6 +35,7 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
   const activatable = getActivatablePowers(gameState, player, habitat);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [choices, setChoices] = useState<Record<string, string>>({});
+  const [eggChoiceKeys, setEggChoiceKeys] = useState<Record<string, string>>({});
 
   const toggle = (powerId: string) => {
     setSkipped((prev) => {
@@ -78,23 +83,46 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
       };
     }
 
+    let slotChoice: PowerChecklistEntry["slotChoice"];
+    if (power.kind === "layEgg" && power.target === "any") {
+      slotChoice = {
+        label: "¿En qué ave ponés el/los huevo(s)? (opcional)",
+        options: buildEggTargetOptions(gameState, player),
+        selected: eggChoiceKeys[power.id] ?? null,
+        onSelect: (key) =>
+          setEggChoiceKeys((prev) => {
+            const next = { ...prev };
+            if (key) next[power.id] = key;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Automático (la primera ave con espacio)",
+      };
+    }
+
     return {
       power,
       birdName: card.name,
       checked: !skipped.has(power.id),
       onToggle: () => toggle(power.id),
       cardChoice,
+      slotChoice,
     };
   });
 
   const handleConfirm = () => {
     const activeChoices: Record<string, string> = {};
+    const activeEggChoices: PowerEggChoices = {};
     for (const entry of entries) {
-      if (entry.checked && entry.cardChoice?.selected) {
+      if (!entry.checked) continue;
+      if (entry.cardChoice?.selected) {
         activeChoices[entry.power.id] = entry.cardChoice.selected;
       }
+      if (entry.slotChoice?.selected) {
+        activeEggChoices[entry.power.id] = decodeSlotKey(entry.slotChoice.selected);
+      }
     }
-    onConfirm(Array.from(skipped), activeChoices);
+    onConfirm(Array.from(skipped), activeChoices, activeEggChoices);
   };
 
   return (

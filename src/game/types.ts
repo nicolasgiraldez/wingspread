@@ -37,9 +37,20 @@ export type Power =
       timing: PowerTiming;
       kind: "layEgg";
       amount: number;
-      target: "self" | "any" | "habitat" | "nestType";
-      habitat?: HabitatId;
+      target:
+        | "self"
+        /** Cualquier ave (con espacio libre); el jugador elige cuál. */
+        | "any"
+        /** 1 ave con nido de este tipo (el jugador elige, o se autoselecciona en poderes rosas). */
+        | "nestType"
+        /** TODAS las aves propias con nido de este tipo reciben `amount` huevo(s) cada una. */
+        | "eachNestType"
+        /** Todos los jugadores ponen 1 huevo en 1 ave con nido de este tipo (a su elección);
+         * el jugador activo además pone `activePlayerBonus` huevo(s) extra en un ave así. */
+        | "allPlayersNestType";
       nestType?: NestType;
+      /** Solo para target "allPlayersNestType": huevos extra exclusivos del jugador activo. */
+      activePlayerBonus?: number;
     }
   | {
       id: string;
@@ -75,6 +86,21 @@ export type Power =
   | {
       id: string;
       timing: PowerTiming;
+      kind: "diceHuntPredator";
+      /** Relanza los dados que están fuera del comedero (5 - dados en el comedero); si alguno
+       * muestra este recurso, la caza tiene éxito: gana 1 y lo cachea en esta carta. */
+      resource: ResourceFace;
+    }
+  | {
+      id: string;
+      timing: PowerTiming;
+      kind: "playSecondBird";
+      /** Hábitat(s) donde se puede jugar la segunda ave; el jugador elige si hay más de uno. */
+      habitats: HabitatId[];
+    }
+  | {
+      id: string;
+      timing: PowerTiming;
       kind: "allPlayersGain";
       resource?: ResourceFace;
       benefitType?: "resource" | "egg" | "card";
@@ -86,6 +112,15 @@ export type Power =
       costResource: ResourceFace;
       gainResource: ResourceFace;
       amount?: number;
+    }
+  | {
+      id: string;
+      timing: PowerTiming;
+      kind: "gainBonusCard";
+      /** Cuántas cartas de bonificación se revelan del mazo. */
+      drawCount: number;
+      /** Cuántas de las reveladas se queda el jugador (el resto se descarta). */
+      keepCount: number;
     };
 
 export type SpeciesCard = {
@@ -94,6 +129,12 @@ export type SpeciesCard = {
   scientificName?: string;
   habitats: HabitatId[];
   cost: Partial<Record<ResourceFace, number>>;
+  /**
+   * Costo "O": además de `cost`, el jugador debe pagar 1 unidad usando CUALQUIERA de estos
+   * tipos (a diferencia de `cost.wild`, que acepta los 5 tipos, este set es restringido a
+   * los 2-3 tipos mostrados en la carta real, unidos por "/").
+   */
+  costAnyOf?: ResourceFace[];
   points: number;
   eggCapacity: number;
   nestType?: NestType;
@@ -224,6 +265,10 @@ export type GameState = {
   roundGoalResults?: Record<number, Record<PlayerId, number>>;
   cards: Record<CardId, SpeciesCard>;
   bonusCardsCatalog?: Record<string, BonusCard>;
+  /** Mazo de cartas de bonificación restantes (no repartidas al inicio), para poderes que reparten más. */
+  bonusDeck: string[];
+  /** Cartas de bonificación reveladas y no conservadas. */
+  bonusDiscard: string[];
   automaState?: AutomaState;
   log: GameLogEntry[];
 };
@@ -244,6 +289,24 @@ export type SkipPowerIds = string[];
  */
 export type PowerCardChoices = Record<string, CardId>;
 
+/** Elección del jugador para un poder "playSecondBird": qué ave jugar, dónde y cómo pagarla. */
+export type PowerPlayBirdChoice = {
+  cardId: CardId;
+  habitat: HabitatId;
+  paidResources: ResourceFace[];
+  paidEggsFrom: SlotRef[];
+  skipPowerIds?: SkipPowerIds;
+};
+
+export type PowerPlayBirdChoices = Record<string, PowerPlayBirdChoice>;
+
+/**
+ * Elección del jugador de a qué ave apunta un poder "layEgg" con target "any" o "nestType"
+ * (hasta `amount` huevos van todos a esa única ave elegida, limitados por su capacidad).
+ * Clave = Power["id"].
+ */
+export type PowerEggChoices = Record<string, SlotRef>;
+
 export type Move =
   | {
       type: "playBird";
@@ -254,6 +317,8 @@ export type Move =
       paidEggsFrom: SlotRef[];
       skipPowerIds?: SkipPowerIds;
       powerCardChoices?: PowerCardChoices;
+      powerPlayBirdChoices?: PowerPlayBirdChoices;
+      powerEggChoices?: PowerEggChoices;
     }
   | {
       type: "gainFood";
@@ -264,6 +329,7 @@ export type Move =
       tradeCardId?: CardId;
       skipPowerIds?: SkipPowerIds;
       powerCardChoices?: PowerCardChoices;
+      powerEggChoices?: PowerEggChoices;
     }
   | {
       type: "layEggs";
@@ -271,6 +337,7 @@ export type Move =
       tradeResource?: ResourceFace;
       skipPowerIds?: SkipPowerIds;
       powerCardChoices?: PowerCardChoices;
+      powerEggChoices?: PowerEggChoices;
     }
   | {
       type: "drawBirdCards";
@@ -278,6 +345,7 @@ export type Move =
       tradeEggFrom?: SlotRef;
       skipPowerIds?: SkipPowerIds;
       powerCardChoices?: PowerCardChoices;
+      powerEggChoices?: PowerEggChoices;
     }
   | {
       type: "rerollFeeder";

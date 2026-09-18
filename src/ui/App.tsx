@@ -26,6 +26,7 @@ import type {
   Move,
   NetworkMessage,
   PlayerId,
+  PowerEggChoices,
   ResourceFace,
   SpeciesCard,
 } from "../game";
@@ -283,7 +284,11 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleConfirmGainFood = (skipPowerIds: string[], powerCardChoices: Record<string, string>) => {
+  const handleConfirmGainFood = (
+    skipPowerIds: string[],
+    powerCardChoices: Record<string, string>,
+    powerEggChoices: PowerEggChoices,
+  ) => {
     if (!pendingGainFood) return;
     const { dieIndex, wildChoice } = pendingGainFood;
     executeLocalMove({
@@ -292,6 +297,7 @@ export const App: React.FC = () => {
       ...(wildChoice ? { wildChoices: { [dieIndex]: wildChoice } } : {}),
       ...(skipPowerIds.length ? { skipPowerIds } : {}),
       ...(Object.keys(powerCardChoices).length ? { powerCardChoices } : {}),
+      ...(Object.keys(powerEggChoices).length ? { powerEggChoices } : {}),
     });
     setPendingGainFood(null);
   };
@@ -313,13 +319,18 @@ export const App: React.FC = () => {
   const handleDrawFromMarket = (cardId: string) =>
     executeOrConfirmDraw([{ source: "market", marketCardId: cardId }]);
 
-  const handleConfirmDraw = (skipPowerIds: string[], powerCardChoices: Record<string, string>) => {
+  const handleConfirmDraw = (
+    skipPowerIds: string[],
+    powerCardChoices: Record<string, string>,
+    powerEggChoices: PowerEggChoices,
+  ) => {
     if (!pendingDraw) return;
     executeLocalMove({
       type: "drawBirdCards",
       draws: pendingDraw,
       ...(skipPowerIds.length ? { skipPowerIds } : {}),
       ...(Object.keys(powerCardChoices).length ? { powerCardChoices } : {}),
+      ...(Object.keys(powerEggChoices).length ? { powerEggChoices } : {}),
     });
     setPendingDraw(null);
   };
