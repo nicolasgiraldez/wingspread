@@ -12,10 +12,10 @@ export const RoundGoalsMat: React.FC<RoundGoalsMatProps> = ({ gameState }) => {
   return (
     <div className="goals-mat">
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 160 }}>
-        <Target size={20} color="#235c3a" />
+        <Target size={20} color="#3fae72" />
         <div>
           <strong style={{ fontSize: "0.95rem" }}>Objetivos de Ronda</strong>
-          <div style={{ fontSize: "0.75rem", color: "#667" }}>
+          <div style={{ fontSize: "0.75rem", color: "#93a397" }}>
             Ronda {gameState.round} de 4
           </div>
         </div>
@@ -36,16 +36,16 @@ export const RoundGoalsMat: React.FC<RoundGoalsMatProps> = ({ gameState }) => {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span className="round-tag">Ronda {roundNumber}</span>
                 {isActive && (
-                  <span style={{ fontSize: "0.7rem", color: "#235c3a", fontWeight: 700 }}>
+                  <span style={{ fontSize: "0.7rem", color: "#3fae72", fontWeight: 700 }}>
                     ● En Curso
                   </span>
                 )}
               </div>
               <strong style={{ fontSize: "0.85rem", margin: "2px 0" }}>{goal.name}</strong>
-              <span style={{ fontSize: "0.7rem", color: "#667" }}>{goal.description}</span>
+              <span style={{ fontSize: "0.7rem", color: "#93a397" }}>{goal.description}</span>
 
               {/* Score / Live Metric */}
-              <div style={{ marginTop: 4, paddingTop: 4, borderTop: "1px dashed #d5ded0", fontSize: "0.75rem" }}>
+              <div style={{ marginTop: 4, paddingTop: 4, borderTop: "1px dashed #394239", fontSize: "0.75rem" }}>
                 {isCompleted && roundResults ? (
                   <div style={{ display: "flex", gap: 8 }}>
                     {Object.entries(roundResults).map(([pId, pts]) => (
@@ -55,7 +55,7 @@ export const RoundGoalsMat: React.FC<RoundGoalsMatProps> = ({ gameState }) => {
                     ))}
                   </div>
                 ) : (
-                  <div style={{ display: "flex", gap: 8, color: "#445" }}>
+                  <div style={{ display: "flex", gap: 8, color: "#c3ccc5" }}>
                     {gameState.playerOrder.map((pId) => {
                       const metric = evaluateRoundGoalMetric(gameState.players[pId], gameState, goal);
                       return (

@@ -46,9 +46,9 @@ interface BirdSlotInfo {
 }
 
 const habitatIcons: Record<HabitatId, React.ReactNode> = {
-  forest: <TreePine size={16} color="#235c3a" />,
-  grassland: <Wind size={16} color="#9c6c16" />,
-  wetland: <Waves size={16} color="#1d618a" />,
+  forest: <TreePine size={16} color="#3fae72" />,
+  grassland: <Wind size={16} color="#d9a83b" />,
+  wetland: <Waves size={16} color="#4fa8e0" />,
 };
 
 export const LayEggsModal: React.FC<LayEggsModalProps> = ({
@@ -286,7 +286,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
         position: "fixed",
         inset: 0,
         zIndex: 1000,
-        background: "rgba(0, 0, 0, 0.45)",
+        background: "rgba(0, 0, 0, 0.7)",
         backdropFilter: "blur(3px)",
         display: "flex",
         alignItems: "center",
@@ -298,14 +298,15 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "#ffffff",
+          background: "#182019",
+          border: "1px solid #2b332e",
           borderRadius: 20,
           width: "100%",
           maxWidth: 680,
           maxHeight: "90vh",
           display: "flex",
           flexDirection: "column",
-          boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+          boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
           overflow: "hidden",
         }}
       >
@@ -313,11 +314,11 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
         <div
           style={{
             padding: "18px 24px",
-            borderBottom: "1px solid #e0ebe0",
+            borderBottom: "1px solid #2b332e",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            background: "linear-gradient(to right, #f7faf7, #ffffff)",
+            background: "linear-gradient(to right, #1c241d, #182019)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -326,7 +327,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                 width: 38,
                 height: 38,
                 borderRadius: 10,
-                background: "#fef3d6",
+                background: "rgba(217, 168, 59, 0.18)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -336,10 +337,10 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               🥚
             </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: "1.25rem", color: "#235c3a" }}>
+              <h2 style={{ margin: 0, fontSize: "1.25rem", color: "#3fae72" }}>
                 Poner Huevos (Acción de Pradera)
               </h2>
-              <p style={{ margin: 0, fontSize: "0.8rem", color: "#667" }}>
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "#93a397" }}>
                 Distribuí los huevos entre cualquiera de tus aves que tenga espacio disponible.
               </p>
             </div>
@@ -351,7 +352,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               border: "none",
               cursor: "pointer",
               padding: 4,
-              color: "#778",
+              color: "#93a397",
             }}
           >
             <X size={22} />
@@ -362,8 +363,8 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
         <div
           style={{
             padding: "14px 24px",
-            background: "#f4f8f4",
-            borderBottom: "1px solid #e2ede2",
+            background: "#1c241d",
+            borderBottom: "1px solid #2b332e",
             display: "flex",
             flexDirection: "column",
             gap: 10,
@@ -379,7 +380,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "#334" }}>
+              <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "#eef1ec" }}>
                 Huevos disponibles en este turno:
               </span>
               <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
@@ -389,7 +390,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                     style={{
                       fontSize: "1.2rem",
                       opacity: i < totalAssigned ? 1 : 0.35,
-                      filter: i < totalAssigned ? "drop-shadow(0 2px 2px rgba(0,0,0,0.15))" : "grayscale(100%)",
+                      filter: i < totalAssigned ? "drop-shadow(0 2px 2px rgba(0,0,0,0.4))" : "grayscale(100%)",
                       transition: "all 0.15s ease",
                     }}
                   >
@@ -403,11 +404,11 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               style={{
                 fontSize: "0.85rem",
                 fontWeight: 700,
-                color: remainingEggs === 0 ? "#235c3a" : "#b06d00",
-                background: remainingEggs === 0 ? "#e5f4e7" : "#fff8e6",
+                color: remainingEggs === 0 ? "#3fae72" : "#d9a83b",
+                background: remainingEggs === 0 ? "rgba(63, 174, 114, 0.15)" : "rgba(217, 168, 59, 0.15)",
                 padding: "4px 10px",
                 borderRadius: 8,
-                border: `1px solid ${remainingEggs === 0 ? "#c4e5c8" : "#fae6b8"}`,
+                border: `1px solid ${remainingEggs === 0 ? "rgba(63, 174, 114, 0.4)" : "rgba(217, 168, 59, 0.4)"}`,
               }}
             >
               {remainingEggs === 0
@@ -424,13 +425,13 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                 alignItems: "center",
                 gap: 10,
                 fontSize: "0.82rem",
-                background: "#ffffff",
+                background: "#182019",
                 padding: "8px 12px",
                 borderRadius: 8,
-                border: "1px solid #dce8db",
+                border: "1px solid #2b332e",
               }}
             >
-              <span style={{ color: "#445", fontWeight: 600 }}>
+              <span style={{ color: "#c3ccc5", fontWeight: 600 }}>
                 Opcional (+1 🥚 extra): Descartar 1 alimento
               </span>
               <div style={{ display: "flex", gap: 6 }}>
@@ -446,8 +447,8 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                       style={{
                         padding: "3px 8px",
                         borderRadius: 6,
-                        border: isSelected ? "2px solid #235c3a" : "1px solid #ccd8ca",
-                        background: isSelected ? "#e5f4e7" : "#fbfdfb",
+                        border: isSelected ? "2px solid #3fae72" : "1px solid #394239",
+                        background: isSelected ? "rgba(63, 174, 114, 0.15)" : "#212b22",
                         cursor: "pointer",
                         fontSize: "0.78rem",
                         fontWeight: isSelected ? 700 : 500,
@@ -469,7 +470,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
         {/* Lista de Aves con control de huevos */}
         <div style={{ padding: "16px 24px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
           {birds.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 32, color: "#889" }}>
+            <div style={{ textAlign: "center", padding: 32, color: "#75897b" }}>
               <p style={{ margin: 0, fontSize: "0.95rem" }}>
                 No tienes aves jugadas en tu tablero para poner huevos.
               </p>
@@ -478,7 +479,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               </p>
             </div>
           ) : totalBoardSpace === 0 ? (
-            <div style={{ textAlign: "center", padding: 24, color: "#9c6c16", background: "#fff9ea", borderRadius: 10 }}>
+            <div style={{ textAlign: "center", padding: 24, color: "#d9a83b", background: "rgba(217, 168, 59, 0.12)", borderRadius: 10 }}>
               Todas tus aves ya han alcanzado su capacidad máxima de huevos.
             </div>
           ) : (
@@ -498,8 +499,8 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                     justifyContent: "space-between",
                     padding: "10px 14px",
                     borderRadius: 12,
-                    border: assigned > 0 ? "2px solid #235c3a" : "1px solid #e0ebe0",
-                    background: assigned > 0 ? "#f6fbf6" : "#ffffff",
+                    border: assigned > 0 ? "2px solid #3fae72" : "1px solid #2b332e",
+                    background: assigned > 0 ? "rgba(63, 174, 114, 0.08)" : "#182019",
                     transition: "all 0.15s ease",
                   }}
                 >
@@ -514,17 +515,17 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                         width: 32,
                         height: 32,
                         borderRadius: 8,
-                        background: "#f0f4ef",
+                        background: "#1c241d",
                       }}
                       title={habitatLabels[b.habitat]}
                     >
                       {habitatIcons[b.habitat]}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#223" }}>
+                      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#eef1ec" }}>
                         {b.card.name}
                       </div>
-                      <div style={{ display: "flex", gap: 8, fontSize: "0.75rem", color: "#667", marginTop: 2 }}>
+                      <div style={{ display: "flex", gap: 8, fontSize: "0.75rem", color: "#93a397", marginTop: 2 }}>
                         <span>
                           {habitatLabels[b.habitat]} (Columna {b.slotIndex + 1})
                         </span>
@@ -540,15 +541,15 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     {/* Visualización de huevos */}
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#334" }}>
+                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#eef1ec" }}>
                         {b.currentEggs + assigned} / {b.eggCapacity} 🥚
                         {assigned > 0 && (
-                          <span style={{ color: "#235c3a", marginLeft: 4 }}>
+                          <span style={{ color: "#3fae72", marginLeft: 4 }}>
                             (+{assigned})
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: "0.7rem", color: isFull ? "#b06d00" : "#778" }}>
+                      <div style={{ fontSize: "0.7rem", color: isFull ? "#d9a83b" : "#93a397" }}>
                         {isFull ? "Capacidad completa" : `${b.availableSpace - assigned} espacio(s) libre(s)`}
                       </div>
                     </div>
@@ -563,9 +564,9 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                           width: 32,
                           height: 32,
                           borderRadius: 8,
-                          border: "1px solid #ccd8ca",
-                          background: canRemove ? "#ffffff" : "#f5f7f4",
-                          color: canRemove ? "#334" : "#aab",
+                          border: "1px solid #394239",
+                          background: canRemove ? "#212b22" : "#181f1a",
+                          color: canRemove ? "#eef1ec" : "#5c6b60",
                           cursor: canRemove ? "pointer" : "not-allowed",
                           display: "flex",
                           alignItems: "center",
@@ -583,7 +584,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                           textAlign: "center",
                           fontWeight: 700,
                           fontSize: "0.95rem",
-                          color: assigned > 0 ? "#235c3a" : "#889",
+                          color: assigned > 0 ? "#3fae72" : "#75897b",
                         }}
                       >
                         {assigned}
@@ -597,9 +598,9 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                           width: 32,
                           height: 32,
                           borderRadius: 8,
-                          border: canAdd ? "1px solid #235c3a" : "1px solid #ccd8ca",
-                          background: canAdd ? "#235c3a" : "#f5f7f4",
-                          color: canAdd ? "#ffffff" : "#aab",
+                          border: canAdd ? "1px solid #3fae72" : "1px solid #394239",
+                          background: canAdd ? "#1f7a4f" : "#181f1a",
+                          color: canAdd ? "#ffffff" : "#5c6b60",
                           cursor: canAdd ? "pointer" : "not-allowed",
                           display: "flex",
                           alignItems: "center",
@@ -635,8 +636,8 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
         <div
           style={{
             padding: "16px 24px",
-            borderTop: "1px solid #e2ede2",
-            background: "#fbfdfb",
+            borderTop: "1px solid #2b332e",
+            background: "#141a15",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -648,9 +649,9 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
             style={{
               padding: "10px 18px",
               borderRadius: 8,
-              border: "1px solid #ccd8ca",
-              background: "#ffffff",
-              color: "#556",
+              border: "1px solid #394239",
+              background: "#212b22",
+              color: "#c3ccc5",
               cursor: "pointer",
               fontWeight: 600,
               fontSize: "0.9rem",
@@ -667,7 +668,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               padding: "10px 22px",
               borderRadius: 8,
               border: "none",
-              background: totalAssigned > 0 ? "#235c3a" : "#ccd8ca",
+              background: totalAssigned > 0 ? "#1f7a4f" : "#394239",
               color: "#ffffff",
               cursor: totalAssigned > 0 ? "pointer" : "not-allowed",
               fontWeight: 700,
@@ -675,7 +676,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               display: "flex",
               alignItems: "center",
               gap: 8,
-              boxShadow: totalAssigned > 0 ? "0 4px 10px rgba(35,92,58,0.3)" : "none",
+              boxShadow: totalAssigned > 0 ? "0 4px 10px rgba(31,122,79,0.35)" : "none",
               transition: "all 0.15s ease",
             }}
           >

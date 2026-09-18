@@ -23,9 +23,9 @@ export const ChooseBonusCardModal: React.FC<ChooseBonusCardModalProps> = ({
     return (
       <div className="modal-backdrop">
         <div className="modal-content" style={{ maxWidth: 420, textAlign: "center" }}>
-          <Hourglass size={32} color="#235c3a" style={{ margin: "0 auto 10px auto" }} />
+          <Hourglass size={32} color="#3fae72" style={{ margin: "0 auto 10px auto" }} />
           <h2 style={{ margin: "0 0 6px 0", fontSize: "1.15rem" }}>Ya elegiste tu carta</h2>
-          <p style={{ margin: 0, color: "#667", fontSize: "0.9rem" }}>
+          <p style={{ margin: 0, color: "#93a397", fontSize: "0.9rem" }}>
             Esperando a que el resto de los jugadores elija la suya para empezar la Ronda 1...
           </p>
         </div>
@@ -37,11 +37,11 @@ export const ChooseBonusCardModal: React.FC<ChooseBonusCardModalProps> = ({
     <div className="modal-backdrop">
       <div className="modal-content" style={{ maxWidth: 580 }}>
         <div style={{ textAlign: "center", padding: "6px 0 14px 0" }}>
-          <Sparkles size={36} color="#235c3a" style={{ margin: "0 auto 8px auto" }} />
+          <Sparkles size={36} color="#3fae72" style={{ margin: "0 auto 8px auto" }} />
           <h2 style={{ margin: "0 0 6px 0", fontSize: "1.25rem" }}>
             {playerName}, elegí tu carta de bonificación inicial
           </h2>
-          <p style={{ margin: 0, color: "#667", fontSize: "0.88rem" }}>
+          <p style={{ margin: 0, color: "#93a397", fontSize: "0.88rem" }}>
             Te tocaron estas 2 al azar. Quedate con 1; la otra vuelve al descarte.
           </p>
         </div>
@@ -53,8 +53,8 @@ export const ChooseBonusCardModal: React.FC<ChooseBonusCardModalProps> = ({
               style={{
                 flex: "1 1 230px",
                 maxWidth: 260,
-                background: "#ffffff",
-                border: "1.5px solid #d2ded0",
+                background: "#212b22",
+                border: "1.5px solid #394239",
                 borderRadius: 10,
                 padding: "14px 14px 12px 14px",
                 display: "flex",
@@ -63,12 +63,12 @@ export const ChooseBonusCardModal: React.FC<ChooseBonusCardModalProps> = ({
               }}
             >
               <strong style={{ fontSize: "1rem" }}>{bonus.name}</strong>
-              <p style={{ margin: 0, color: "#556", fontSize: "0.85rem", flex: 1 }}>
+              <p style={{ margin: 0, color: "#c3ccc5", fontSize: "0.85rem", flex: 1 }}>
                 {bonus.description}
               </p>
               <button
                 onClick={() => onChoose(bonus.id)}
-                style={{ backgroundColor: "#235c3a", padding: "8px 12px", fontSize: "0.9rem" }}
+                style={{ backgroundColor: "#1f7a4f", padding: "8px 12px", fontSize: "0.9rem" }}
               >
                 Elegir esta
               </button>

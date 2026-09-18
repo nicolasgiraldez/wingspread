@@ -44,26 +44,26 @@ export const OnlineLobbyModal: React.FC<OnlineLobbyModalProps> = ({
         <div className="modal-header">
           <h2>Modos de Juego - Wingspread</h2>
           {onClose && (
-            <button onClick={onClose} style={{ background: "transparent", color: "#667", padding: 4 }}>
+            <button onClick={onClose} style={{ background: "transparent", color: "#93a397", padding: 4 }}>
               <X size={20} />
             </button>
           )}
         </div>
 
-        <p style={{ margin: "0 0 14px 0", color: "#556", fontSize: "0.9rem" }}>
+        <p style={{ margin: "0 0 14px 0", color: "#c3ccc5", fontSize: "0.9rem" }}>
           Selecciona cómo deseas jugar: en solitario contra la IA o en línea con otra persona en tiempo real.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {/* 1. Modo Solitario vs Automa */}
-          <div style={{ background: "#f8faf8", border: "1.5px solid #d2ded0", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "#1c241d", border: "1.5px solid #2b332e", borderRadius: 12, padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <div style={{ background: "#235c3a", color: "#ffffff", padding: 6, borderRadius: 8 }}>
+              <div style={{ background: "#1f7a4f", color: "#ffffff", padding: 6, borderRadius: 8 }}>
                 <Bot size={18} />
               </div>
               <strong style={{ fontSize: "1.05rem" }}>Modo Solitario (vs Automa)</strong>
             </div>
-            <p style={{ margin: "0 0 10px 0", fontSize: "0.82rem", color: "#667" }}>
+            <p style={{ margin: "0 0 10px 0", fontSize: "0.82rem", color: "#93a397" }}>
               Juega una partida individual contra el oponente IA oficial de Wingspan.
             </p>
             <div style={{ display: "flex", gap: 8 }}>
@@ -85,14 +85,14 @@ export const OnlineLobbyModal: React.FC<OnlineLobbyModalProps> = ({
           </div>
 
           {/* 2. Modo Multijugador Online */}
-          <div style={{ background: "#f4f8fb", border: "1.5px solid #bddbf0", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "rgba(79, 168, 224, 0.1)", border: "1.5px solid rgba(79, 168, 224, 0.35)", borderRadius: 12, padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <div style={{ background: "#1d618a", color: "#ffffff", padding: 6, borderRadius: 8 }}>
+              <div style={{ background: "#20699a", color: "#ffffff", padding: 6, borderRadius: 8 }}>
                 <Globe size={18} />
               </div>
               <strong style={{ fontSize: "1.05rem" }}>Multijugador Online (P2P)</strong>
             </div>
-            <p style={{ margin: "0 0 12px 0", fontSize: "0.82rem", color: "#556" }}>
+            <p style={{ margin: "0 0 12px 0", fontSize: "0.82rem", color: "#c3ccc5" }}>
               Crea una sala privada y comparte el enlace, o únete a una sala con su código.
             </p>
 
@@ -100,7 +100,7 @@ export const OnlineLobbyModal: React.FC<OnlineLobbyModalProps> = ({
               <button
                 onClick={handleCreateRoom}
                 style={{
-                  backgroundColor: "#1d618a",
+                  backgroundColor: "#20699a",
                   width: "100%",
                   justifyContent: "center",
                   padding: "9px 12px",
@@ -110,9 +110,9 @@ export const OnlineLobbyModal: React.FC<OnlineLobbyModalProps> = ({
               </button>
 
               <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 0" }}>
-                <div style={{ flex: 1, height: 1, background: "#d0e1ef" }} />
-                <span style={{ fontSize: "0.75rem", color: "#778" }}>O UNIRSE A SALA</span>
-                <div style={{ flex: 1, height: 1, background: "#d0e1ef" }} />
+                <div style={{ flex: 1, height: 1, background: "#2b332e" }} />
+                <span style={{ fontSize: "0.75rem", color: "#75897b" }}>O UNIRSE A SALA</span>
+                <div style={{ flex: 1, height: 1, background: "#2b332e" }} />
               </div>
 
               <form onSubmit={handleJoinRoom} style={{ display: "flex", gap: 8 }}>
@@ -125,20 +125,20 @@ export const OnlineLobbyModal: React.FC<OnlineLobbyModalProps> = ({
                     flex: 1,
                     padding: "8px 12px",
                     borderRadius: 6,
-                    border: "1px solid #bddbf0",
+                    border: "1px solid rgba(79, 168, 224, 0.4)",
                     fontSize: "0.88rem",
                     fontFamily: "inherit",
                   }}
                 />
                 <button
                   type="submit"
-                  style={{ backgroundColor: "#235c3a", padding: "0 16px" }}
+                  style={{ backgroundColor: "#1f7a4f", padding: "0 16px" }}
                 >
                   <LogIn size={16} /> Unirse
                 </button>
               </form>
               {errorMsg && (
-                <div style={{ fontSize: "0.78rem", color: "#b91c1c" }}>{errorMsg}</div>
+                <div style={{ fontSize: "0.78rem", color: "#f0645f" }}>{errorMsg}</div>
               )}
             </div>
           </div>
@@ -146,7 +146,7 @@ export const OnlineLobbyModal: React.FC<OnlineLobbyModalProps> = ({
 
         {onClose && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-            <button onClick={onClose} style={{ backgroundColor: "#e2e8f0", color: "#334155" }}>
+            <button onClick={onClose} style={{ backgroundColor: "#212b22", color: "#c3ccc5" }}>
               Cerrar
             </button>
           </div>

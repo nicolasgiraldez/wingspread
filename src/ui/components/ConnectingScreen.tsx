@@ -38,12 +38,12 @@ export const ConnectingScreen: React.FC<ConnectingScreenProps> = ({
     <div style={styles.fullPage}>
       <div style={styles.heroCard}>
         <div style={styles.logoRow}>
-          <div style={{ ...styles.logoIcon, background: isError ? "#b91c1c" : "#1d618a" }}>
+          <div style={{ ...styles.logoIcon, background: isError ? "#b8433f" : "#20699a" }}>
             <Bird size={28} color="#fff" />
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: "1.3rem" }}>Uniéndote a la sala</h2>
-            <p style={{ margin: 0, color: "#667", fontSize: "0.85rem" }}>
+            <p style={{ margin: 0, color: "#93a397", fontSize: "0.85rem" }}>
               Sala <strong>{roomCode}</strong> · Jugando como <strong>{playerName}</strong>
             </p>
           </div>
@@ -56,28 +56,28 @@ export const ConnectingScreen: React.FC<ConnectingScreenProps> = ({
             gap: 12,
             padding: "16px 18px",
             borderRadius: 12,
-            background: isError ? "#fee2e2" : "#e9f3f9",
-            border: `1.5px solid ${isError ? "#fca5a5" : "#bddbf0"}`,
+            background: isError ? "rgba(240, 100, 95, 0.12)" : "rgba(79, 168, 224, 0.12)",
+            border: `1.5px solid ${isError ? "rgba(240, 100, 95, 0.4)" : "rgba(79, 168, 224, 0.4)"}`,
             marginBottom: 18,
           }}
         >
           {isError ? (
-            <AlertTriangle size={22} color="#b91c1c" />
+            <AlertTriangle size={22} color="#f0645f" />
           ) : (
-            <Loader2 size={22} color="#1d618a" className="spin-icon" />
+            <Loader2 size={22} color="#4fa8e0" className="spin-icon" />
           )}
           <div>
-            <div style={{ fontWeight: 700, fontSize: "0.9rem", color: isError ? "#b91c1c" : "#1d618a" }}>
+            <div style={{ fontWeight: 700, fontSize: "0.9rem", color: isError ? "#f0645f" : "#4fa8e0" }}>
               {statusText[status]}
             </div>
             {statusMessage && (
-              <div style={{ fontSize: "0.78rem", color: "#667", marginTop: 2 }}>{statusMessage}</div>
+              <div style={{ fontSize: "0.78rem", color: "#93a397", marginTop: 2 }}>{statusMessage}</div>
             )}
           </div>
         </div>
 
         {isError && (
-          <p style={{ fontSize: "0.82rem", color: "#556", marginBottom: 18 }}>
+          <p style={{ fontSize: "0.82rem", color: "#c3ccc5", marginBottom: 18 }}>
             Verificá que el código de sala sea correcto y que la persona anfitriona siga con la
             sala abierta en su navegador.
           </p>
@@ -107,16 +107,17 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "linear-gradient(135deg, #1a3a28 0%, #1a2e3a 50%, #1a3328 100%)",
+    background: "linear-gradient(135deg, #0d1c14 0%, #0d161c 50%, #0d1a15 100%)",
     padding: 24,
   },
   heroCard: {
-    background: "#ffffff",
+    background: "#182019",
+    border: "1px solid #2b332e",
     borderRadius: 20,
     padding: 32,
     maxWidth: 460,
     width: "100%",
-    boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
   },
   logoRow: {
     display: "flex",
@@ -125,7 +126,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 22,
   },
   logoIcon: {
-    background: "linear-gradient(135deg, #235c3a, #1d618a)",
+    background: "linear-gradient(135deg, #3fae72, #4fa8e0)",
     borderRadius: 16,
     padding: 12,
     display: "flex",
@@ -140,9 +141,9 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8,
     padding: "11px 16px",
     borderRadius: 10,
-    border: "1.5px solid #d2ded0",
-    background: "#ffffff",
-    color: "#334",
+    border: "1.5px solid #394239",
+    background: "#212b22",
+    color: "#c3ccc5",
     fontWeight: 700,
     fontSize: "0.9rem",
     cursor: "pointer",
@@ -155,7 +156,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "11px 16px",
     borderRadius: 10,
     border: "none",
-    background: "#235c3a",
+    background: "#1f7a4f",
     color: "#fff",
     fontWeight: 700,
     fontSize: "0.9rem",

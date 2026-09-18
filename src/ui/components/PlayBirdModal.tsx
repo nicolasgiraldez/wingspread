@@ -338,7 +338,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
           <h2>Jugar Ave: {card.name}</h2>
           <button
             onClick={onClose}
-            style={{ background: "transparent", color: "#667", padding: 4 }}
+            style={{ background: "transparent", color: "#93a397", padding: 4 }}
           >
             <X size={20} />
           </button>
@@ -358,9 +358,9 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                     onClick={() => setSelectedHabitat(hab)}
                     style={{
                       flex: 1,
-                      backgroundColor: selectedHabitat === hab ? "#235c3a" : "#eaf4ed",
-                      color: selectedHabitat === hab ? "#ffffff" : "#235c3a",
-                      border: "1px solid #b8dbc0",
+                      backgroundColor: selectedHabitat === hab ? "#1f7a4f" : "rgba(63, 174, 114, 0.12)",
+                      color: selectedHabitat === hab ? "#ffffff" : "#3fae72",
+                      border: "1px solid rgba(63, 174, 114, 0.35)",
                       justifyContent: "center",
                     }}
                   >
@@ -368,7 +368,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                   </button>
                 ))}
               </div>
-              <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#667" }}>
+              <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#93a397" }}>
                 Se colocará en la Columna {slotIndex + 1} de {habitatLabels[selectedHabitat]} (Coste: {eggCost} 🥚).
               </p>
             </div>
@@ -377,11 +377,11 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <strong style={{ fontSize: "0.9rem" }}>2. Pago de Alimentos</strong>
-                <span style={{ fontSize: "0.75rem", color: isPaymentValid ? "#235c3a" : "#b91c1c", fontWeight: 700 }}>
+                <span style={{ fontSize: "0.75rem", color: isPaymentValid ? "#3fae72" : "#f0645f", fontWeight: 700 }}>
                   {isPaymentValid ? "✓ Pago Válido" : "✗ Faltan Alimentos / Inválido"}
                 </span>
               </div>
-              <p style={{ margin: "2px 0 6px 0", fontSize: "0.75rem", color: "#667" }}>
+              <p style={{ margin: "2px 0 6px 0", fontSize: "0.75rem", color: "#93a397" }}>
                 Haz clic en tus recursos para seleccionarlos. Puedes usar 2 recursos cualesquiera por cada 1 requerido.
                 {card.costAnyOf && card.costAnyOf.length > 0 && (
                   <>
@@ -403,9 +403,9 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                       onClick={() => toggleResourceForPayment(r)}
                       disabled={(total ?? 0) === 0 && selectedCount === 0}
                       style={{
-                        backgroundColor: selectedCount > 0 ? "#235c3a" : "#ffffff",
-                        color: selectedCount > 0 ? "#ffffff" : "#1d2a22",
-                        border: "1.5px solid #d2ded0",
+                        backgroundColor: selectedCount > 0 ? "#1f7a4f" : "#212b22",
+                        color: selectedCount > 0 ? "#ffffff" : "#eef1ec",
+                        border: "1.5px solid #394239",
                         padding: "6px 10px",
                         fontSize: "0.85rem",
                       }}
@@ -421,7 +421,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
             {eggCost > 0 && (
               <div>
                 <strong style={{ fontSize: "0.9rem" }}>3. Coste en Huevos ({eggCost} 🥚)</strong>
-                <p style={{ margin: "2px 0 0 0", fontSize: "0.8rem", color: isEggCostValid ? "#235c3a" : "#b91c1c" }}>
+                <p style={{ margin: "2px 0 0 0", fontSize: "0.8rem", color: isEggCostValid ? "#3fae72" : "#f0645f" }}>
                   {isEggCostValid
                     ? `✓ Se descontarán ${eggCost} huevo(s) de tu tablero.`
                     : `✗ Necesitas al menos ${eggCost} huevo(s) en tu tablero para jugar en esta columna.`}
@@ -443,7 +443,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                 </p>
 
                 {secondBirdCandidates.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: "0.8rem", color: "#889" }}>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "#75897b" }}>
                     No tenés otra ave en mano jugable en {secondBirdPower.habitats.map((h) => habitatLabels[h]).join(" o ")}.
                   </p>
                 ) : (
@@ -451,7 +451,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                     <select
                       value={secondBirdCardId ?? ""}
                       onChange={(e) => setSecondBirdCard(e.target.value || null)}
-                      style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #ccd8ca", fontSize: "0.85rem" }}
+                      style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #394239", fontSize: "0.85rem" }}
                     >
                       <option value="">No jugar segunda ave</option>
                       {secondBirdCandidates.map((c) => (
@@ -472,9 +472,9 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                                 onClick={() => setSecondBirdHabitatState(hab)}
                                 style={{
                                   flex: 1,
-                                  backgroundColor: effectiveSecondBirdHabitat === hab ? "#235c3a" : "#eaf4ed",
-                                  color: effectiveSecondBirdHabitat === hab ? "#ffffff" : "#235c3a",
-                                  border: "1px solid #b8dbc0",
+                                  backgroundColor: effectiveSecondBirdHabitat === hab ? "#1f7a4f" : "rgba(63, 174, 114, 0.12)",
+                                  color: effectiveSecondBirdHabitat === hab ? "#ffffff" : "#3fae72",
+                                  border: "1px solid rgba(63, 174, 114, 0.35)",
                                   justifyContent: "center",
                                   fontSize: "0.8rem",
                                 }}
@@ -484,7 +484,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                             ))}
                           </div>
                         )}
-                        <span style={{ fontSize: "0.78rem", color: secondBirdPaymentValid ? "#235c3a" : "#b91c1c" }}>
+                        <span style={{ fontSize: "0.78rem", color: secondBirdPaymentValid ? "#3fae72" : "#f0645f" }}>
                           {secondBirdPaymentValid
                             ? `✓ Se jugará en ${effectiveSecondBirdHabitat ? habitatLabels[effectiveSecondBirdHabitat] : ""} pagando su costo normal${secondBirdEggCost > 0 ? ` + ${secondBirdEggCost} 🥚` : ""}.`
                             : "✗ No se puede pagar esta segunda ave con lo que queda disponible tras la primera."}
@@ -499,14 +499,14 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
         </div>
 
         {/* Footer actions */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #d2ded0", paddingTop: 14 }}>
-          <button onClick={onClose} style={{ backgroundColor: "#e2e8f0", color: "#334155" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #2b332e", paddingTop: 14 }}>
+          <button onClick={onClose} style={{ backgroundColor: "#212b22", color: "#c3ccc5" }}>
             Cancelar
           </button>
           <button
             onClick={() => onConfirmPlay(move)}
             disabled={!isMoveValid}
-            style={{ backgroundColor: "#235c3a" }}
+            style={{ backgroundColor: "#1f7a4f" }}
           >
             <Bird size={16} /> Confirmar y Jugar Ave
           </button>

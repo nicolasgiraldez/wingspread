@@ -62,22 +62,22 @@ export const BirdCard: React.FC<BirdCardProps> = ({
                 fontWeight: 700,
                 backgroundColor:
                   hab === "forest"
-                    ? "#eaf4ed"
+                    ? "rgba(63, 174, 114, 0.14)"
                     : hab === "grassland"
-                      ? "#fbf5e6"
-                      : "#e9f3f9",
+                      ? "rgba(217, 168, 59, 0.14)"
+                      : "rgba(79, 168, 224, 0.14)",
                 color:
                   hab === "forest"
-                    ? "#235c3a"
+                    ? "#3fae72"
                     : hab === "grassland"
-                      ? "#9c6c16"
-                      : "#1d618a",
+                      ? "#d9a83b"
+                      : "#4fa8e0",
                 border: `1px solid ${
                   hab === "forest"
-                    ? "#b8dbc0"
+                    ? "rgba(63, 174, 114, 0.35)"
                     : hab === "grassland"
-                      ? "#ebdcb2"
-                      : "#bddbf0"
+                      ? "rgba(217, 168, 59, 0.35)"
+                      : "rgba(79, 168, 224, 0.35)"
                 }`,
               }}
             >
@@ -95,7 +95,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
             </span>
           )}
           {card.wingspanCm && (
-            <span style={{ fontSize: "0.7rem", color: "#667" }} title="Envergadura">
+            <span style={{ fontSize: "0.7rem", color: "#93a397" }} title="Envergadura">
               {card.wingspanCm}cm
             </span>
           )}
@@ -129,7 +129,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
             )}
           </>
         ) : (
-          <span className="cost-pill" style={{ color: "#2f7d5b" }}>Gratis</span>
+          <span className="cost-pill" style={{ color: "#4ade95" }}>Gratis</span>
         )}
       </div>
 

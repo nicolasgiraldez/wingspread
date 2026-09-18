@@ -189,12 +189,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
           <button onClick={() => setSection("welcome")} style={styles.backBtn}>← Volver</button>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ ...styles.logoIcon, background: "#235c3a" }}>
+            <div style={{ ...styles.logoIcon, background: "#1f7a4f" }}>
               <Bot size={28} color="#fff" />
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: "1.4rem" }}>Modo Solitario</h2>
-              <p style={{ margin: 0, color: "#667", fontSize: "0.85rem" }}>Juega contra el Automa (IA)</p>
+              <p style={{ margin: 0, color: "#93a397", fontSize: "0.85rem" }}>Juega contra el Automa (IA)</p>
             </div>
           </div>
 
@@ -223,9 +223,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
                     flex: 1,
                     padding: "9px 6px",
                     borderRadius: 8,
-                    border: `2px solid ${difficulty === d ? "#235c3a" : "#d2ded0"}`,
-                    background: difficulty === d ? "#235c3a" : "#f8faf8",
-                    color: difficulty === d ? "#fff" : "#334",
+                    border: `2px solid ${difficulty === d ? "#3fae72" : "#394239"}`,
+                    background: difficulty === d ? "#1f7a4f" : "#1c241d",
+                    color: difficulty === d ? "#fff" : "#c3ccc5",
                     fontSize: "0.78rem",
                     fontWeight: difficulty === d ? 700 : 400,
                     cursor: "pointer",
@@ -243,7 +243,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
             disabled={!validName}
             style={{
               ...styles.startBtn,
-              backgroundColor: validName ? "#235c3a" : "#9ca3af",
+              backgroundColor: validName ? "#1f7a4f" : "#3a453e",
               cursor: validName ? "pointer" : "not-allowed",
             }}
           >
@@ -261,12 +261,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
         <button onClick={() => setSection("welcome")} style={styles.backBtn}>← Volver</button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ ...styles.logoIcon, background: "#1d618a" }}>
+          <div style={{ ...styles.logoIcon, background: "#20699a" }}>
             <Globe size={28} color="#fff" />
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: "1.4rem" }}>Multijugador Online</h2>
-            <p style={{ margin: 0, color: "#667", fontSize: "0.85rem" }}>Juega con un amigo en tiempo real vía P2P</p>
+            <p style={{ margin: 0, color: "#93a397", fontSize: "0.85rem" }}>Juega con un amigo en tiempo real vía P2P</p>
           </div>
         </div>
 
@@ -284,8 +284,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
         </div>
 
         {/* Create Room block */}
-        <div style={{ background: "#f4f8fb", border: "1.5px solid #bddbf0", borderRadius: 12, padding: 16, marginBottom: 14 }}>
-          <p style={{ margin: "0 0 10px 0", fontWeight: 600, fontSize: "0.95rem", color: "#1d618a" }}>
+        <div style={{ background: "rgba(79, 168, 224, 0.1)", border: "1.5px solid rgba(79, 168, 224, 0.35)", borderRadius: 12, padding: 16, marginBottom: 14 }}>
+          <p style={{ margin: "0 0 10px 0", fontWeight: 600, fontSize: "0.95rem", color: "#4fa8e0" }}>
             <PlusCircle size={15} style={{ marginRight: 6, verticalAlign: "middle" }} />
             Crear nueva sala
           </p>
@@ -307,7 +307,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
             disabled={!validName}
             style={{
               ...styles.startBtn,
-              backgroundColor: validName ? "#1d618a" : "#9ca3af",
+              backgroundColor: validName ? "#20699a" : "#3a453e",
               cursor: validName ? "pointer" : "not-allowed",
             }}
           >
@@ -317,9 +317,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
 
         {/* Divider */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 14px" }}>
-          <div style={{ flex: 1, height: 1, background: "#d0e1ef" }} />
-          <span style={{ fontSize: "0.75rem", color: "#778" }}>O UNIRSE A SALA EXISTENTE</span>
-          <div style={{ flex: 1, height: 1, background: "#d0e1ef" }} />
+          <div style={{ flex: 1, height: 1, background: "#2b332e" }} />
+          <span style={{ fontSize: "0.75rem", color: "#75897b" }}>O UNIRSE A SALA EXISTENTE</span>
+          <div style={{ flex: 1, height: 1, background: "#2b332e" }} />
         </div>
 
         {/* Join Room block */}
@@ -343,7 +343,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
                   padding: "0 18px",
                   minWidth: 0,
                   flexShrink: 0,
-                  backgroundColor: validName ? "#235c3a" : "#9ca3af",
+                  backgroundColor: validName ? "#1f7a4f" : "#3a453e",
                   cursor: validName ? "pointer" : "not-allowed",
                 }}
               >
@@ -352,16 +352,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
             </div>
             {joinCode.trim() && !joinError && (
               parsedJoinCode ? (
-                <span style={{ fontSize: "0.78rem", color: "#235c3a" }}>
+                <span style={{ fontSize: "0.78rem", color: "#3fae72" }}>
                   ✓ Te unirás a la sala: <strong>{parsedJoinCode}</strong>
                 </span>
               ) : (
-                <span style={{ fontSize: "0.78rem", color: "#b06d00" }}>
+                <span style={{ fontSize: "0.78rem", color: "#d9a83b" }}>
                   No reconocemos ese código o enlace todavía.
                 </span>
               )
             )}
-            {joinError && <span style={{ fontSize: "0.78rem", color: "#b91c1c" }}>{joinError}</span>}
+            {joinError && <span style={{ fontSize: "0.78rem", color: "#f0645f" }}>{joinError}</span>}
           </div>
         </form>
       </div>
@@ -376,16 +376,17 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "linear-gradient(135deg, #1a3a28 0%, #1a2e3a 50%, #1a3328 100%)",
+    background: "linear-gradient(135deg, #0d1c14 0%, #0d161c 50%, #0d1a15 100%)",
     padding: 24,
   },
   heroCard: {
-    background: "#ffffff",
+    background: "#182019",
+    border: "1px solid #2b332e",
     borderRadius: 20,
     padding: 36,
     maxWidth: 560,
     width: "100%",
-    boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
   },
   logoRow: {
     display: "flex",
@@ -394,7 +395,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 28,
   },
   logoIcon: {
-    background: "linear-gradient(135deg, #235c3a, #1d618a)",
+    background: "linear-gradient(135deg, #3fae72, #4fa8e0)",
     borderRadius: 16,
     padding: 14,
     display: "flex",
@@ -406,14 +407,14 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: "2rem",
     fontWeight: 800,
-    background: "linear-gradient(135deg, #235c3a, #1d618a)",
+    background: "linear-gradient(135deg, #3fae72, #4fa8e0)",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
     backgroundClip: "text",
   },
   subtitle: {
     margin: "4px 0 0 0",
-    color: "#667",
+    color: "#93a397",
     fontSize: "0.85rem",
   },
   nameSection: {
@@ -424,7 +425,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     fontSize: "0.82rem",
     fontWeight: 600,
-    color: "#445",
+    color: "#c3ccc5",
     marginBottom: 6,
   },
   input: {
@@ -432,7 +433,9 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box" as const,
     padding: "10px 14px",
     borderRadius: 8,
-    border: "1.5px solid #d2ded0",
+    border: "1.5px solid #394239",
+    background: "#212b22",
+    color: "#eef1ec",
     fontSize: "1rem",
     fontFamily: "inherit",
     outline: "none",
@@ -457,19 +460,19 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "all 0.15s",
   },
   modeButtonSolo: {
-    background: "#eaf4ed",
-    borderColor: "#b8dbc0",
-    color: "#1a3a28",
+    background: "rgba(63, 174, 114, 0.12)",
+    borderColor: "rgba(63, 174, 114, 0.35)",
+    color: "#cdeddb",
   },
   modeButtonOnline: {
-    background: "#e9f3f9",
-    borderColor: "#bddbf0",
-    color: "#0f2a38",
+    background: "rgba(79, 168, 224, 0.12)",
+    borderColor: "rgba(79, 168, 224, 0.35)",
+    color: "#cfe7f7",
   },
   modeButtonDisabled: {
-    background: "#f5f5f5",
-    borderColor: "#e0e0e0",
-    color: "#aaa",
+    background: "#1c241d",
+    borderColor: "#2b332e",
+    color: "#5c6b60",
     cursor: "not-allowed",
   },
   modeLabel: {
@@ -490,7 +493,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   hint: {
     textAlign: "center" as const,
-    color: "#9ca3af",
+    color: "#75897b",
     fontSize: "0.82rem",
     margin: "0 0 16px 0",
   },
@@ -518,7 +521,7 @@ const styles: Record<string, React.CSSProperties> = {
   backBtn: {
     background: "none",
     border: "none",
-    color: "#667",
+    color: "#93a397",
     cursor: "pointer",
     fontSize: "0.85rem",
     padding: "0 0 16px 0",

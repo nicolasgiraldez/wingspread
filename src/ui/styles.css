@@ -1,35 +1,48 @@
 :root {
-  --color-bg: #f4f7f4;
-  --color-text: #1d2a22;
-  --color-text-muted: #627468;
-  --color-border: #d2ded0;
-  --color-panel-bg: #ffffff;
-  
-  --color-forest: #235c3a;
-  --color-forest-bg: #eaf4ed;
-  --color-forest-border: #b8dbc0;
-  
-  --color-grassland: #9c6c16;
-  --color-grassland-bg: #fbf5e6;
-  --color-grassland-border: #ebdcb2;
-  
-  --color-wetland: #1d618a;
-  --color-wetland-bg: #e9f3f9;
-  --color-wetland-border: #bddbf0;
+  color-scheme: dark;
+  --color-bg: #0f1310;
+  --color-text: #eef1ec;
+  --color-text-secondary: #c3ccc5;
+  --color-text-muted: #93a397;
+  --color-text-dim: #75897b;
+  --color-border: #2b332e;
+  --color-border-light: #394239;
+  --color-panel-bg: #182019;
+  --color-panel-bg-alt: #1c241d;
+  --color-panel-bg-raised: #212b22;
 
-  --color-power-brown: #824f2b;
-  --color-power-white: #4a5568;
-  --color-power-pink: #9c27b0;
-  --color-power-teal: #00796b;
-  --color-power-yellow: #d48806;
+  --color-forest: #3fae72;
+  --color-forest-strong: #1f7a4f;
+  --color-forest-bg: rgba(63, 174, 114, 0.12);
+  --color-forest-border: rgba(63, 174, 114, 0.35);
+
+  --color-grassland: #d9a83b;
+  --color-grassland-bg: rgba(217, 168, 59, 0.12);
+  --color-grassland-border: rgba(217, 168, 59, 0.35);
+
+  --color-wetland: #4fa8e0;
+  --color-wetland-bg: rgba(79, 168, 224, 0.12);
+  --color-wetland-border: rgba(79, 168, 224, 0.35);
+
+  --color-power-brown: #c08a55;
+  --color-power-white: #b7c2bd;
+  --color-power-pink: #dd74cf;
+  --color-power-teal: #3fc2b0;
+  --color-power-yellow: #e3ba4a;
+
+  --color-danger: #f0645f;
+  --color-danger-bg: rgba(240, 100, 95, 0.12);
+  --color-gold: #f0bf5c;
+  --color-cube-blue: #5b9bf5;
+  --color-success: #4ade95;
 
   --font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
 * {
@@ -50,7 +63,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: var(--color-forest);
+  background-color: var(--color-forest-strong);
   color: #ffffff;
   border: 0;
   border-radius: var(--radius-sm);
@@ -74,6 +87,16 @@ button:active:not(:disabled) {
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  background-color: var(--color-panel-bg-raised);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
 }
 
 /* App Shell Layout */
@@ -124,7 +147,7 @@ button:disabled {
 }
 
 .status-card {
-  background: #f9fbf9;
+  background: var(--color-panel-bg-alt);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 14px;
@@ -163,14 +186,14 @@ button:disabled {
 .cube {
   width: 14px;
   height: 14px;
-  background-color: #3b82f6;
+  background-color: var(--color-cube-blue);
   border-radius: 3px;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .cube.spent {
-  background-color: #d1d5db;
-  opacity: 0.5;
+  background-color: #3a4640;
+  opacity: 0.6;
 }
 
 /* Resources Bar */
@@ -184,7 +207,7 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
+  background: var(--color-panel-bg-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 6px 10px;
@@ -202,7 +225,7 @@ button:disabled {
 
 /* Round Goals Mat */
 .goals-mat {
-  background: #ffffff;
+  background: var(--color-panel-bg-alt);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 14px 18px;
@@ -220,7 +243,7 @@ button:disabled {
 
 .goal-card {
   flex: 1;
-  background: #f8faf8;
+  background: var(--color-panel-bg-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
@@ -245,8 +268,8 @@ button:disabled {
 
 /* Birdfeeder Box */
 .birdfeeder-box {
-  background: #faf7f2;
-  border: 2px solid #dfd7cb;
+  background: var(--color-panel-bg-alt);
+  border: 2px solid #4a4030;
   border-radius: var(--radius-lg);
   padding: 16px 20px;
   display: flex;
@@ -265,10 +288,10 @@ button:disabled {
 .die-token {
   width: 54px;
   height: 54px;
-  background: #ffffff;
-  border: 2px solid #8c7355;
+  background: var(--color-panel-bg-raised);
+  border: 2px solid #6b5a3e;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), inset 0 -3px 0 rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), inset 0 -3px 0 rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -289,20 +312,20 @@ button:disabled {
 .die-token .die-label {
   font-size: 0.65rem;
   font-weight: 700;
-  color: #665;
+  color: var(--color-text-secondary);
   margin-top: 1px;
 }
 
 /* Dado comodín (cara insecto/semilla) */
 .die-token.die-wild {
-  border-color: #235c3a;
-  background: linear-gradient(135deg, #f0f9f0 0%, #fff8e6 100%);
+  border-color: var(--color-forest);
+  background: linear-gradient(135deg, #182219 0%, #241f0f 100%);
   border-style: dashed;
 }
 
 .die-token.die-wild:hover {
-  border-color: #1a4530;
-  background: linear-gradient(135deg, #e0f3e0 0%, #fff0c0 100%);
+  border-color: #2c7a52;
+  background: linear-gradient(135deg, #1c2c1d 0%, #2c2712 100%);
 }
 
 
@@ -358,7 +381,7 @@ button:disabled {
 }
 
 .board-slot {
-  background: #ffffff;
+  background: var(--color-panel-bg);
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   min-height: 150px;
@@ -371,20 +394,20 @@ button:disabled {
 
 .board-slot.active-col {
   border-color: var(--color-forest);
-  box-shadow: 0 0 0 2px rgba(35, 92, 58, 0.25);
+  box-shadow: 0 0 0 2px rgba(63, 174, 114, 0.3);
 }
 
 .board-slot.empty {
   align-items: center;
   justify-content: center;
   text-align: center;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.03);
   border-style: dashed;
 }
 
 /* Bird Card */
 .bird-card-wrapper {
-  background: #ffffff;
+  background: var(--color-panel-bg);
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 10px;
@@ -404,7 +427,7 @@ button:disabled {
 
 .bird-card-wrapper.selected {
   border-color: var(--color-forest);
-  box-shadow: 0 0 0 3px rgba(35, 92, 58, 0.3);
+  box-shadow: 0 0 0 3px rgba(63, 174, 114, 0.35);
 }
 
 .card-top-bar {
@@ -415,8 +438,8 @@ button:disabled {
 }
 
 .points-badge {
-  background: #fdf3d8;
-  color: #9c6c16;
+  background: var(--color-grassland-bg);
+  color: var(--color-grassland);
   font-weight: 800;
   padding: 2px 6px;
   border-radius: 4px;
@@ -430,6 +453,7 @@ button:disabled {
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.2;
+  color: var(--color-text);
 }
 
 .card-scientific {
@@ -446,15 +470,16 @@ button:disabled {
 }
 
 .cost-pill {
-  background: #f0f3f0;
+  background: var(--color-panel-bg-raised);
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   padding: 1px 5px;
   border-radius: 4px;
-  border: 1px solid #d5ded2;
+  border: 1px solid var(--color-border-light);
 }
 
 .card-power-box {
-  background: #f7f9f7;
+  background: var(--color-panel-bg-alt);
   border-left: 3px solid var(--color-power-brown);
   padding: 4px 6px;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
@@ -468,7 +493,7 @@ button:disabled {
   align-items: center;
   margin-top: 6px;
   font-size: 0.75rem;
-  background: #f8faf8;
+  background: var(--color-panel-bg-alt);
   padding: 3px 6px;
   border-radius: 4px;
 }
@@ -477,7 +502,7 @@ button:disabled {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 18, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
@@ -487,7 +512,7 @@ button:disabled {
 }
 
 .modal-content {
-  background: #ffffff;
+  background: var(--color-panel-bg);
   border-radius: var(--radius-lg);
   max-width: 600px;
   width: 100%;
@@ -498,6 +523,8 @@ button:disabled {
   flex-direction: column;
   gap: 18px;
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
 }
 
 .modal-header {
@@ -544,57 +571,57 @@ button:disabled {
 
 /* On Activate (Brown powers) */
 .card-power-item.power-timing-onActivate {
-  background: #fbf5ef;
-  border-left: 3px solid #8d5b36;
-  color: #4a2d18;
+  background: rgba(192, 138, 85, 0.12);
+  border-left: 3px solid var(--color-power-brown);
+  color: #e8d2bb;
 }
 .power-timing-badge.badge-onActivate {
-  background: #eedfd1;
-  color: #6a3e1f;
+  background: rgba(192, 138, 85, 0.28);
+  color: #f0ddc8;
 }
 
 /* On Play (White powers) */
 .card-power-item.power-timing-onPlay {
-  background: #f5f8f5;
-  border-left: 3px solid #7ea886;
-  color: #27402c;
+  background: rgba(183, 194, 189, 0.1);
+  border-left: 3px solid var(--color-power-white);
+  color: #d7ded9;
 }
 .power-timing-badge.badge-onPlay {
-  background: #ddeadf;
-  color: #25492d;
+  background: rgba(183, 194, 189, 0.25);
+  color: #e4e9e5;
 }
 
 /* Once Between Turns (Pink powers) */
 .card-power-item.power-timing-onceBetweenTurns {
-  background: #fdf2f6;
-  border-left: 3px solid #c44d7b;
-  color: #63223b;
+  background: rgba(221, 116, 207, 0.12);
+  border-left: 3px solid var(--color-power-pink);
+  color: #f0cdea;
 }
 .power-timing-badge.badge-onceBetweenTurns {
-  background: #f7d2e0;
-  color: #7d264a;
+  background: rgba(221, 116, 207, 0.28);
+  color: #f6ddf2;
 }
 
 /* Round End (Teal powers) */
 .card-power-item.power-timing-roundEnd {
-  background: #f0f8fa;
-  border-left: 3px solid #1f7a8c;
-  color: #123d46;
+  background: rgba(63, 194, 176, 0.12);
+  border-left: 3px solid var(--color-power-teal);
+  color: #bfe9e2;
 }
 .power-timing-badge.badge-roundEnd {
-  background: #cee9ef;
-  color: #134651;
+  background: rgba(63, 194, 176, 0.28);
+  color: #d3f0eb;
 }
 
 /* Game End (Yellow powers) */
 .card-power-item.power-timing-gameEnd {
-  background: #fcf9ec;
-  border-left: 3px solid #b8860b;
-  color: #594103;
+  background: rgba(227, 186, 74, 0.12);
+  border-left: 3px solid var(--color-power-yellow);
+  color: #f0e0ab;
 }
 .power-timing-badge.badge-gameEnd {
-  background: #faeec4;
-  color: #594103;
+  background: rgba(227, 186, 74, 0.28);
+  color: #f6ecc8;
 }
 
 @keyframes spin {
@@ -616,20 +643,20 @@ button:disabled {
 .power-checklist-hint {
   margin: 0;
   font-size: 0.78rem;
-  color: #667;
+  color: var(--color-text-muted);
 }
 
 .power-checklist-row {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 8px 10px;
-  background: #fafbf9;
+  background: var(--color-panel-bg-alt);
   transition: all 0.12s ease;
 }
 
 .power-checklist-row.checked {
-  background: #f6fbf6;
-  border-color: #b8dbc0;
+  background: var(--color-forest-bg);
+  border-color: var(--color-forest-border);
 }
 
 .power-checklist-label {
@@ -644,7 +671,7 @@ button:disabled {
   margin-top: 2px;
   width: 16px;
   height: 16px;
-  accent-color: #235c3a;
+  accent-color: var(--color-forest);
   cursor: pointer;
 }
 
@@ -658,7 +685,9 @@ button:disabled {
 .power-checklist-choice select {
   padding: 5px 8px;
   border-radius: 6px;
-  border: 1px solid #ccd8ca;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-panel-bg-raised);
+  color: var(--color-text);
   font-size: 0.8rem;
 }
 
@@ -667,18 +696,17 @@ button:disabled {
   .app-shell {
     grid-template-columns: 1fr;
   }
-  
+
   .side-panel {
     border-right: 0;
     border-bottom: 1px solid var(--color-border);
   }
-  
+
   .habitat-row-container {
     grid-template-columns: 1fr;
   }
-  
+
   .habitat-slots-grid {
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   }
 }
-

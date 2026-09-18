@@ -35,33 +35,33 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
     switch (status) {
       case "connected":
         return {
-          bg: "#eaf4ed",
-          color: "#235c3a",
-          border: "#b8dbc0",
+          bg: "rgba(63, 174, 114, 0.12)",
+          color: "#3fae72",
+          border: "rgba(63, 174, 114, 0.35)",
           icon: <Wifi size={14} />,
           text: "Conectado en Vivo",
         };
       case "waiting_for_opponent":
         return {
-          bg: "#fef3d6",
-          color: "#9c6c16",
-          border: "#ebdcb2",
+          bg: "rgba(217, 168, 59, 0.12)",
+          color: "#d9a83b",
+          border: "rgba(217, 168, 59, 0.35)",
           icon: <Share2 size={14} />,
           text: "Esperando Oponente...",
         };
       case "connecting":
         return {
-          bg: "#e9f3f9",
-          color: "#1d618a",
-          border: "#bddbf0",
+          bg: "rgba(79, 168, 224, 0.12)",
+          color: "#4fa8e0",
+          border: "rgba(79, 168, 224, 0.35)",
           icon: <Wifi size={14} />,
           text: "Conectando...",
         };
       default:
         return {
-          bg: "#fee2e2",
-          color: "#b91c1c",
-          border: "#fca5a5",
+          bg: "rgba(240, 100, 95, 0.12)",
+          color: "#f0645f",
+          border: "rgba(240, 100, 95, 0.35)",
           icon: <WifiOff size={14} />,
           text: "Desconectado",
         };
@@ -73,8 +73,8 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
   return (
     <div
       style={{
-        background: "#ffffff",
-        border: "1px solid #d2ded0",
+        background: "#182019",
+        border: "1px solid #2b332e",
         borderRadius: 12,
         padding: "10px 16px",
         display: "flex",
@@ -85,19 +85,19 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ background: "#eaf4ed", color: "#235c3a", padding: 6, borderRadius: 8 }}>
+        <div style={{ background: "rgba(63, 174, 114, 0.12)", color: "#3fae72", padding: 6, borderRadius: 8 }}>
           <Globe size={18} />
         </div>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: "0.85rem", color: "#556" }}>Sala Online:</span>
+            <span style={{ fontSize: "0.85rem", color: "#c3ccc5" }}>Sala Online:</span>
             <strong style={{ fontSize: "0.95rem", letterSpacing: 0.5 }}>{roomCode}</strong>
-            <span style={{ fontSize: "0.75rem", background: "#f0f3f0", padding: "1px 6px", borderRadius: 4, color: "#445" }}>
+            <span style={{ fontSize: "0.75rem", background: "#212b22", padding: "1px 6px", borderRadius: 4, color: "#c3ccc5" }}>
               Rol: <strong>{localPlayerName} ({isHost ? "Host" : "Invitado"})</strong>
             </span>
           </div>
           {statusMessage && (
-            <div style={{ fontSize: "0.75rem", color: "#667", marginTop: 2 }}>
+            <div style={{ fontSize: "0.75rem", color: "#93a397", marginTop: 2 }}>
               {statusMessage}
             </div>
           )}
@@ -128,7 +128,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
         <button
           onClick={handleCopyLink}
           style={{
-            backgroundColor: copied ? "#235c3a" : "#1e5740",
+            backgroundColor: copied ? "#1f7a4f" : "#1a4a35",
             minHeight: 32,
             padding: "0 12px",
             fontSize: "0.8rem",

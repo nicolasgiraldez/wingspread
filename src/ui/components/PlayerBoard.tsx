@@ -17,9 +17,9 @@ interface PlayerBoardProps {
 }
 
 const habitatIcons: Record<HabitatId, React.ReactNode> = {
-  forest: <TreePine size={20} color="#235c3a" />,
-  grassland: <Wind size={20} color="#9c6c16" />,
-  wetland: <Waves size={20} color="#1d618a" />,
+  forest: <TreePine size={20} color="#3fae72" />,
+  grassland: <Wind size={20} color="#d9a83b" />,
+  wetland: <Waves size={20} color="#4fa8e0" />,
 };
 
 const columnEggCosts = [0, 1, 1, 2, 2];
@@ -66,19 +66,19 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
             <span
               style={{
                 fontSize: "0.75rem",
-                backgroundColor: "#eef2ed",
-                color: "#235c3a",
+                backgroundColor: "#212b22",
+                color: "#3fae72",
                 padding: "2px 8px",
                 borderRadius: 12,
                 fontWeight: 600,
-                border: "1px solid #d2ded0",
+                border: "1px solid #2b332e",
               }}
             >
               👁️ Tablero del Oponente (Solo lectura)
             </span>
           )}
         </div>
-        <span style={{ fontSize: "0.8rem", color: "#667" }}>
+        <span style={{ fontSize: "0.8rem", color: "#93a397" }}>
           {isOwner
             ? "La columna con borde verde es la ranura activa de acción"
             : "Viendo aves y recursos jugados por tu oponente"}
@@ -96,14 +96,14 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                 <h3>
                   {habitatIcons[hab]} {habitatLabels[hab]}
                 </h3>
-                <p style={{ margin: "4px 0 0 0", fontSize: "0.75rem", color: "#556" }}>
+                <p style={{ margin: "4px 0 0 0", fontSize: "0.75rem", color: "#c3ccc5" }}>
                   {hab === "forest" && "Obtén alimento del comedero"}
                   {hab === "grassland" && "Pon huevos en tus nidos"}
                   {hab === "wetland" && "Roba nuevas cartas de ave"}
                 </p>
               </div>
 
-              <div style={{ fontSize: "0.75rem", color: "#667", background: "rgba(255,255,255,0.7)", padding: "4px 6px", borderRadius: 4 }}>
+              <div style={{ fontSize: "0.75rem", color: "#93a397", background: "rgba(0,0,0,0.2)", padding: "4px 6px", borderRadius: 4 }}>
                 Aves: <strong>{player.board[hab].filter((s) => s.cardId !== null).length} / 5</strong>
               </div>
 
@@ -117,7 +117,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                     padding: "6px 10px",
                     borderRadius: 8,
                     border: "none",
-                    background: isCurrentPlayerTurn && totalFreeEggSpace > 0 ? "#9c6c16" : "#d0dad0",
+                    background: isCurrentPlayerTurn && totalFreeEggSpace > 0 ? "#a5791f" : "#33372a",
                     color: "#ffffff",
                     fontWeight: 700,
                     fontSize: "0.78rem",
@@ -126,7 +126,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 6,
-                    boxShadow: isCurrentPlayerTurn && totalFreeEggSpace > 0 ? "0 2px 6px rgba(156,108,22,0.3)" : "none",
+                    boxShadow: isCurrentPlayerTurn && totalFreeEggSpace > 0 ? "0 2px 6px rgba(165,121,31,0.4)" : "none",
                     width: "100%",
                   }}
                   title={
@@ -155,7 +155,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                     className={`board-slot ${card ? "" : "empty"} ${isActiveCol ? "active-col" : ""}`}
                     style={{
                       borderWidth: isSelected ? 2 : 1.5,
-                      borderColor: isSelected ? "#235c3a" : undefined,
+                      borderColor: isSelected ? "#3fae72" : undefined,
                     }}
                     onClick={() => {
                       if (isOwner && !card && onSelectEmptySlot) {
@@ -185,10 +185,10 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                       </div>
                     ) : (
                       <div style={{ textAlign: "center", padding: 6, width: "100%" }}>
-                        <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#445" }}>
+                        <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#c3ccc5" }}>
                           Columna {sIdx + 1}
                         </div>
-                        <div style={{ fontSize: "0.75rem", color: "#667", margin: "4px 0" }}>
+                        <div style={{ fontSize: "0.75rem", color: "#93a397", margin: "4px 0" }}>
                           {hab === "forest" && `${sIdx >= 4 ? 3 : sIdx >= 2 ? 2 : 1} Alimento`}
                           {hab === "grassland" && `${sIdx >= 4 ? 4 : sIdx >= 2 ? 3 : 2} Huevos`}
                           {hab === "wetland" && `${sIdx >= 4 ? 3 : sIdx >= 2 ? 2 : 1} Cartas`}
@@ -197,8 +197,8 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                           style={{
                             fontSize: "0.7rem",
                             marginTop: 6,
-                            background: eggCost === 0 ? "#eaf4ed" : "#fef3d6",
-                            color: eggCost === 0 ? "#235c3a" : "#9c6c16",
+                            background: eggCost === 0 ? "rgba(63, 174, 114, 0.15)" : "rgba(217, 168, 59, 0.15)",
+                            color: eggCost === 0 ? "#3fae72" : "#d9a83b",
                             padding: "2px 4px",
                             borderRadius: 4,
                             fontWeight: 600,

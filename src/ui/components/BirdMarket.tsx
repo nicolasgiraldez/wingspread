@@ -21,12 +21,12 @@ export const BirdMarket: React.FC<BirdMarketProps> = ({
   disabled = false,
 }) => {
   return (
-    <div style={{ background: "#ffffff", padding: 16, borderRadius: 12, border: "1px solid #d2ded0" }}>
+    <div style={{ background: "#182019", padding: 16, borderRadius: 12, border: "1px solid #2b332e" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Sparkles size={18} color="#2f7d5b" />
+          <Sparkles size={18} color="#4ade95" />
           <h3 style={{ margin: 0, fontSize: "1.1rem" }}>Mercado de Aves</h3>
-          <span style={{ fontSize: "0.85rem", color: "#667" }}>
+          <span style={{ fontSize: "0.85rem", color: "#93a397" }}>
             ({deckCount} cartas en el mazo)
           </span>
         </div>

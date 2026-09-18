@@ -146,7 +146,7 @@ export const PowerChecklist: React.FC<PowerChecklistProps> = ({ title, entries }
 
             {entry.checked && entry.cardChoice && entry.cardChoice.options.length > 0 && (
               <div className="power-checklist-choice">
-                <span style={{ fontSize: "0.75rem", color: "#667" }}>{entry.cardChoice.label}</span>
+                <span style={{ fontSize: "0.75rem", color: "#93a397" }}>{entry.cardChoice.label}</span>
                 <select
                   value={entry.cardChoice.selected ?? ""}
                   onChange={(e) => entry.cardChoice!.onSelect(e.target.value || null)}
@@ -163,7 +163,7 @@ export const PowerChecklist: React.FC<PowerChecklistProps> = ({ title, entries }
 
             {entry.checked && entry.slotChoice && entry.slotChoice.options.length > 0 && (
               <div className="power-checklist-choice">
-                <span style={{ fontSize: "0.75rem", color: "#667" }}>{entry.slotChoice.label}</span>
+                <span style={{ fontSize: "0.75rem", color: "#93a397" }}>{entry.slotChoice.label}</span>
                 <select
                   value={entry.slotChoice.selected ?? ""}
                   onChange={(e) => entry.slotChoice!.onSelect(e.target.value || null)}
@@ -180,7 +180,7 @@ export const PowerChecklist: React.FC<PowerChecklistProps> = ({ title, entries }
 
             {entry.checked && entry.habitatChoice && entry.habitatChoice.options.length > 1 && (
               <div className="power-checklist-choice">
-                <span style={{ fontSize: "0.75rem", color: "#667" }}>{entry.habitatChoice.label}</span>
+                <span style={{ fontSize: "0.75rem", color: "#93a397" }}>{entry.habitatChoice.label}</span>
                 <div style={{ display: "flex", gap: 6 }}>
                   {entry.habitatChoice.options.map((opt) => (
                     <button
@@ -191,9 +191,9 @@ export const PowerChecklist: React.FC<PowerChecklistProps> = ({ title, entries }
                         flex: 1,
                         padding: "5px 8px",
                         borderRadius: 6,
-                        border: "1px solid #b8dbc0",
-                        background: entry.habitatChoice!.selected === opt.id ? "#235c3a" : "#eaf4ed",
-                        color: entry.habitatChoice!.selected === opt.id ? "#ffffff" : "#235c3a",
+                        border: "1px solid rgba(63, 174, 114, 0.35)",
+                        background: entry.habitatChoice!.selected === opt.id ? "#1f7a4f" : "rgba(63, 174, 114, 0.12)",
+                        color: entry.habitatChoice!.selected === opt.id ? "#ffffff" : "#3fae72",
                         fontSize: "0.78rem",
                         cursor: "pointer",
                       }}

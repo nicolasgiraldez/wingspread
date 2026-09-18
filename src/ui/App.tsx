@@ -430,11 +430,11 @@ export const App: React.FC = () => {
             {currentPlayer?.isAutoma ? <Bot size={20} /> : null}
             {getDisplayName(gameState, gameState.currentPlayerId)}
             {gameState.currentPlayerId === localPlayerId && (
-              <span style={{ fontSize: "0.75rem", color: "#235c3a", fontWeight: 700 }}>(Tú)</span>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-forest)", fontWeight: 700 }}>(Tú)</span>
             )}
           </div>
           <div>
-            <span style={{ fontSize: "0.8rem", color: "#445" }}>
+            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
               Cubos de acción ({currentPlayer?.actionCubesAvailable ?? 0} restantes):
             </span>
             <div className="cubes-indicator">
@@ -446,7 +446,7 @@ export const App: React.FC = () => {
               ))}
             </div>
           </div>
-          <div style={{ fontSize: "0.8rem", color: "#556", marginTop: 2 }}>
+          <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: 2 }}>
             Ronda <strong>{gameState.round}</strong> de 4{" "}
             {gameState.phase === "gameEnd" ? "(Terminada)" : ""}
           </div>
@@ -455,7 +455,7 @@ export const App: React.FC = () => {
         {/* Scoreboard */}
         <div className="status-card">
           <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Trophy size={14} color="#9c6c16" /> Puntuación en Vivo
+            <Trophy size={14} color="var(--color-grassland)" /> Puntuación en Vivo
           </h4>
           {gameState.playerOrder.map((pId) => {
             const scoreDetails = scorePlayerDetails(gameState, pId);
@@ -467,21 +467,21 @@ export const App: React.FC = () => {
                   justifyContent: "space-between",
                   alignItems: "center",
                   padding: "4px 0",
-                  borderBottom: "1px solid #eef2ed",
+                  borderBottom: "1px solid var(--color-border)",
                 }}
               >
                 <span>
                   <strong>{getDisplayName(gameState, pId)}</strong>
                   {pId === localPlayerId && (
-                    <small style={{ color: "#235c3a" }}> (Tú)</small>
+                    <small style={{ color: "var(--color-forest)" }}> (Tú)</small>
                   )}
                   {gameState.firstPlayerId === pId && (
-                    <span style={{ fontSize: "0.7rem", color: "#235c3a", marginLeft: 4 }}>
+                    <span style={{ fontSize: "0.7rem", color: "var(--color-forest)", marginLeft: 4 }}>
                       (1er jugador)
                     </span>
                   )}
                 </span>
-                <strong style={{ color: "#235c3a" }}>{scoreDetails.total} pts</strong>
+                <strong style={{ color: "var(--color-forest)" }}>{scoreDetails.total} pts</strong>
               </div>
             );
           })}
@@ -489,7 +489,7 @@ export const App: React.FC = () => {
 
         {/* View tabs */}
         <div>
-          <h4 style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "#667" }}>VER VISTA DE:</h4>
+          <h4 style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "var(--color-text-muted)" }}>VER VISTA DE:</h4>
           <div style={{ display: "flex", gap: 8 }}>
             {gameState.playerOrder.map((pId) => (
               <button
@@ -497,8 +497,8 @@ export const App: React.FC = () => {
                 onClick={() => setActiveTab(pId)}
                 style={{
                   flex: 1,
-                  backgroundColor: activeTab === pId ? "#235c3a" : "#eef2ed",
-                  color: activeTab === pId ? "#ffffff" : "#334",
+                  backgroundColor: activeTab === pId ? "var(--color-forest-strong)" : "var(--color-panel-bg-raised)",
+                  color: activeTab === pId ? "#ffffff" : "var(--color-text)",
                   justifyContent: "center",
                   fontSize: "0.8rem",
                 }}
@@ -534,7 +534,7 @@ export const App: React.FC = () => {
         {viewedPlayer && !viewedPlayer.isAutoma && (
           <div className="status-card">
             <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Sparkles size={14} color="#235c3a" /> Cartas de Bonificación
+              <Sparkles size={14} color="var(--color-forest)" /> Cartas de Bonificación
             </h4>
             {activeTab === localPlayerId || gameState.phase === "gameEnd" ? (
               viewedPlayer.bonusCards?.length > 0 ? (
@@ -543,38 +543,38 @@ export const App: React.FC = () => {
                     key={b.id}
                     style={{
                       fontSize: "0.8rem",
-                      background: "#ffffff",
+                      background: "var(--color-panel-bg-raised)",
                       padding: "6px 8px",
                       borderRadius: 6,
-                      border: "1px solid #d2ded0",
+                      border: "1px solid var(--color-border)",
                       marginTop: 4,
                     }}
                   >
                     <strong>{b.name}</strong>
-                    <p style={{ margin: "2px 0 0 0", color: "#556" }}>{b.description}</p>
+                    <p style={{ margin: "2px 0 0 0", color: "var(--color-text-secondary)" }}>{b.description}</p>
                   </div>
                 ))
               ) : (
-                <span style={{ fontSize: "0.8rem", color: "#889" }}>Sin cartas de bonificación</span>
+                <span style={{ fontSize: "0.8rem", color: "var(--color-text-dim)" }}>Sin cartas de bonificación</span>
               )
             ) : (
               <div
                 style={{
                   fontSize: "0.8rem",
-                  color: "#556",
-                  background: "#f4f6f3",
+                  color: "var(--color-text-secondary)",
+                  background: "var(--color-panel-bg-alt)",
                   padding: "8px 10px",
                   borderRadius: 6,
-                  border: "1px dashed #d2ded0",
+                  border: "1px dashed var(--color-border)",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
                 }}
               >
-                <Lock size={15} color="#889" />
+                <Lock size={15} color="var(--color-text-dim)" />
                 <div>
                   <strong>{viewedPlayer.bonusCards?.length ?? 0} carta(s) secreta(s)</strong>
-                  <div style={{ fontSize: "0.7rem", color: "#778", marginTop: 2 }}>
+                  <div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", marginTop: 2 }}>
                     Se revelan al finalizar la partida.
                   </div>
                 </div>
@@ -587,7 +587,7 @@ export const App: React.FC = () => {
         <div className="status-card" style={{ maxHeight: 160, overflowY: "auto" }}>
           <h4>Registro de Acciones</h4>
           {gameState.log.slice(-6).map((entry, idx) => (
-            <div key={idx} style={{ fontSize: "0.75rem", padding: "2px 0", color: "#445" }}>
+            <div key={idx} style={{ fontSize: "0.75rem", padding: "2px 0", color: "var(--color-text-secondary)" }}>
               {entry.playerId ? (
                 <strong>[{getDisplayName(gameState, entry.playerId)}]: </strong>
               ) : (
@@ -600,7 +600,7 @@ export const App: React.FC = () => {
 
         <button
           onClick={handleGoHome}
-          style={{ backgroundColor: "#235c3a", marginTop: "auto", justifyContent: "center" }}
+          style={{ backgroundColor: "var(--color-forest-strong)", marginTop: "auto", justifyContent: "center" }}
         >
           <RefreshCw size={14} /> Nueva Partida / Inicio
         </button>
@@ -623,11 +623,11 @@ export const App: React.FC = () => {
         {gameState.gameMode === "online" && !isMyTurn && gameState.phase === "round" && (
           <div
             style={{
-              background: "#fef3d6",
-              border: "1px solid #ebdcb2",
+              background: "var(--color-grassland-bg)",
+              border: "1px solid var(--color-grassland-border)",
               padding: "10px 16px",
               borderRadius: 8,
-              color: "#9c6c16",
+              color: "var(--color-grassland)",
               fontWeight: 600,
               fontSize: "0.9rem",
             }}
@@ -665,7 +665,7 @@ export const App: React.FC = () => {
 
         {/* Selector de Tablero */}
         <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#445" }}>
+          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--color-text-secondary)" }}>
             Tablero mostrado:
           </span>
           {gameState.playerOrder.map((pId) => {
@@ -681,9 +681,9 @@ export const App: React.FC = () => {
                 style={{
                   padding: "7px 14px",
                   borderRadius: 8,
-                  border: isCurrentActive ? "2px solid #235c3a" : "1px solid #c2cec0",
-                  backgroundColor: isCurrentActive ? "#235c3a" : "#ffffff",
-                  color: isCurrentActive ? "#ffffff" : "#334",
+                  border: isCurrentActive ? "2px solid var(--color-forest)" : "1px solid var(--color-border-light)",
+                  backgroundColor: isCurrentActive ? "var(--color-forest-strong)" : "var(--color-panel-bg)",
+                  color: isCurrentActive ? "#ffffff" : "var(--color-text)",
                   fontWeight: isCurrentActive ? 700 : 500,
                   cursor: "pointer",
                   display: "flex",
@@ -700,8 +700,8 @@ export const App: React.FC = () => {
                     style={{
                       fontSize: "0.72rem",
                       opacity: 0.9,
-                      background: isCurrentActive ? "rgba(255,255,255,0.25)" : "#eef2ed",
-                      color: isCurrentActive ? "#ffffff" : "#235c3a",
+                      background: isCurrentActive ? "rgba(255,255,255,0.2)" : "var(--color-panel-bg-raised)",
+                      color: isCurrentActive ? "#ffffff" : "var(--color-forest)",
                       padding: "1px 6px",
                       borderRadius: 10,
                       fontWeight: 600,
@@ -735,11 +735,11 @@ export const App: React.FC = () => {
         {activeTab !== localPlayerId && viewedPlayer && !viewedPlayer.isAutoma && (
           <section
             style={{
-              background: "#fafbf9",
+              background: "var(--color-panel-bg-alt)",
               padding: 16,
               borderRadius: 16,
-              border: "1px dashed #b8c9b6",
-              boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
+              border: "1px dashed var(--color-border-light)",
+              boxShadow: "inset 0 1px 3px rgba(0,0,0,0.2)",
             }}
           >
             <div
@@ -753,12 +753,12 @@ export const App: React.FC = () => {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <EyeOff size={18} color="#667" />
-                <h4 style={{ margin: 0, fontSize: "1rem", color: "#334" }}>
+                <EyeOff size={18} color="var(--color-text-muted)" />
+                <h4 style={{ margin: 0, fontSize: "1rem", color: "var(--color-text)" }}>
                   Mano de {getDisplayName(gameState, viewedPlayer.id)} ({viewedPlayer.hand.length} carta{viewedPlayer.hand.length !== 1 ? "s" : ""} oculta{viewedPlayer.hand.length !== 1 ? "s" : ""})
                 </h4>
               </div>
-              <span style={{ fontSize: "0.75rem", color: "#778" }}>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
                 🔒 Las cartas de la mano del rival permanecen en secreto
               </span>
             </div>
@@ -772,14 +772,14 @@ export const App: React.FC = () => {
                       width: 95,
                       height: 130,
                       borderRadius: 10,
-                      background: "linear-gradient(145deg, #1c4a2e 0%, #0e2a19 100%)",
-                      border: "2px solid #366947",
-                      boxShadow: "0 3px 6px rgba(0,0,0,0.12)",
+                      background: "linear-gradient(145deg, #1c4a2e 0%, #0a1a10 100%)",
+                      border: "2px solid #2c5c3f",
+                      boxShadow: "0 3px 6px rgba(0,0,0,0.35)",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#e2ede3",
+                      color: "#dcebe1",
                       fontSize: "0.72rem",
                       fontWeight: 600,
                       textAlign: "center",
@@ -788,16 +788,16 @@ export const App: React.FC = () => {
                     }}
                     title="Carta oculta en la mano del oponente"
                   >
-                    <Bird size={24} style={{ marginBottom: 6, opacity: 0.85, color: "#8bd4a0" }} />
+                    <Bird size={24} style={{ marginBottom: 6, opacity: 0.85, color: "#7fce9c" }} />
                     <span style={{ letterSpacing: "0.5px" }}>Wingspread</span>
-                    <span style={{ fontSize: "0.62rem", opacity: 0.7, marginTop: 4, background: "rgba(255,255,255,0.15)", padding: "1px 6px", borderRadius: 6 }}>
+                    <span style={{ fontSize: "0.62rem", opacity: 0.7, marginTop: 4, background: "rgba(255,255,255,0.12)", padding: "1px 6px", borderRadius: 6 }}>
                       Oculta #{i + 1}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div style={{ padding: 10, color: "#889", fontSize: "0.85rem" }}>
+              <div style={{ padding: 10, color: "var(--color-text-dim)", fontSize: "0.85rem" }}>
                 {getDisplayName(gameState, viewedPlayer.id)} no tiene cartas en su mano actualmente.
               </div>
             )}
@@ -808,10 +808,10 @@ export const App: React.FC = () => {
         {gameState.players[localPlayerId] && (
           <section
             style={{
-              background: "#ffffff",
+              background: "var(--color-panel-bg)",
               padding: 18,
               borderRadius: 16,
-              border: "1px solid #d2ded0",
+              border: "1px solid var(--color-border)",
             }}
           >
             <div
@@ -825,13 +825,13 @@ export const App: React.FC = () => {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Feather size={20} color="#235c3a" />
+                <Feather size={20} color="var(--color-forest)" />
                 <h3 style={{ margin: 0, fontSize: "1.15rem" }}>
                   Tu Mano ({getDisplayName(gameState, localPlayerId)}) — {gameState.players[localPlayerId].hand.length} carta
                   {gameState.players[localPlayerId].hand.length !== 1 ? "s" : ""}
                 </h3>
               </div>
-              <span style={{ fontSize: "0.8rem", color: "#667" }}>
+              <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
                 Haz clic en "Jugar esta ave" para colocarla en tu tablero
               </span>
             </div>
@@ -858,7 +858,7 @@ export const App: React.FC = () => {
                 })}
               </div>
             ) : (
-              <div style={{ padding: 20, textAlign: "center", color: "#889" }}>
+              <div style={{ padding: 20, textAlign: "center", color: "var(--color-text-dim)" }}>
                 Tu mano está vacía. Roba cartas del mercado o del mazo para jugar más aves.
               </div>
             )}

@@ -26,17 +26,18 @@ const WildChoicePopup: React.FC<{
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "rgba(0,0,0,0.35)",
+      background: "rgba(0,0,0,0.65)",
     }}
     onClick={onCancel}
   >
     <div
       onClick={(e) => e.stopPropagation()}
       style={{
-        background: "#fff",
+        background: "#182019",
+        border: "1px solid #2b332e",
         borderRadius: 16,
         padding: "24px 32px",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.22)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -44,10 +45,10 @@ const WildChoicePopup: React.FC<{
         minWidth: 260,
       }}
     >
-      <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "#334" }}>
+      <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "#eef1ec" }}>
         Cara comodín — ¿Qué alimento elegís?
       </div>
-      <p style={{ margin: 0, fontSize: "0.85rem", color: "#667", textAlign: "center" }}>
+      <p style={{ margin: 0, fontSize: "0.85rem", color: "#93a397", textAlign: "center" }}>
         Este dado muestra insecto&nbsp;🐛 y semilla&nbsp;🌾. Elegí uno.
       </p>
       <div style={{ display: "flex", gap: 16 }}>
@@ -56,8 +57,8 @@ const WildChoicePopup: React.FC<{
             fontSize: "1.5rem",
             padding: "12px 24px",
             borderRadius: 12,
-            border: "2px solid #d4e6d0",
-            background: "#f0f7ee",
+            border: "2px solid rgba(63, 174, 114, 0.35)",
+            background: "rgba(63, 174, 114, 0.12)",
             cursor: "pointer",
             display: "flex",
             flexDirection: "column",
@@ -68,15 +69,15 @@ const WildChoicePopup: React.FC<{
           title="Tomar 1 insecto/gusano"
         >
           🐛
-          <span style={{ fontSize: "0.75rem", color: "#334", fontWeight: 600 }}>Gusano</span>
+          <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Gusano</span>
         </button>
         <button
           style={{
             fontSize: "1.5rem",
             padding: "12px 24px",
             borderRadius: 12,
-            border: "2px solid #d4e6d0",
-            background: "#f0f7ee",
+            border: "2px solid rgba(63, 174, 114, 0.35)",
+            background: "rgba(63, 174, 114, 0.12)",
             cursor: "pointer",
             display: "flex",
             flexDirection: "column",
@@ -87,11 +88,11 @@ const WildChoicePopup: React.FC<{
           title="Tomar 1 semilla/trigo"
         >
           🌾
-          <span style={{ fontSize: "0.75rem", color: "#334", fontWeight: 600 }}>Trigo</span>
+          <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Trigo</span>
         </button>
       </div>
       <button
-        style={{ fontSize: "0.8rem", color: "#889", background: "none", border: "none", cursor: "pointer" }}
+        style={{ fontSize: "0.8rem", color: "#75897b", background: "none", border: "none", cursor: "pointer" }}
         onClick={onCancel}
       >
         Cancelar
@@ -139,16 +140,16 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
       <div className="birdfeeder-box">
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <Utensils size={18} color="#8c7355" />
+            <Utensils size={18} color="#a68968" />
             <strong style={{ fontSize: "1.05rem" }}>Comedero de Aves</strong>
-            <span style={{ fontSize: "0.85rem", color: "#665" }}>
+            <span style={{ fontSize: "0.85rem", color: "#93a397" }}>
               ({feeder.length} dado{feeder.length !== 1 ? "s" : ""} disponible{feeder.length !== 1 ? "s" : ""})
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: "0.8rem", color: "#776" }}>
+          <p style={{ margin: 0, fontSize: "0.8rem", color: "#93a397" }}>
             Haz clic en un dado para obtener ese alimento y activar tu bosque.
             {feeder.includes("wild") && (
-              <span style={{ color: "#235c3a", fontWeight: 600 }}>
+              <span style={{ color: "#3fae72", fontWeight: 600 }}>
                 {" "}La cara 🐛/🌾 te pedirá que elijas.
               </span>
             )}
@@ -182,7 +183,7 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
               onClick={onReroll}
               disabled={disabled}
               style={{
-                backgroundColor: "#8c7355",
+                backgroundColor: "#6b5a3e",
                 minHeight: 44,
                 padding: "0 14px",
               }}

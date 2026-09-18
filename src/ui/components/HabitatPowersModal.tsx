@@ -184,20 +184,20 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{title}</h2>
-          <button onClick={onClose} style={{ background: "transparent", color: "#667", padding: 4 }}>
+          <button onClick={onClose} style={{ background: "transparent", color: "#93a397", padding: 4 }}>
             <X size={20} />
           </button>
         </div>
 
-        <p style={{ margin: 0, fontSize: "0.85rem", color: "#556" }}>{subtitle}</p>
+        <p style={{ margin: 0, fontSize: "0.85rem", color: "#c3ccc5" }}>{subtitle}</p>
 
         <PowerChecklist title="Poderes que se activarían" entries={entries} />
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #d2ded0", paddingTop: 14 }}>
-          <button onClick={onClose} style={{ backgroundColor: "#e2e8f0", color: "#334155" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #2b332e", paddingTop: 14 }}>
+          <button onClick={onClose} style={{ backgroundColor: "#212b22", color: "#c3ccc5" }}>
             Cancelar
           </button>
-          <button onClick={handleConfirm} style={{ backgroundColor: "#235c3a" }}>
+          <button onClick={handleConfirm} style={{ backgroundColor: "#1f7a4f" }}>
             <Check size={16} /> Confirmar
           </button>
         </div>
