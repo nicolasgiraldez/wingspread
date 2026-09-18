@@ -88,6 +88,9 @@ export function describePower(power: Power): string {
       if (power.gainAllMatching) {
         return `Obtén TODOS los ${power.resource ? resourceIcons[power.resource] : "dados"} que haya en el comedero`;
       }
+      if (power.anyDie) {
+        return "Obtén 1 dado cualquiera del comedero";
+      }
       const altText = power.resourceAlt ? ` o ${resourceIcons[power.resourceAlt]}` : "";
       return `Obtén ${power.amount} ${power.resource ? resourceIcons[power.resource] : "alimento"}${altText}${power.from === "feeder" ? " del comedero" : ""}`;
     }

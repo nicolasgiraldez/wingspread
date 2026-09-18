@@ -621,6 +621,8 @@ export function triggerPinkPowers(
             !power.habitat
           ) {
             matched = true;
+          } else if (event.type === "gainFood" && power.kind === "cacheFood") {
+            matched = true;
           } else if (event.type === "drawBirdCards" && power.kind === "drawCard") {
             matched = true;
           }
@@ -667,6 +669,18 @@ export function resolvePower(
       }
     }
     const eggNote = power.costsEgg ? " (descartando 1 huevo)" : "";
+    if (power.from === "feeder" && power.anyDie) {
+      if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
+      const die = state.feeder.shift();
+      if (die) {
+        player.resources[die] = (player.resources[die] ?? 0) + power.amount;
+        state.log.push({
+          playerId: player.id,
+          message: `Poder de [${birdName}]: tomó 1 ${die} del comedero${eggNote}.`,
+        });
+      }
+      return;
+    }
     if (power.from === "feeder") {
       // Si el tipo principal no está en el comedero, probamos con el alternativo (si existe).
       let res = power.resource ?? "seed";

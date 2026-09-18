@@ -39,6 +39,8 @@ export type Power =
       gainAllMatching?: boolean;
       /** Solo con from:"feeder": si `resource` no está en el comedero, probá con este otro tipo. */
       resourceAlt?: ResourceFace;
+      /** Solo con from:"feeder": ignora `resource` y toma el próximo dado disponible, sea cual sea. */
+      anyDie?: boolean;
     }
   | {
       id: string;

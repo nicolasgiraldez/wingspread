@@ -17,9 +17,177 @@ import {
 } from ".";
 import type { BonusCard, Move, SpeciesCard } from "./types";
 
+/**
+ * Aves ficticias de prueba con poderes simples y deterministas, independientes del catálogo
+ * real de Wingspan (que puede volver a cambiar). Se inyectan en cada test vía createTestState
+ * para que las aserciones no dependan de qué poder tenga hoy tal o cual especie real.
+ */
+const TEST_CARDS: Record<string, SpeciesCard> = {
+  meadowSparrow: {
+    id: "meadowSparrow",
+    name: "Gorrión de Pradera (prueba)",
+    habitats: ["grassland"],
+    cost: { seed: 1 },
+    points: 2,
+    eggCapacity: 4,
+    nestType: "bowl",
+    wingspanCm: 20,
+    powers: [{ id: "meadowSparrow.grassland.draw", timing: "onActivate", kind: "drawCard", amount: 1 }],
+  },
+  riverHeron: {
+    id: "riverHeron",
+    name: "Garza de Río (prueba)",
+    habitats: ["wetland"],
+    cost: { fish: 1, insect: 1 },
+    points: 5,
+    eggCapacity: 2,
+    nestType: "platform",
+    wingspanCm: 100,
+    powers: [{ id: "riverHeron.wetland.fish", timing: "onActivate", kind: "gainResource", resource: "fish", amount: 1 }],
+  },
+  orchardFinch: {
+    id: "orchardFinch",
+    name: "Pinzón de Huerto (prueba)",
+    habitats: ["forest", "grassland"],
+    cost: { fruit: 1 },
+    points: 3,
+    eggCapacity: 3,
+    nestType: "bowl",
+    wingspanCm: 22,
+    powers: [{ id: "orchardFinch.play.egg", timing: "onPlay", kind: "layEgg", amount: 1, target: "self" }],
+  },
+  marshWren: {
+    id: "marshWren",
+    name: "Ratona de Juncal (prueba)",
+    habitats: ["wetland"],
+    cost: { insect: 1 },
+    points: 1,
+    eggCapacity: 5,
+    nestType: "cavity",
+    wingspanCm: 15,
+    powers: [{ id: "marshWren.wetland.filter", timing: "onActivate", kind: "drawCard", amount: 1, thenDiscard: true }],
+  },
+  cliffSwallow: {
+    id: "cliffSwallow",
+    name: "Golondrina de Acantilado (prueba)",
+    habitats: ["grassland", "wetland"],
+    cost: { insect: 1, seed: 1 },
+    points: 4,
+    eggCapacity: 4,
+    nestType: "bowl",
+    wingspanCm: 28,
+    powers: [{ id: "cliffSwallow.grassland.egg", timing: "onActivate", kind: "layEgg", amount: 1, target: "self" }],
+  },
+  kelpGull: {
+    id: "kelpGull",
+    name: "Gaviota de Algas (prueba)",
+    habitats: ["wetland"],
+    cost: { fish: 1 },
+    points: 2,
+    eggCapacity: 3,
+    nestType: "ground",
+    wingspanCm: 120,
+    powers: [{ id: "kelpGull.wetland.tuck", timing: "onActivate", kind: "tuckCard", amount: 1, source: "hand", thenDraw: true }],
+  },
+  acornJay: {
+    id: "acornJay",
+    name: "Arrendajo Bellotero (prueba)",
+    habitats: ["forest"],
+    cost: { seed: 1, fruit: 1 },
+    points: 4,
+    eggCapacity: 2,
+    nestType: "cavity",
+    wingspanCm: 35,
+    powers: [{ id: "acornJay.forest.seed", timing: "onActivate", kind: "cacheFood", resource: "seed", amount: 1, source: "supply" }],
+  },
+  pineGrosbeak: {
+    id: "pineGrosbeak",
+    name: "Picogrueso de Pinar (prueba)",
+    habitats: ["forest"],
+    cost: { fruit: 2 },
+    points: 5,
+    eggCapacity: 3,
+    nestType: "bowl",
+    wingspanCm: 30,
+    powers: [{ id: "pineGrosbeak.forest.fruit", timing: "onActivate", kind: "gainResource", resource: "fruit", amount: 1 }],
+  },
+  redTailedHawk: {
+    id: "redTailedHawk",
+    name: "Aguilucho Colirrojo (prueba)",
+    habitats: ["forest", "grassland"],
+    cost: { rodent: 2 },
+    points: 7,
+    eggCapacity: 2,
+    nestType: "platform",
+    wingspanCm: 125,
+    powers: [{ id: "redTailedHawk.hunt", timing: "onActivate", kind: "huntPredator", maxWingspanCm: 65 }],
+  },
+  barnOwl: {
+    id: "barnOwl",
+    name: "Lechuza Común (prueba)",
+    habitats: ["forest", "grassland"],
+    cost: { rodent: 1, wild: 1 },
+    points: 6,
+    eggCapacity: 3,
+    nestType: "cavity",
+    wingspanCm: 110,
+    powers: [{ id: "barnOwl.hunt", timing: "onActivate", kind: "huntPredator", maxWingspanCm: 50 }],
+  },
+  americanRobin: {
+    id: "americanRobin",
+    name: "Mirlo Primavera (prueba)",
+    habitats: ["forest", "grassland"],
+    cost: { insect: 1, fruit: 1 },
+    points: 3,
+    eggCapacity: 4,
+    nestType: "bowl",
+    wingspanCm: 38,
+    powers: [{ id: "americanRobin.allGain", timing: "onActivate", kind: "allPlayersGain", resource: "insect", benefitType: "resource" }],
+  },
+  tuftedTitmouse: {
+    id: "tuftedTitmouse",
+    name: "Herrerillo Bicolor (prueba)",
+    habitats: ["forest"],
+    cost: { seed: 1 },
+    points: 2,
+    eggCapacity: 4,
+    nestType: "cavity",
+    wingspanCm: 24,
+    powers: [{ id: "tuftedTitmouse.cache", timing: "onActivate", kind: "cacheFood", resource: "seed", amount: 1, source: "supply" }],
+  },
+  mallard: {
+    id: "mallard",
+    name: "Ánade Real (prueba)",
+    habitats: ["wetland"],
+    cost: { seed: 1, insect: 1 },
+    points: 3,
+    eggCapacity: 5,
+    nestType: "ground",
+    wingspanCm: 90,
+    powers: [{ id: "mallard.tuckDeck", timing: "onActivate", kind: "tuckCard", amount: 1, source: "deck", thenDraw: false }],
+  },
+  rubyThroatedHummingbird: {
+    id: "rubyThroatedHummingbird",
+    name: "Colibrí Gorgirrubí (prueba)",
+    habitats: ["forest", "grassland", "wetland"],
+    cost: { fruit: 1 },
+    points: 2,
+    eggCapacity: 2,
+    nestType: "bowl",
+    wingspanCm: 10,
+    powers: [{ id: "rubyThroatedHummingbird.allGainFruit", timing: "onActivate", kind: "allPlayersGain", resource: "fruit", benefitType: "resource" }],
+  },
+};
+
+function createTestState(...args: Parameters<typeof createInitialState>): ReturnType<typeof createInitialState> {
+  const state = createInitialState(...args);
+  Object.assign(state.cards, TEST_CARDS);
+  return state;
+}
+
 describe("motor de reglas expandido de wingspread", () => {
   it("crea una partida para Nico y Santi con comedero de 5 dados aleatorios y mazo barajado", () => {
-    const state = createInitialState(["nico", "santi"]);
+    const state = createTestState(["nico", "santi"]);
 
     expect(state.phase).toBe("round");
     expect(state.round).toBe(1);
@@ -56,7 +224,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("permite que Nico obtenga alimento del comedero y reduce los dados disponibles", () => {
-    const state = createInitialState(["nico", "santi"]);
+    const state = createTestState(["nico", "santi"]);
     state.feeder = ["seed", "fruit", "insect", "fish", "rodent"];
     const move: Move = { type: "gainFood", dieIndexes: [0] };
 
@@ -70,7 +238,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("permite la regla de sustitución 2:1 para pagar costes de alimento", () => {
-    const state = createInitialState(["nico", "santi"]);
+    const state = createTestState(["nico", "santi"]);
     const player = state.players.nico;
     player.resources = { fruit: 2, insect: 0, seed: 0 };
 
@@ -87,7 +255,7 @@ describe("motor de reglas expandido de wingspread", () => {
     expect(canRerollFeeder([])).toBe(true);
     expect(canRerollFeeder(["seed", "fruit"])).toBe(false);
 
-    const state = createInitialState(["nico", "santi"]);
+    const state = createTestState(["nico", "santi"]);
     state.feeder = ["seed", "seed", "seed"];
     const move: Move = { type: "rerollFeeder" };
 
@@ -97,7 +265,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("ejecuta el poder de almacenar alimento (caching) al activar el bosque", () => {
-    const state = createInitialState(["nico", "santi"]);
+    const state = createTestState(["nico", "santi"]);
     state.players.nico.board.forest[0].cardId = "acornJay";
 
     const move: Move = { type: "gainFood", dieIndexes: [0] };
@@ -109,7 +277,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("ejecuta el poder de solapar cartas (tucking) al activar el río/humedal", () => {
-    const state = createInitialState(["nico", "santi"]);
+    const state = createTestState(["nico", "santi"]);
     state.players.nico.board.wetland[0].cardId = "mallard";
     const initialDeckCount = state.deck.length;
 
@@ -125,7 +293,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("ejecuta el poder de caza depredador (huntPredator)", () => {
-    const state = createInitialState(["nico", "santi"]);
+    const state = createTestState(["nico", "santi"]);
     state.players.nico.board.forest[0].cardId = "redTailedHawk";
     state.deck.unshift("marshWren");
 
@@ -137,7 +305,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("evalúa y puntúa los objetivos de fin de ronda y reinicia cubos de acción", () => {
-    const state = createInitialState(["nico", "santi"]);
+    const state = createTestState(["nico", "santi"]);
     state.players.nico.board.grassland[0].cardId = "meadowSparrow";
     state.players.nico.board.grassland[0].eggs = 3;
     state.players.santi.board.grassland[0].cardId = "cliffSwallow";
@@ -158,7 +326,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("calcula la puntuación detallada incluyendo bonificaciones, huevos y cartas solapadas", () => {
-    const state = createInitialState(["nico", "santi"]);
+    const state = createTestState(["nico", "santi"]);
     const slot = state.players.nico.board.wetland[0];
     slot.cardId = "riverHeron";
     slot.eggs = 2;
@@ -190,7 +358,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   // Tests para Modo Solitario con Automa
   it("inicializa correctamente el modo solitario contra el Automa", () => {
-    const state = createInitialState({ mode: "solo", automaDifficulty: "hard" });
+    const state = createTestState({ mode: "solo", automaDifficulty: "hard" });
 
     expect(state.gameMode).toBe("solo");
     expect(state.players.nico).toBeDefined();
@@ -202,7 +370,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("ejecuta el turno del Automa tras la jugada del jugador humano", () => {
-    const state = createInitialState({ mode: "solo", automaDifficulty: "normal" });
+    const state = createTestState({ mode: "solo", automaDifficulty: "normal" });
     state.feeder = ["seed", "fruit", "insect", "fish", "rodent"];
     const move: Move = { type: "gainFood", dieIndexes: [0] };
 
@@ -214,7 +382,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("calcula la puntuación del Automa según su dificultad", () => {
-    const state = createInitialState({ mode: "solo", automaDifficulty: "hard" });
+    const state = createTestState({ mode: "solo", automaDifficulty: "hard" });
     if (state.automaState) {
       state.automaState.stashedCardsCount = 4;
       state.automaState.eggs = 5;
@@ -230,7 +398,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("permite elegir entre insecto o trigo al tomar un dado con cara comodín", () => {
-    const state = createInitialState({ mode: "solo" });
+    const state = createTestState({ mode: "solo" });
     state.feeder = ["wild", "fruit", "fish"];
     const initialInsects = state.players.nico.resources.insect ?? 0;
     const initialSeeds = state.players.nico.resources.seed ?? 0;
@@ -246,7 +414,7 @@ describe("motor de reglas expandido de wingspread", () => {
     expect(nextWithInsect.players.nico.resources.seed).toBe(initialSeeds);
 
     // Elegir semilla (trigo)
-    const state2 = createInitialState({ mode: "solo" });
+    const state2 = createTestState({ mode: "solo" });
     state2.feeder = ["wild", "fruit", "fish"];
     const moveSeed: Move = {
       type: "gainFood",
@@ -259,7 +427,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("permite distribuir la cantidad de huevos asignada entre varias aves de distintos hábitats respetando sus límites", () => {
-    const state = createInitialState({ mode: "solo" });
+    const state = createTestState({ mode: "solo" });
     // Jugar un ave en bosque (capacidad 4) y un ave en pradera (capacidad 2)
     state.players.nico.board.forest[0].cardId = "acornJay"; // eggCapacity: 4
     state.players.nico.board.grassland[0].cardId = "meadowSparrow"; // eggCapacity: 3
@@ -289,7 +457,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("registra detalladamente la activación de poderes en el registro de la partida", () => {
-    const state = createInitialState({ mode: "solo" });
+    const state = createTestState({ mode: "solo" });
     // Colocar un ave con poder marrón de robar cartas en bosque
     state.players.nico.board.forest[0].cardId = "acornJay"; // cacheFood seed
     state.feeder = ["seed", "fruit", "fish"];
@@ -307,7 +475,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("activa poderes rosas (entre turnos) del oponente cuando se detona la acción correspondiente", () => {
-    const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+    const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
     // Dar a Santi un ave con poder rosa: cuando otro jugador pone huevos, Santi pone 1 huevo
     state.players.santi.board.grassland[0].cardId = "cliffSwallow"; // layEgg
     state.cards.cliffSwallow.powers = [
@@ -335,7 +503,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("un poder rosa solo se activa 1 vez entre los turnos propios de su dueño", () => {
-    const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+    const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
     state.players.santi.board.grassland[0].cardId = "cliffSwallow";
     state.cards.cliffSwallow.powers = [
       {
@@ -368,7 +536,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("permite saltear un poder onPlay opcional mediante skipPowerIds", () => {
-    const state = createInitialState({ mode: "solo" });
+    const state = createTestState({ mode: "solo" });
     state.players.nico.hand = ["orchardFinch"];
     state.players.nico.resources = { fruit: 1 };
 
@@ -387,7 +555,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("permite saltear un poder onActivate opcional mediante skipPowerIds", () => {
-    const state = createInitialState({ mode: "solo" });
+    const state = createTestState({ mode: "solo" });
     state.players.nico.board.forest[0].cardId = "acornJay"; // cacheFood seed
     state.feeder = ["seed", "fruit", "fish"];
 
@@ -403,7 +571,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("respeta la elección del jugador al descartar tras un poder de robar+descartar", () => {
-    const state = createInitialState({ mode: "solo" });
+    const state = createTestState({ mode: "solo" });
     state.players.nico.board.wetland[0].cardId = "marshWren"; // draw 1, thenDiscard
     state.players.nico.hand = ["kelpGull"];
     state.deck = ["mallard", ...state.deck.filter((id) => id !== "mallard")];
@@ -421,7 +589,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   it("respeta la elección del jugador al solapar una carta de la mano", () => {
-    const state = createInitialState({ mode: "solo" });
+    const state = createTestState({ mode: "solo" });
     state.players.nico.board.wetland[0].cardId = "kelpGull"; // tuckCard from hand
     state.players.nico.hand = ["mallard", "marshWren"];
 
@@ -438,7 +606,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("costo 'O' (costAnyOf)", () => {
     it("permite pagar con cualquiera de los tipos listados en costAnyOf", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       const player = state.players.nico;
       player.resources = { insect: 1 };
       // Pagando con "insect", que es uno de los dos tipos aceptados por costAnyOf
@@ -446,7 +614,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("rechaza el pago si no se aportó ningún tipo del set restringido ni sustitución 2x1", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       const player = state.players.nico;
       player.resources = { seed: 1 };
       // "seed" no está en el set {insect, fruit} y solo hay 1 unidad pagada (no alcanza para 2x1)
@@ -454,14 +622,14 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("acepta la sustitución 2x1 cuando no se tiene ninguno de los tipos aceptados", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       const player = state.players.nico;
       player.resources = { seed: 2 };
       expect(canPayResources(player, ["seed", "seed"], {}, ["insect", "fruit"])).toBe(true);
     });
 
     it("permite jugar un ave cuyo costo combina costAnyOf con un requisito fijo", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.cards.testAnyOf = {
         id: "testAnyOf",
         name: "Ave de prueba",
@@ -491,7 +659,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder gainBonusCard", () => {
     it("revela N cartas de bonificación y conserva la(s) primera(s) por defecto", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.hand = ["acornJay"];
       state.players.nico.resources = { seed: 1, fruit: 1 };
       state.cards.acornJay = {
@@ -520,7 +688,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("respeta la elección del jugador sobre cuál carta de bonificación conservar", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.hand = ["acornJay"];
       state.players.nico.resources = { seed: 1, fruit: 1 };
       // El setup reparte una carta de bonificación inicial al azar; la limpiamos para que la
@@ -553,7 +721,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder layEgg: objetivos reales (any / nestType / eachNestType / allPlayersNestType)", () => {
     it("target 'nestType' (rosa) filtra por tipo de nido real y excluye a la propia carta", () => {
-      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.santi.board.grassland[0].cardId = "meadowSparrow"; // nido "bowl"
       state.players.santi.board.grassland[1].cardId = "barnOwl"; // nido "cavity"
       state.players.santi.board.grassland[2].cardId = "cliffSwallow"; // nido "bowl"; será el poder rosa
@@ -577,7 +745,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("target 'any' respeta la elección del jugador de a qué ave apuntar", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.players.nico.board.grassland[0].cardId = "meadowSparrow";
       state.cards.acornJay = {
@@ -597,7 +765,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("target 'any' sin elección cae al primer espacio disponible (comportamiento previo)", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.cards.acornJay = {
         ...state.cards.acornJay,
@@ -610,7 +778,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("target 'eachNestType' pone huevos en TODAS las aves propias con ese nido", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay"; // cavity
       state.players.nico.board.forest[1].cardId = "tuftedTitmouse"; // cavity
       state.players.nico.board.forest[2].cardId = "pineGrosbeak"; // cup, no debería recibir
@@ -629,7 +797,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("target 'allPlayersNestType' pone 1 huevo base por jugador y un extra solo para el activo", () => {
-      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.nico.board.forest[0].cardId = "acornJay"; // cavity, jugador activo
       state.players.santi.board.forest[0].cardId = "tuftedTitmouse"; // cavity
       state.cards.acornJay = {
@@ -656,7 +824,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder gainResource: gainAllMatching y resourceAlt", () => {
     it("gainAllMatching toma TODOS los dados que coincidan, no solo 1", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.cards.acornJay = {
         ...state.cards.acornJay,
@@ -685,7 +853,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("resourceAlt se usa cuando el recurso principal no está en el comedero", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.cards.acornJay = {
         ...state.cards.acornJay,
@@ -712,7 +880,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder allPlayersGain con benefitType 'card'", () => {
     it("todos los jugadores no-automa roban 1 carta del mazo", () => {
-      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.cards.acornJay = {
         ...state.cards.acornJay,
@@ -732,7 +900,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder repeatPower (repetir un poder de otra ave en el hábitat)", () => {
     it("repite el poder marrón de otra ave en el mismo hábitat", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay"; // cacheFood seed, onActivate
       state.players.nico.board.forest[1].cardId = "pineGrosbeak";
       state.cards.pineGrosbeak = {
@@ -750,7 +918,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("predatorOnly no repite un poder no-depredador aunque exista otro poder marrón", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay"; // cacheFood, no depredador
       state.players.nico.board.forest[1].cardId = "pineGrosbeak";
       state.cards.pineGrosbeak = {
@@ -770,7 +938,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder fewestBirdsBenefit (jugador(es) con menos aves)", () => {
     it("benefitType drawCard: solo el/los jugador(es) con menos aves en el hábitat indicado roban carta", () => {
-      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.santi.board.wetland[0].cardId = "riverHeron"; // santi tiene 1 ave en río
       // nico tiene 0 aves en río: debería ganar el beneficio
       state.players.nico.board.forest[0].cardId = "acornJay";
@@ -792,7 +960,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("benefitType gainDieFromFeeder: el/los jugador(es) con menos aves ganan 1 dado del comedero", () => {
-      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.santi.board.forest[0].cardId = "acornJay";
       // nico tiene 0 aves en bosque: gana el dado
       state.players.nico.board.grassland[0].cardId = "meadowSparrow";
@@ -815,7 +983,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder allPlayersGainDie", () => {
     it("cada jugador no-automa toma 1 dado del comedero", () => {
-      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.cards.acornJay = {
         ...state.cards.acornJay,
@@ -838,7 +1006,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder tuckCard: costo en comida, ganar recurso extra y filtro rosa por hábitat", () => {
     it("solapa varias cartas del mazo pagando el costo en comida indicado", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.wetland[0].cardId = "kelpGull";
       state.players.nico.resources = { fish: 1 };
       state.cards.kelpGull = {
@@ -865,7 +1033,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("no solapa nada si no alcanza el recurso para pagar el costo", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.wetland[0].cardId = "kelpGull";
       state.players.nico.resources = {};
       state.cards.kelpGull = {
@@ -891,7 +1059,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("thenGainResource otorga 1 recurso de la reserva al solapar con éxito", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.wetland[0].cardId = "kelpGull";
       state.players.nico.hand = ["mallard"];
       state.cards.kelpGull = {
@@ -922,7 +1090,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("el poder rosa de tuckCard con hábitat solo se activa cuando el ave jugada es de ese hábitat", () => {
-      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.santi.board.grassland[0].cardId = "cliffSwallow";
       state.cards.cliffSwallow.powers = [
         {
@@ -956,7 +1124,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder moveToHabitat (mover ave entre hábitats)", () => {
     it("mueve el ave a otro hábitat cuando está en la columna más a la derecha, y los huevos viajan con ella", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "americanRobin"; // forest + grassland
       state.players.nico.board.forest[0].eggs = 1;
       state.cards.americanRobin = {
@@ -974,7 +1142,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("no mueve el ave si NO está en la columna más a la derecha ocupada de su hábitat", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "americanRobin";
       state.players.nico.board.forest[1].cardId = "acornJay"; // ocupa la columna siguiente
       state.cards.americanRobin = {
@@ -991,7 +1159,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("respeta la elección del jugador de hábitat de destino cuando hay más de una opción", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "rubyThroatedHummingbird"; // forest+grassland+wetland
       state.cards.rubyThroatedHummingbird = {
         ...state.cards.rubyThroatedHummingbird,
@@ -1013,7 +1181,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poderes con costo en huevo (gainResource/drawCard costsEgg)", () => {
     it("gainResource con costsEgg descuenta 1 huevo de OTRA ave (costEggExcludesSelf) y otorga el recurso", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.players.nico.board.forest[1].cardId = "tuftedTitmouse";
       state.players.nico.board.forest[1].eggs = 1;
@@ -1041,7 +1209,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("gainResource con costsEgg no hace nada si no hay ningún huevo disponible para pagarlo", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.cards.acornJay = {
         ...state.cards.acornJay,
@@ -1058,7 +1226,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("drawCard con costsEgg descuenta 1 huevo antes de robar", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.hand = [];
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.players.nico.board.forest[0].eggs = 1;
@@ -1078,7 +1246,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder diceHuntPredator (caza por dados)", () => {
     it("falla automáticamente si el comedero está lleno (no hay dados fuera para relanzar)", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.grassland[0].cardId = "acornJay";
       state.cards.acornJay = {
         ...state.cards.acornJay,
@@ -1095,7 +1263,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("cachea el recurso cuando el relanzamiento de los dados fuera del comedero coincide", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.grassland[0].cardId = "acornJay";
       state.cards.acornJay = {
         ...state.cards.acornJay,
@@ -1120,7 +1288,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("poder playSecondBird (jugar una segunda ave)", () => {
     it("juega una segunda ave del mismo jugador como parte de resolver el poder", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.hand = ["orchardFinch", "meadowSparrow"];
       state.players.nico.resources = { seed: 2, fruit: 1 };
       state.cards.orchardFinch = {
@@ -1157,7 +1325,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("no rompe el movimiento si la elección de segunda ave es inválida (no alcanza a pagarla)", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.hand = ["orchardFinch", "meadowSparrow"];
       state.players.nico.resources = { fruit: 1 }; // no tiene semilla para meadowSparrow
       state.cards.orchardFinch = {
@@ -1194,7 +1362,7 @@ describe("motor de reglas expandido de wingspread", () => {
 
   describe("cartas de bonificación: nuevos conditionType y scoringMode", () => {
     it("scoringMode 'perBird' puntúa linealmente sin techo de umbrales", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.players.nico.board.forest[1].cardId = "pineGrosbeak";
       state.players.nico.board.forest[2].cardId = "tuftedTitmouse";
@@ -1211,7 +1379,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("onlyHabitat exige aves ESPECIALISTAS (viven solo en ese hábitat), no multi-hábitat", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay"; // vive solo en bosque
       state.players.nico.board.forest[1].cardId = "americanRobin"; // bosque + pradera
 
@@ -1233,7 +1401,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("birdsWithMinEggs cuenta AVES con al menos N huevos (no la suma total de huevos)", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.players.nico.board.forest[0].eggs = 2; // no llega a 4
       state.players.nico.board.forest[1].cardId = "pineGrosbeak";
@@ -1255,7 +1423,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("birdsWithPoints filtra por puntos de victoria impresos en la carta", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay"; // 4 pts
       state.players.nico.board.forest[1].cardId = "tuftedTitmouse"; // 2 pts
 
@@ -1272,7 +1440,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("birdsWithWingspan (antes sin implementar: siempre puntuaba 0) filtra por envergadura", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay"; // 35cm
       state.players.nico.board.wetland[0].cardId = "riverHeron"; // 100cm
 
@@ -1289,7 +1457,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("birdsWithNameTag cuenta aves taggeadas con la categoría de nombre indicada", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.cards.acornJay = { ...state.cards.acornJay, nameTags: ["color"] };
       state.players.nico.board.forest[1].cardId = "pineGrosbeak"; // sin tag
@@ -1307,7 +1475,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("birdsWithPowerKind cuenta aves con un poder de cierto tipo (ej. depredador)", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "redTailedHawk"; // huntPredator
       state.players.nico.board.forest[1].cardId = "acornJay"; // cacheFood, no depredador
 
@@ -1324,7 +1492,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("birdsInFewestOwnHabitat puntúa el hábitat propio con menos aves jugadas", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.players.nico.board.forest[1].cardId = "pineGrosbeak"; // bosque: 2 aves
       state.players.nico.board.grassland[0].cardId = "meadowSparrow"; // pradera: 1 ave (la menor)
@@ -1344,7 +1512,7 @@ describe("motor de reglas expandido de wingspread", () => {
     });
 
     it("cardsInHand puntúa según cartas restantes en la mano, no en el tablero", () => {
-      const state = createInitialState({ mode: "solo" });
+      const state = createTestState({ mode: "solo" });
       state.players.nico.hand = ["acornJay", "pineGrosbeak", "tuftedTitmouse"];
 
       const bonus: BonusCard = {
