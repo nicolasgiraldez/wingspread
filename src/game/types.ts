@@ -189,7 +189,17 @@ export type SpeciesCard = {
   nestType?: NestType;
   wingspanCm?: number;
   powers: Power[];
+  /** Categorías de nombre usadas por algunas cartas de bonificación (ej. "tiene un color en el nombre"). */
+  nameTags?: NameTag[];
 };
+
+/**
+ * Categorías de texto del nombre común/científico que algunas cartas de bonificación reales
+ * usan como criterio (ej. Anatomist, Cartographer, Photographer, Historian). Se curan a mano
+ * por carta en vez de intentar detectarlas en tiempo de ejecución con un diccionario de
+ * palabras clave, que sería frágil para nombres en inglés.
+ */
+export type NameTag = "bodyPart" | "geographic" | "color" | "possessive";
 
 export type SlotRef = {
   habitat: HabitatId;
@@ -217,14 +227,39 @@ export type BonusCard = {
     | "birdsWithNest"
     | "birdsWithFoodCost"
     | "birdsWithWingspan"
+    /** Aves cuyos puntos de victoria impresos caen en [minPoints, maxPoints] (ej. "valen menos de 4"). */
+    | "birdsWithPoints"
+    /** Aves con AL MENOS `minEggs` huevos puestos sobre ellas (distinto de "totalEggs": cuenta aves, no huevos). */
+    | "birdsWithMinEggs"
+    /** Aves cuyo nombre está taggeado con `nameTag` (ver SpeciesCard.nameTags). */
+    | "birdsWithNameTag"
+    /** Aves que tienen al menos 1 poder cuyo `kind` está en `powerKinds`. */
+    | "birdsWithPowerKind"
+    /** Aves en el hábitat donde el jugador tiene MENOS aves jugadas (se recalcula por jugador). */
+    | "birdsInFewestOwnHabitat"
+    /** Cartas de ave que quedan en la mano del jugador al momento de puntuar. */
+    | "cardsInHand"
     | "totalEggs"
     | "tuckedCards";
   habitat?: HabitatId;
+  /** Solo para "birdsInHabitat": exige que el ave viva ÚNICAMENTE en ese hábitat (no cuenta multi-hábitat). */
+  onlyHabitat?: boolean;
   nestType?: NestType;
   resourceCost?: ResourceFace;
   minWingspanCm?: number;
   maxWingspanCm?: number;
-  tiers: BonusCardTier[];
+  minPoints?: number;
+  maxPoints?: number;
+  minEggs?: number;
+  nameTag?: NameTag;
+  powerKinds?: Power["kind"][];
+  /**
+   * "tiered" (default): puntúa según el umbral más alto alcanzado en `tiers`.
+   * "perBird": puntúa `pointsPerBird` × cantidad de aves calificadas, sin techo.
+   */
+  scoringMode?: "tiered" | "perBird";
+  pointsPerBird?: number;
+  tiers?: BonusCardTier[];
 };
 
 export type RoundGoalType =

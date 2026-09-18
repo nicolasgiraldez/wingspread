@@ -15,7 +15,7 @@ import {
   shuffle,
   standardDieFaces,
 } from ".";
-import type { Move, SpeciesCard } from "./types";
+import type { BonusCard, Move, SpeciesCard } from "./types";
 
 describe("motor de reglas expandido de wingspread", () => {
   it("crea una partida para Nico y Santi con comedero de 5 dados aleatorios y mazo barajado", () => {
@@ -1189,6 +1189,175 @@ describe("motor de reglas expandido de wingspread", () => {
       expect(next.players.nico.board.grassland[0].cardId).toBe("orchardFinch");
       expect(next.players.nico.board.grassland[1].cardId).toBeNull();
       expect(next.players.nico.hand).toContain("meadowSparrow");
+    });
+  });
+
+  describe("cartas de bonificación: nuevos conditionType y scoringMode", () => {
+    it("scoringMode 'perBird' puntúa linealmente sin techo de umbrales", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.players.nico.board.forest[1].cardId = "pineGrosbeak";
+      state.players.nico.board.forest[2].cardId = "tuftedTitmouse";
+      const bonus: BonusCard = {
+        id: "test.perBird",
+        name: "Test PerBird",
+        description: "",
+        conditionType: "birdsInHabitat",
+        habitat: "forest",
+        scoringMode: "perBird",
+        pointsPerBird: 2,
+      };
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(6); // 3 aves × 2
+    });
+
+    it("onlyHabitat exige aves ESPECIALISTAS (viven solo en ese hábitat), no multi-hábitat", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay"; // vive solo en bosque
+      state.players.nico.board.forest[1].cardId = "americanRobin"; // bosque + pradera
+
+      const exclusiveHighThreshold: BonusCard = {
+        id: "test.only",
+        name: "",
+        description: "",
+        conditionType: "birdsInHabitat",
+        habitat: "forest",
+        onlyHabitat: true,
+        tiers: [{ threshold: 2, points: 9 }],
+      };
+      // Solo acornJay es especialista: nunca llega al umbral de 2.
+      expect(calculateBonusPoints(state.players.nico, state, exclusiveHighThreshold)).toBe(0);
+
+      const inclusive: BonusCard = { ...exclusiveHighThreshold, onlyHabitat: false };
+      // Sin la exigencia, ambas aves cuentan y sí llega al umbral de 2.
+      expect(calculateBonusPoints(state.players.nico, state, inclusive)).toBe(9);
+    });
+
+    it("birdsWithMinEggs cuenta AVES con al menos N huevos (no la suma total de huevos)", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.players.nico.board.forest[0].eggs = 2; // no llega a 4
+      state.players.nico.board.forest[1].cardId = "pineGrosbeak";
+      state.players.nico.board.forest[1].eggs = 1; // sí llega a ≥1
+
+      const min4: BonusCard = {
+        id: "test.min4",
+        name: "",
+        description: "",
+        conditionType: "birdsWithMinEggs",
+        minEggs: 4,
+        scoringMode: "perBird",
+        pointsPerBird: 1,
+      };
+      expect(calculateBonusPoints(state.players.nico, state, min4)).toBe(0);
+
+      const min1: BonusCard = { ...min4, minEggs: 1 };
+      expect(calculateBonusPoints(state.players.nico, state, min1)).toBe(2); // 2 aves × 1
+    });
+
+    it("birdsWithPoints filtra por puntos de victoria impresos en la carta", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay"; // 4 pts
+      state.players.nico.board.forest[1].cardId = "tuftedTitmouse"; // 2 pts
+
+      const bonus: BonusCard = {
+        id: "test.points",
+        name: "",
+        description: "",
+        conditionType: "birdsWithPoints",
+        maxPoints: 3,
+        scoringMode: "perBird",
+        pointsPerBird: 3,
+      };
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(3); // solo tuftedTitmouse
+    });
+
+    it("birdsWithWingspan (antes sin implementar: siempre puntuaba 0) filtra por envergadura", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay"; // 35cm
+      state.players.nico.board.wetland[0].cardId = "riverHeron"; // 100cm
+
+      const bonus: BonusCard = {
+        id: "test.wingspan",
+        name: "",
+        description: "",
+        conditionType: "birdsWithWingspan",
+        maxWingspanCm: 50,
+        scoringMode: "perBird",
+        pointsPerBird: 2,
+      };
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(2); // solo acornJay
+    });
+
+    it("birdsWithNameTag cuenta aves taggeadas con la categoría de nombre indicada", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = { ...state.cards.acornJay, nameTags: ["color"] };
+      state.players.nico.board.forest[1].cardId = "pineGrosbeak"; // sin tag
+
+      const bonus: BonusCard = {
+        id: "test.nameTag",
+        name: "",
+        description: "",
+        conditionType: "birdsWithNameTag",
+        nameTag: "color",
+        scoringMode: "perBird",
+        pointsPerBird: 3,
+      };
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(3);
+    });
+
+    it("birdsWithPowerKind cuenta aves con un poder de cierto tipo (ej. depredador)", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "redTailedHawk"; // huntPredator
+      state.players.nico.board.forest[1].cardId = "acornJay"; // cacheFood, no depredador
+
+      const bonus: BonusCard = {
+        id: "test.predator",
+        name: "",
+        description: "",
+        conditionType: "birdsWithPowerKind",
+        powerKinds: ["huntPredator", "diceHuntPredator"],
+        scoringMode: "perBird",
+        pointsPerBird: 2,
+      };
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(2);
+    });
+
+    it("birdsInFewestOwnHabitat puntúa el hábitat propio con menos aves jugadas", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.players.nico.board.forest[1].cardId = "pineGrosbeak"; // bosque: 2 aves
+      state.players.nico.board.grassland[0].cardId = "meadowSparrow"; // pradera: 1 ave (la menor)
+      state.players.nico.board.wetland[0].cardId = "riverHeron";
+      state.players.nico.board.wetland[1].cardId = "kelpGull";
+      state.players.nico.board.wetland[2].cardId = "mallard"; // río: 3 aves
+
+      const bonus: BonusCard = {
+        id: "test.fewest",
+        name: "",
+        description: "",
+        conditionType: "birdsInFewestOwnHabitat",
+        scoringMode: "perBird",
+        pointsPerBird: 2,
+      };
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(2); // pradera: 1 ave × 2
+    });
+
+    it("cardsInHand puntúa según cartas restantes en la mano, no en el tablero", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.hand = ["acornJay", "pineGrosbeak", "tuftedTitmouse"];
+
+      const bonus: BonusCard = {
+        id: "test.hand",
+        name: "",
+        description: "",
+        conditionType: "cardsInHand",
+        tiers: [
+          { threshold: 2, points: 4 },
+          { threshold: 3, points: 7 },
+        ],
+      };
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(7);
     });
   });
 });

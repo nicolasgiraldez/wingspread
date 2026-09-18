@@ -1295,11 +1295,37 @@ function advanceTurn(state: GameState) {
   }
 }
 
-export function calculateBonusPoints(
-  player: PlayerState,
-  state: GameState,
-  bonus: BonusCard,
-): number {
+/** Rango numérico inclusivo; un extremo ausente no restringe ese lado. */
+function withinRange(value: number | undefined, min: number | undefined, max: number | undefined): boolean {
+  if (value === undefined) return false;
+  if (min !== undefined && value < min) return false;
+  if (max !== undefined && value > max) return false;
+  return true;
+}
+
+/** Hábitat propio (forest/grassland/wetland) donde el jugador tiene menos aves jugadas. */
+function findFewestBirdsHabitat(player: PlayerState): HabitatId {
+  const habitats: HabitatId[] = ["forest", "grassland", "wetland"];
+  let best = habitats[0];
+  let bestCount = Infinity;
+  for (const hab of habitats) {
+    const count = player.board[hab].filter((slot) => slot.cardId).length;
+    if (count < bestCount) {
+      bestCount = count;
+      best = hab;
+    }
+  }
+  return best;
+}
+
+function countBonusQualifyingUnits(player: PlayerState, state: GameState, bonus: BonusCard): number {
+  if (bonus.conditionType === "cardsInHand") {
+    return player.hand.length;
+  }
+
+  const targetHabitat =
+    bonus.conditionType === "birdsInFewestOwnHabitat" ? findFewestBirdsHabitat(player) : bonus.habitat;
+
   let count = 0;
   for (const row of Object.values(player.board)) {
     for (const slot of row) {
@@ -1307,21 +1333,58 @@ export function calculateBonusPoints(
       const card = state.cards[slot.cardId];
       if (!card) continue;
 
-      if (bonus.conditionType === "birdsInHabitat" && bonus.habitat) {
-        if (card.habitats.includes(bonus.habitat)) count += 1;
-      } else if (bonus.conditionType === "birdsWithFoodCost" && bonus.resourceCost) {
-        if ((card.cost[bonus.resourceCost] ?? 0) > 0) count += 1;
-      } else if (bonus.conditionType === "birdsWithNest" && bonus.nestType) {
-        if (card.nestType === bonus.nestType || card.nestType === "wild") count += 1;
-      } else if (bonus.conditionType === "totalEggs") {
-        count += slot.eggs;
-      } else if (bonus.conditionType === "tuckedCards") {
-        count += slot.tucked.length;
+      switch (bonus.conditionType) {
+        case "birdsInHabitat":
+        case "birdsInFewestOwnHabitat":
+          if (targetHabitat && card.habitats.includes(targetHabitat)) {
+            if (!bonus.onlyHabitat || card.habitats.length === 1) count += 1;
+          }
+          break;
+        case "birdsWithFoodCost":
+          if (bonus.resourceCost && (card.cost[bonus.resourceCost] ?? 0) > 0) count += 1;
+          break;
+        case "birdsWithNest":
+          if (bonus.nestType && (card.nestType === bonus.nestType || card.nestType === "wild")) count += 1;
+          break;
+        case "birdsWithWingspan":
+          if (withinRange(card.wingspanCm, bonus.minWingspanCm, bonus.maxWingspanCm)) count += 1;
+          break;
+        case "birdsWithPoints":
+          if (withinRange(card.points, bonus.minPoints, bonus.maxPoints)) count += 1;
+          break;
+        case "birdsWithMinEggs":
+          if (bonus.minEggs !== undefined && slot.eggs >= bonus.minEggs) count += 1;
+          break;
+        case "birdsWithNameTag":
+          if (bonus.nameTag && card.nameTags?.includes(bonus.nameTag)) count += 1;
+          break;
+        case "birdsWithPowerKind":
+          if (bonus.powerKinds && card.powers.some((p) => bonus.powerKinds!.includes(p.kind))) count += 1;
+          break;
+        case "totalEggs":
+          count += slot.eggs;
+          break;
+        case "tuckedCards":
+          count += slot.tucked.length;
+          break;
       }
     }
   }
+  return count;
+}
 
-  const sortedTiers = [...bonus.tiers].sort((a, b) => b.threshold - a.threshold);
+export function calculateBonusPoints(
+  player: PlayerState,
+  state: GameState,
+  bonus: BonusCard,
+): number {
+  const count = countBonusQualifyingUnits(player, state, bonus);
+
+  if (bonus.scoringMode === "perBird") {
+    return count * (bonus.pointsPerBird ?? 0);
+  }
+
+  const sortedTiers = [...(bonus.tiers ?? [])].sort((a, b) => b.threshold - a.threshold);
   for (const tier of sortedTiers) {
     if (count >= tier.threshold) {
       return tier.points;
