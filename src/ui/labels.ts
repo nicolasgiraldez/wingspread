@@ -1,4 +1,4 @@
-import type { AutomaDifficulty, HabitatId, NestType, PowerTiming, ResourceFace } from "../game";
+import type { AutomaDifficulty, HabitatId, NestType, Power, PowerTiming, ResourceFace } from "../game";
 
 export const playerNames: Record<string, string> = {
   nico: "Nico",
@@ -80,3 +80,27 @@ export const powerTimingLabels: Record<PowerTiming, string> = {
   gameEnd: "Fin de partida",
   onceBetweenTurns: "Entre turnos",
 };
+
+/** Descripción legible de un poder, usada tanto en BirdCard como en los checklists de activación. */
+export function describePower(power: Power): string {
+  switch (power.kind) {
+    case "gainResource":
+      return `Obtén ${power.amount} ${power.resource ? resourceIcons[power.resource] : "alimento"}${power.from === "feeder" ? " del comedero" : ""}`;
+    case "layEgg":
+      return `Pon ${power.amount} huevo(s) en ${power.target === "self" ? "este nido" : "cualquier ave"}`;
+    case "drawCard":
+      return `Roba ${power.amount} carta(s)${power.thenDiscard ? " y descarta 1" : ""}`;
+    case "tuckCard":
+      return `Solapa 1 carta${power.source === "deck" ? " del mazo" : " de tu mano"}${power.thenDraw ? " y roba 1" : ""}${power.thenGainEgg ? " y pon 1 huevo" : ""}`;
+    case "cacheFood":
+      return `Almacena 1 ${power.resource ? resourceIcons[power.resource] : "semilla"} en esta carta`;
+    case "huntPredator":
+      return `Caza: si envergadura del mazo ≤ ${power.maxWingspanCm}cm, solapa como presa`;
+    case "allPlayersGain":
+      return `Todos obtienen 1 ${power.resource ? resourceIcons[power.resource] : "recurso"}`;
+    case "tradeResource":
+      return `Cambia 1 ${resourceIcons[power.costResource]} por ${power.amount ?? 1} ${resourceIcons[power.gainResource]}`;
+    default:
+      return "";
+  }
+}

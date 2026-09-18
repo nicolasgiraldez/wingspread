@@ -1,5 +1,5 @@
 import { automaCardsCatalog } from "./automaCards";
-import { rollInitialFeeder } from "./setup";
+import { rollInitialFeeder, shuffle } from "./setup";
 import type {
   BoardSlot,
   BonusCard,
@@ -11,6 +11,7 @@ import type {
   PlayerId,
   PlayerState,
   Power,
+  PowerCardChoices,
   ResourceFace,
   RoundGoal,
   ScoreBreakdown,
@@ -59,6 +60,35 @@ export function getHabitatActionAllowance(player: PlayerState, habitat: HabitatI
   const base = col >= 4 ? 3 : col >= 2 ? 2 : 1;
   const canTrade = col === 1 || col === 3;
   return { baseAmount: base, canTradeEgg: canTrade, maxTotal: base + (canTrade ? 1 : 0) };
+}
+
+/** Poderes "Al jugar" (blancos) de una carta: se ofrecen como opcionales al confirmar playBird. */
+export function getOnPlayPowers(card: SpeciesCard): Power[] {
+  return card.powers.filter((power) => power.timing === "onPlay");
+}
+
+export type ActivatablePower = { source: SlotRef; card: SpeciesCard; power: Power };
+
+/**
+ * Poderes "Al activar" (marrones) que se dispararían en un hábitat dado, en el mismo orden
+ * derecha-a-izquierda en que `activateHabitat` los resolvería. Todos son opcionales.
+ */
+export function getActivatablePowers(
+  state: GameState,
+  player: PlayerState,
+  habitat: HabitatId,
+): ActivatablePower[] {
+  const results: ActivatablePower[] = [];
+  for (let slotIndex = player.board[habitat].length - 1; slotIndex >= 0; slotIndex -= 1) {
+    const slot = player.board[habitat][slotIndex];
+    if (!slot.cardId) continue;
+    const card = state.cards[slot.cardId];
+    if (!card) continue;
+    for (const power of card.powers.filter((candidate) => candidate.timing === "onActivate")) {
+      results.push({ source: { habitat, slotIndex }, card, power });
+    }
+  }
+  return results;
 }
 
 export function isLegalMove(state: GameState, playerId: string, move: Move): boolean {
@@ -188,6 +218,9 @@ export function applyMove(state: GameState, playerId: string, move: Move): GameS
   }
 
   player.actionCubesAvailable -= 1;
+  // Este turno propio cierra la ventana de "entre turnos": los poderes rosas del jugador
+  // vuelven a estar disponibles para dispararse una vez durante la próxima ventana.
+  player.pinkPowersUsed = [];
   next.log.push({
     playerId,
     message: moveLogLabels[move.type],
@@ -333,9 +366,18 @@ function playBird(
   player.hand = player.hand.filter((cardId) => cardId !== move.cardId);
   player.board[move.habitat][move.slotIndex].cardId = move.cardId;
 
-  for (const power of card.powers.filter((candidate) => candidate.timing === "onPlay")) {
-    resolvePower(state, player, power, { habitat: move.habitat, slotIndex: move.slotIndex });
+  const skipIds = new Set(move.skipPowerIds ?? []);
+  for (const power of getOnPlayPowers(card)) {
+    if (skipIds.has(power.id)) continue;
+    resolvePower(
+      state,
+      player,
+      power,
+      { habitat: move.habitat, slotIndex: move.slotIndex },
+      move.powerCardChoices,
+    );
   }
+  triggerPinkPowers(state, player.id, { type: "playBird", habitat: move.habitat });
 }
 
 function gainFood(state: GameState, player: PlayerState, move: Extract<Move, { type: "gainFood" }>) {
@@ -366,7 +408,8 @@ function gainFood(state: GameState, player: PlayerState, move: Extract<Move, { t
     state.feeder = rollInitialFeeder(5);
   }
 
-  activateHabitat(state, player, "forest");
+  activateHabitat(state, player, "forest", new Set(move.skipPowerIds ?? []), move.powerCardChoices);
+  triggerPinkPowers(state, player.id, { type: "gainFood" });
 }
 
 function layEggs(state: GameState, player: PlayerState, move: Extract<Move, { type: "layEggs" }>) {
@@ -379,7 +422,17 @@ function layEggs(state: GameState, player: PlayerState, move: Extract<Move, { ty
     slot.eggs += 1;
   }
 
-  activateHabitat(state, player, "grassland");
+  activateHabitat(state, player, "grassland", new Set(move.skipPowerIds ?? []), move.powerCardChoices);
+  triggerPinkPowers(state, player.id, { type: "layEggs" });
+}
+
+export function drawCardFromDeck(state: GameState): string | undefined {
+  if (state.deck.length === 0 && state.discard.length > 0) {
+    state.deck = shuffle([...state.discard]);
+    state.discard = [];
+    state.log.push({ message: "El mazo se agotó. Se barajó la pila de descarte para formar un nuevo mazo." });
+  }
+  return state.deck.shift();
 }
 
 function drawBirdCards(
@@ -393,30 +446,93 @@ function drawBirdCards(
 
   for (const draw of move.draws) {
     if (draw.source === "deck") {
-      const drawn = state.deck.shift();
+      const drawn = drawCardFromDeck(state);
       if (drawn) player.hand.push(drawn);
     } else {
       const cardId = draw.marketCardId;
       player.hand.push(cardId);
       state.market = state.market.filter((id) => id !== cardId);
-      const replacement = state.deck.shift();
+      const replacement = drawCardFromDeck(state);
       if (replacement) state.market.push(replacement);
     }
   }
 
-  activateHabitat(state, player, "wetland");
+  activateHabitat(state, player, "wetland", new Set(move.skipPowerIds ?? []), move.powerCardChoices);
+  triggerPinkPowers(state, player.id, { type: "drawBirdCards" });
 }
 
-function activateHabitat(state: GameState, player: PlayerState, habitat: HabitatId) {
-  for (let slotIndex = player.board[habitat].length - 1; slotIndex >= 0; slotIndex -= 1) {
-    const slot = player.board[habitat][slotIndex];
-    if (!slot.cardId) continue;
+function activateHabitat(
+  state: GameState,
+  player: PlayerState,
+  habitat: HabitatId,
+  skipIds: Set<string> = new Set(),
+  cardChoices?: PowerCardChoices,
+) {
+  for (const { source, power } of getActivatablePowers(state, player, habitat)) {
+    if (skipIds.has(power.id)) continue;
+    resolvePower(state, player, power, source, cardChoices);
+  }
+}
 
-    const card = state.cards[slot.cardId];
-    if (!card) continue;
+export function triggerPinkPowers(
+  state: GameState,
+  actingPlayerId: PlayerId,
+  event:
+    | { type: "layEggs" }
+    | { type: "playBird"; habitat: HabitatId }
+    | { type: "predatorSuccess" }
+    | { type: "gainFood" }
+    | { type: "drawBirdCards" },
+) {
+  for (const [pId, otherPlayer] of Object.entries(state.players)) {
+    if (pId === actingPlayerId || otherPlayer.isAutoma) continue;
+    if (!otherPlayer.pinkPowersUsed) otherPlayer.pinkPowersUsed = [];
 
-    for (const power of card.powers.filter((candidate) => candidate.timing === "onActivate")) {
-      resolvePower(state, player, power, { habitat, slotIndex });
+    for (const hab of ["forest", "grassland", "wetland"] as HabitatId[]) {
+      otherPlayer.board[hab].forEach((slot, sIdx) => {
+        if (!slot.cardId) return;
+        const card = state.cards[slot.cardId];
+        if (!card) return;
+
+        for (const power of card.powers.filter((p) => p.timing === "onceBetweenTurns")) {
+          // Regla: un poder rosa solo puede activarse 1 vez entre cada turno propio de su dueño.
+          if (otherPlayer.pinkPowersUsed!.includes(power.id)) continue;
+
+          let matched = false;
+          if (event.type === "layEggs" && power.kind === "layEgg") {
+            matched = true;
+          } else if (
+            event.type === "playBird" &&
+            power.kind === "gainResource" &&
+            power.from !== "feeder" &&
+            (!power.habitat || power.habitat === event.habitat)
+          ) {
+            matched = true;
+          } else if (event.type === "playBird" && power.kind === "tuckCard") {
+            matched = true;
+          } else if (
+            event.type === "predatorSuccess" &&
+            power.kind === "gainResource" &&
+            power.from === "feeder"
+          ) {
+            matched = true;
+          } else if (
+            event.type === "gainFood" &&
+            power.kind === "gainResource" &&
+            power.from !== "feeder" &&
+            !power.habitat
+          ) {
+            matched = true;
+          } else if (event.type === "drawBirdCards" && power.kind === "drawCard") {
+            matched = true;
+          }
+
+          if (matched) {
+            resolvePower(state, otherPlayer, power, { habitat: hab, slotIndex: sIdx });
+            otherPlayer.pinkPowersUsed!.push(power.id);
+          }
+        }
+      });
     }
   }
 }
@@ -426,24 +542,56 @@ export function resolvePower(
   player: PlayerState,
   power: Power,
   source: SlotRef,
+  cardChoices?: PowerCardChoices,
 ) {
   const currentSlot = player.board[source.habitat]?.[source.slotIndex];
+  const birdCard = currentSlot?.cardId ? state.cards[currentSlot.cardId] : null;
+  const birdName = birdCard?.name ?? "Ave";
 
   if (power.kind === "gainResource") {
     const res = power.resource ?? "seed";
-    player.resources[res] = (player.resources[res] ?? 0) + power.amount;
+    if (power.from === "feeder") {
+      const dieIdx = state.feeder.indexOf(res);
+      if (dieIdx !== -1) {
+        state.feeder.splice(dieIdx, 1);
+        player.resources[res] = (player.resources[res] ?? 0) + power.amount;
+        state.log.push({
+          playerId: player.id,
+          message: `Poder de [${birdName}]: tomó 1 ${res} del comedero.`,
+        });
+        if (state.feeder.length === 0) {
+          state.feeder = rollInitialFeeder(5);
+        }
+      }
+    } else {
+      player.resources[res] = (player.resources[res] ?? 0) + power.amount;
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: obtuvo ${power.amount} ${res} de la reserva.`,
+      });
+    }
     return;
   }
 
   if (power.kind === "drawCard") {
+    let drawnCount = 0;
     for (let index = 0; index < power.amount; index += 1) {
-      const drawn = state.deck.shift();
-      if (drawn) player.hand.push(drawn);
+      const drawn = drawCardFromDeck(state);
+      if (drawn) {
+        player.hand.push(drawn);
+        drawnCount += 1;
+      }
     }
+    let msg = `Poder de [${birdName}]: robó ${drawnCount} carta(s) del mazo.`;
     if (power.thenDiscard && player.hand.length > 0) {
-      const discarded = player.hand.pop();
-      if (discarded) state.discard.push(discarded);
+      const discarded = takeCardFromHand(player, cardChoices?.[power.id]);
+      if (discarded) {
+        state.discard.push(discarded);
+        const discardedCard = state.cards[discarded];
+        msg += ` Y descartó 1 carta (${discardedCard?.name ?? "carta"}).`;
+      }
     }
+    state.log.push({ playerId: player.id, message: msg });
     return;
   }
 
@@ -452,24 +600,54 @@ export function resolvePower(
     if (!target) return;
 
     const slot = player.board[target.habitat][target.slotIndex];
-    const card = slot.cardId ? state.cards[slot.cardId] : null;
-    if (!card) return;
-    slot.eggs = Math.min(slot.eggs + power.amount, card.eggCapacity);
+    const targetCard = slot.cardId ? state.cards[slot.cardId] : null;
+    if (!targetCard) return;
+
+    if (slot.eggs < targetCard.eggCapacity) {
+      const eggsToAdd = Math.min(power.amount, targetCard.eggCapacity - slot.eggs);
+      slot.eggs += eggsToAdd;
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: puso ${eggsToAdd} huevo(s) en [${targetCard.name}].`,
+      });
+    }
     return;
   }
 
   if (power.kind === "tuckCard") {
     if (currentSlot) {
+      let tuckedCard: string | undefined;
       if (power.source === "deck") {
-        const drawn = state.deck.shift();
-        if (drawn) currentSlot.tucked.push(drawn);
+        const drawn = drawCardFromDeck(state);
+        if (drawn) {
+          currentSlot.tucked.push(drawn);
+          tuckedCard = drawn;
+        }
       } else if (power.source === "hand" && player.hand.length > 0) {
-        const fromHand = player.hand.pop();
-        if (fromHand) currentSlot.tucked.push(fromHand);
+        const fromHand = takeCardFromHand(player, cardChoices?.[power.id]);
+        if (fromHand) {
+          currentSlot.tucked.push(fromHand);
+          tuckedCard = fromHand;
+        }
       }
-      if (power.thenDraw) {
-        const drawn = state.deck.shift();
-        if (drawn) player.hand.push(drawn);
+
+      if (tuckedCard) {
+        const tuckedObj = state.cards[tuckedCard];
+        let msg = `Poder de [${birdName}]: solapó 1 carta (${tuckedObj?.name ?? "carta"}).`;
+        if (power.thenDraw) {
+          const newCard = drawCardFromDeck(state);
+          if (newCard) {
+            player.hand.push(newCard);
+            msg += ` Y robó 1 carta del mazo.`;
+          }
+        }
+        if (power.thenGainEgg) {
+          if (birdCard && currentSlot.eggs < birdCard.eggCapacity) {
+            currentSlot.eggs += 1;
+            msg += ` Y puso 1 huevo en su nido.`;
+          }
+        }
+        state.log.push({ playerId: player.id, message: msg });
       }
     }
     return;
@@ -479,21 +657,39 @@ export function resolvePower(
     if (currentSlot) {
       const res = power.resource ?? "seed";
       currentSlot.cached.push(res);
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: almacenó 1 ${res} en su carta.`,
+      });
     }
     return;
   }
 
   if (power.kind === "huntPredator") {
-    const revealed = state.deck.shift();
+    const revealed = drawCardFromDeck(state);
     if (revealed) {
       const revealedCard = state.cards[revealed];
-      if (revealedCard && (revealedCard.wingspanCm ?? 999) <= power.maxWingspanCm) {
+      const wingspan = revealedCard?.wingspanCm ?? 999;
+      if (wingspan <= power.maxWingspanCm) {
         currentSlot?.tucked.push(revealed);
+        state.log.push({
+          playerId: player.id,
+          message: `Depredador [${birdName}]: ¡Caza exitosa! Reveló a [${revealedCard?.name ?? revealed}] (${wingspan} cm ≤ ${power.maxWingspanCm} cm) y la solapó debajo.`,
+        });
+        triggerPinkPowers(state, player.id, { type: "predatorSuccess" });
       } else {
         if (power.onFailDrawCard) {
           player.hand.push(revealed);
+          state.log.push({
+            playerId: player.id,
+            message: `Poder de [${birdName}]: Reveló a [${revealedCard?.name ?? revealed}] (${wingspan} cm > ${power.maxWingspanCm} cm) y la sumó a su mano.`,
+          });
         } else {
           state.discard.push(revealed);
+          state.log.push({
+            playerId: player.id,
+            message: `Depredador [${birdName}]: Caza fallida. Reveló a [${revealedCard?.name ?? revealed}] (${wingspan} cm > ${power.maxWingspanCm} cm). Descartada.`,
+          });
         }
       }
     }
@@ -507,6 +703,10 @@ export function resolvePower(
         p.resources[res] = (p.resources[res] ?? 0) + 1;
       }
     }
+    state.log.push({
+      playerId: player.id,
+      message: `Poder de [${birdName}]: todos los jugadores obtuvieron 1 ${res} de la reserva.`,
+    });
     return;
   }
 
@@ -514,6 +714,10 @@ export function resolvePower(
     if ((player.resources[power.costResource] ?? 0) >= 1) {
       player.resources[power.costResource] = (player.resources[power.costResource] ?? 1) - 1;
       player.resources[power.gainResource] = (player.resources[power.gainResource] ?? 0) + (power.amount ?? 1);
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: cambió 1 ${power.costResource} por ${power.amount ?? 1} ${power.gainResource}.`,
+      });
     }
   }
 }
@@ -781,6 +985,20 @@ function canPayEggCost(player: PlayerState, paidEggsFrom: SlotRef[], eggCost: nu
   }
 
   return true;
+}
+
+/**
+ * Quita 1 carta de la mano del jugador y la devuelve. Si `preferredId` está presente en la
+ * mano, se usa esa (elección del jugador); si no, se toma la última como último recurso.
+ */
+function takeCardFromHand(player: PlayerState, preferredId?: CardId): CardId | undefined {
+  if (preferredId) {
+    const idx = player.hand.indexOf(preferredId);
+    if (idx !== -1) {
+      return player.hand.splice(idx, 1)[0];
+    }
+  }
+  return player.hand.pop();
 }
 
 function spendResources(player: PlayerState, paidResources: ResourceFace[]) {

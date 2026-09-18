@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Check, Egg, Minus, Plus, TreePine, Waves, Wind, X } from "lucide-react";
-import { getHabitatActionAllowance } from "../../game";
+import { getActivatablePowers, getHabitatActionAllowance } from "../../game";
 import type {
+  CardId,
   GameState,
   HabitatId,
   Move,
@@ -16,6 +17,7 @@ import {
   resourceIcons,
   resourceLabels,
 } from "../labels";
+import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
 interface LayEggsModalProps {
   player: PlayerState;
@@ -97,6 +99,56 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
   const totalAssigned = Object.values(allocations).reduce((sum, n) => sum + n, 0);
   const remainingEggs = totalAllowed - totalAssigned;
 
+  // Poderes "Al activar" (marrones) de la pradera: todos opcionales, tildados por defecto.
+  const activatablePowers = getActivatablePowers(gameState, player, "grassland");
+  const [skippedPowerIds, setSkippedPowerIds] = useState<Set<string>>(new Set());
+  const [powerCardChoices, setPowerCardChoices] = useState<Record<string, CardId>>({});
+
+  const togglePower = (powerId: string) => {
+    setSkippedPowerIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(powerId)) next.delete(powerId);
+      else next.add(powerId);
+      return next;
+    });
+  };
+
+  const handOptions = player.hand.map((id) => ({ id, name: gameState.cards[id]?.name ?? id }));
+
+  const powerChecklistEntries: PowerChecklistEntry[] = activatablePowers.map(({ card, power }) => {
+    let cardChoice: PowerChecklistEntry["cardChoice"];
+    if (
+      (power.kind === "tuckCard" && power.source === "hand") ||
+      (power.kind === "drawCard" && power.thenDiscard)
+    ) {
+      cardChoice = {
+        label:
+          power.kind === "tuckCard"
+            ? "¿Qué carta de tu mano solapás? (opcional)"
+            : "¿Qué carta preferís descartar? (opcional; si no elegís, se descarta la recién robada)",
+        options: handOptions,
+        selected: powerCardChoices[power.id] ?? null,
+        onSelect: (id) =>
+          setPowerCardChoices((prev) => {
+            const next = { ...prev };
+            if (id) next[power.id] = id;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel:
+          power.kind === "tuckCard" ? "Automático (la última de tu mano)" : "Automático (la carta recién robada)",
+      };
+    }
+
+    return {
+      power,
+      birdName: card.name,
+      checked: !skippedPowerIds.has(power.id),
+      onToggle: () => togglePower(power.id),
+      cardChoice,
+    };
+  });
+
   const handleAddEgg = (key: string, maxSpace: number) => {
     const current = allocations[key] ?? 0;
     if (remainingEggs <= 0 || current >= maxSpace) return;
@@ -129,10 +181,19 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       }
     }
 
+    const activePowerCardChoices: Record<string, CardId> = {};
+    for (const entry of powerChecklistEntries) {
+      if (entry.checked && entry.cardChoice?.selected) {
+        activePowerCardChoices[entry.power.id] = entry.cardChoice.selected;
+      }
+    }
+
     onConfirmLayEggs({
       type: "layEggs",
       eggPlacements,
       ...(tradeResource ? { tradeResource } : {}),
+      ...(skippedPowerIds.size > 0 ? { skipPowerIds: Array.from(skippedPowerIds) } : {}),
+      ...(Object.keys(activePowerCardChoices).length > 0 ? { powerCardChoices: activePowerCardChoices } : {}),
     });
   };
 
@@ -482,6 +543,13 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
             })
           )}
         </div>
+
+        {/* Poderes opcionales al activar la pradera */}
+        {powerChecklistEntries.length > 0 && (
+          <div style={{ padding: "0 24px 16px 24px" }}>
+            <PowerChecklist title="Poderes que se activarían" entries={powerChecklistEntries} />
+          </div>
+        )}
 
         {/* Pie de modal con acciones */}
         <div

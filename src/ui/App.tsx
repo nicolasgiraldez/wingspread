@@ -14,11 +14,13 @@ import {
 import {
   applyMove,
   createInitialState,
+  getActivatablePowers,
   isLegalMove,
   scorePlayerDetails,
 } from "../game";
 import type {
   AutomaDifficulty,
+  DrawCardSelection,
   GameState,
   HabitatId,
   Move,
@@ -33,6 +35,7 @@ import { BirdFeeder } from "./components/BirdFeeder";
 import { BirdMarket } from "./components/BirdMarket";
 import { ConnectionStatusBar } from "./components/ConnectionStatusBar";
 import { GameOverModal } from "./components/GameOverModal";
+import { HabitatPowersModal } from "./components/HabitatPowersModal";
 import { HomePage, HomePageConfig } from "./components/HomePage";
 import { LayEggsModal } from "./components/LayEggsModal";
 import { PlayBirdModal } from "./components/PlayBirdModal";
@@ -71,6 +74,12 @@ export const App: React.FC = () => {
   const [layEggsInitialBird, setLayEggsInitialBird] = useState<
     { habitat: HabitatId; slotIndex: number } | undefined
   >(undefined);
+
+  // Acciones pendientes de confirmación de poderes opcionales (bosque/río)
+  const [pendingGainFood, setPendingGainFood] = useState<
+    { dieIndex: number; wildChoice?: "insect" | "seed" } | null
+  >(null);
+  const [pendingDraw, setPendingDraw] = useState<DrawCardSelection[] | null>(null);
 
   const gameStateRef = useRef<GameState | null>(null);
   gameStateRef.current = gameState;
@@ -231,21 +240,62 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleGainFood = (dieIndex: number, wildChoice?: "insect" | "seed") =>
+  // Si el jugador no tiene aves con poderes "Al activar" en el hábitat correspondiente,
+  // ejecutamos la acción directo (no hay nada que confirmar). Si tiene, abrimos el modal
+  // para que decida qué poderes opcionales activar antes de resolver el movimiento.
+  const handleGainFood = (dieIndex: number, wildChoice?: "insect" | "seed") => {
+    const player = gameState?.players[localPlayerId];
+    if (gameState && player && getActivatablePowers(gameState, player, "forest").length > 0) {
+      setPendingGainFood({ dieIndex, wildChoice });
+      return;
+    }
     executeLocalMove({
       type: "gainFood",
       dieIndexes: [dieIndex],
       ...(wildChoice ? { wildChoices: { [dieIndex]: wildChoice } } : {}),
     });
+  };
+
+  const handleConfirmGainFood = (skipPowerIds: string[], powerCardChoices: Record<string, string>) => {
+    if (!pendingGainFood) return;
+    const { dieIndex, wildChoice } = pendingGainFood;
+    executeLocalMove({
+      type: "gainFood",
+      dieIndexes: [dieIndex],
+      ...(wildChoice ? { wildChoices: { [dieIndex]: wildChoice } } : {}),
+      ...(skipPowerIds.length ? { skipPowerIds } : {}),
+      ...(Object.keys(powerCardChoices).length ? { powerCardChoices } : {}),
+    });
+    setPendingGainFood(null);
+  };
 
   const handleRerollFeeder = () =>
     executeLocalMove({ type: "rerollFeeder" });
 
-  const handleDrawFromDeck = () =>
-    executeLocalMove({ type: "drawBirdCards", draws: [{ source: "deck" }] });
+  const executeOrConfirmDraw = (draws: DrawCardSelection[]) => {
+    const player = gameState?.players[localPlayerId];
+    if (gameState && player && getActivatablePowers(gameState, player, "wetland").length > 0) {
+      setPendingDraw(draws);
+      return;
+    }
+    executeLocalMove({ type: "drawBirdCards", draws });
+  };
+
+  const handleDrawFromDeck = () => executeOrConfirmDraw([{ source: "deck" }]);
 
   const handleDrawFromMarket = (cardId: string) =>
-    executeLocalMove({ type: "drawBirdCards", draws: [{ source: "market", marketCardId: cardId }] });
+    executeOrConfirmDraw([{ source: "market", marketCardId: cardId }]);
+
+  const handleConfirmDraw = (skipPowerIds: string[], powerCardChoices: Record<string, string>) => {
+    if (!pendingDraw) return;
+    executeLocalMove({
+      type: "drawBirdCards",
+      draws: pendingDraw,
+      ...(skipPowerIds.length ? { skipPowerIds } : {}),
+      ...(Object.keys(powerCardChoices).length ? { powerCardChoices } : {}),
+    });
+    setPendingDraw(null);
+  };
 
   const handleOpenLayEggs = (initialBird?: { habitat: HabitatId; slotIndex: number }) => {
     setLayEggsInitialBird(initialBird);
@@ -758,6 +808,30 @@ export const App: React.FC = () => {
             setLayEggsModalOpen(false);
             setLayEggsInitialBird(undefined);
           }}
+        />
+      )}
+
+      {pendingGainFood && gameState.players[localPlayerId] && (
+        <HabitatPowersModal
+          title="Confirmar: Obtener comida"
+          subtitle="Tenés aves con poderes opcionales en el bosque. Elegí cuáles activar antes de confirmar."
+          habitat="forest"
+          player={gameState.players[localPlayerId]}
+          gameState={gameState}
+          onConfirm={handleConfirmGainFood}
+          onClose={() => setPendingGainFood(null)}
+        />
+      )}
+
+      {pendingDraw && gameState.players[localPlayerId] && (
+        <HabitatPowersModal
+          title="Confirmar: Robar cartas"
+          subtitle="Tenés aves con poderes opcionales en el río. Elegí cuáles activar antes de confirmar."
+          habitat="wetland"
+          player={gameState.players[localPlayerId]}
+          gameState={gameState}
+          onConfirm={handleConfirmDraw}
+          onClose={() => setPendingDraw(null)}
         />
       )}
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Bird, Egg, X } from "lucide-react";
-import { canPayResources, isLegalMove } from "../../game";
+import { canPayResources, getOnPlayPowers, isLegalMove } from "../../game";
 import type {
   CardId,
   GameState,
@@ -17,6 +17,7 @@ import {
   resourceLabels,
 } from "../labels";
 import { BirdCard } from "./BirdCard";
+import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
 interface PlayBirdModalProps {
   card: SpeciesCard;
@@ -95,6 +96,59 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
     return list;
   });
 
+  // Poderes "Al jugar" (blancos): todos son opcionales, tildados por defecto.
+  const onPlayPowers = getOnPlayPowers(card);
+  const [skippedPowerIds, setSkippedPowerIds] = useState<Set<string>>(new Set());
+  const [powerCardChoices, setPowerCardChoices] = useState<Record<string, CardId>>({});
+
+  const togglePower = (powerId: string) => {
+    setSkippedPowerIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(powerId)) next.delete(powerId);
+      else next.add(powerId);
+      return next;
+    });
+  };
+
+  // La carta que se está jugando ya no estará en la mano una vez resuelta la acción.
+  const handAfterPlay = player.hand
+    .filter((id) => id !== card.id)
+    .map((id) => ({ id, name: gameState.cards[id]?.name ?? id }));
+
+  const powerChecklistEntries: PowerChecklistEntry[] = onPlayPowers.map((power) => {
+    let cardChoice: PowerChecklistEntry["cardChoice"];
+    if (
+      (power.kind === "tuckCard" && power.source === "hand") ||
+      (power.kind === "drawCard" && power.thenDiscard)
+    ) {
+      cardChoice = {
+        label:
+          power.kind === "tuckCard"
+            ? "¿Qué carta de tu mano solapás? (opcional)"
+            : "¿Qué carta preferís descartar? (opcional; si no elegís, se descarta la recién robada)",
+        options: handAfterPlay,
+        selected: powerCardChoices[power.id] ?? null,
+        onSelect: (id) =>
+          setPowerCardChoices((prev) => {
+            const next = { ...prev };
+            if (id) next[power.id] = id;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel:
+          power.kind === "tuckCard" ? "Automático (la última de tu mano)" : "Automático (la carta recién robada)",
+      };
+    }
+
+    return {
+      power,
+      birdName: card.name,
+      checked: !skippedPowerIds.has(power.id),
+      onToggle: () => togglePower(power.id),
+      cardChoice,
+    };
+  });
+
   const toggleResourceForPayment = (res: ResourceFace) => {
     const countInPaid = selectedPaidResources.filter((r) => r === res).length;
     const playerTotal = player.resources[res] ?? 0;
@@ -116,6 +170,13 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
   const isEggCostValid = paidEggsFrom.length === eggCost;
   const isSlotAvailable = firstEmptySlot !== -1;
 
+  const activePowerCardChoices: Record<string, CardId> = {};
+  for (const entry of powerChecklistEntries) {
+    if (entry.checked && entry.cardChoice?.selected) {
+      activePowerCardChoices[entry.power.id] = entry.cardChoice.selected;
+    }
+  }
+
   const move: Extract<Move, { type: "playBird" }> = {
     type: "playBird",
     cardId: card.id,
@@ -123,6 +184,8 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
     slotIndex,
     paidResources: selectedPaidResources,
     paidEggsFrom,
+    ...(skippedPowerIds.size > 0 ? { skipPowerIds: Array.from(skippedPowerIds) } : {}),
+    ...(Object.keys(activePowerCardChoices).length > 0 ? { powerCardChoices: activePowerCardChoices } : {}),
   };
 
   const isMoveValid = isSlotAvailable && isEggCostValid && isPaymentValid && isLegalMove(gameState, player.id, move);
@@ -217,6 +280,11 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                     : `✗ Necesitas al menos ${eggCost} huevo(s) en tu tablero para jugar en esta columna.`}
                 </p>
               </div>
+            )}
+
+            {/* Step 4: Optional "when played" powers */}
+            {powerChecklistEntries.length > 0 && (
+              <PowerChecklist title="4. Poderes al jugar (opcionales)" entries={powerChecklistEntries} />
             )}
           </div>
         </div>

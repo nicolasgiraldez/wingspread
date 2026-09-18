@@ -287,6 +287,155 @@ describe("motor de reglas expandido de wingspread", () => {
     };
     expect(isLegalMove(next, "nico", illegalMove)).toBe(false);
   });
+
+  it("registra detalladamente la activación de poderes en el registro de la partida", () => {
+    const state = createInitialState({ mode: "solo" });
+    // Colocar un ave con poder marrón de robar cartas en bosque
+    state.players.nico.board.forest[0].cardId = "acornJay"; // cacheFood seed
+    state.feeder = ["seed", "fruit", "fish"];
+
+    const move: Move = {
+      type: "gainFood",
+      dieIndexes: [0],
+    };
+
+    const next = applyMove(state, "nico", move);
+    // Debe haber registrado la activación del poder de acornJay
+    const powerLogs = next.log.filter((l) => l.message.includes("Arrendajo Bellotero"));
+    expect(powerLogs.length).toBeGreaterThan(0);
+    expect(powerLogs[0].message).toContain("almacenó 1 seed");
+  });
+
+  it("activa poderes rosas (entre turnos) del oponente cuando se detona la acción correspondiente", () => {
+    const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+    // Dar a Santi un ave con poder rosa: cuando otro jugador pone huevos, Santi pone 1 huevo
+    state.players.santi.board.grassland[0].cardId = "cliffSwallow"; // layEgg
+    state.cards.cliffSwallow.powers = [
+      {
+        id: "cliffSwallow.pink",
+        timing: "onceBetweenTurns",
+        kind: "layEgg",
+        amount: 1,
+        target: "self",
+      },
+    ];
+
+    // Nico pone huevos en su gorrión
+    state.players.nico.board.grassland[0].cardId = "meadowSparrow";
+    const move: Move = {
+      type: "layEggs",
+      eggPlacements: [{ habitat: "grassland", slotIndex: 0 }],
+    };
+
+    const next = applyMove(state, "nico", move);
+    // El ave rosa de Santi debió haber puesto 1 huevo en su nido automáticamente
+    expect(next.players.santi.board.grassland[0].eggs).toBe(1);
+    const pinkLogs = next.log.filter((l) => l.playerId === "santi" && l.message.includes("Golondrina de Acantilado"));
+    expect(pinkLogs.length).toBeGreaterThan(0);
+  });
+
+  it("un poder rosa solo se activa 1 vez entre los turnos propios de su dueño", () => {
+    const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+    state.players.santi.board.grassland[0].cardId = "cliffSwallow";
+    state.cards.cliffSwallow.powers = [
+      {
+        id: "cliffSwallow.pink",
+        timing: "onceBetweenTurns",
+        kind: "layEgg",
+        amount: 1,
+        target: "self",
+      },
+    ];
+    state.players.nico.board.grassland[0].cardId = "meadowSparrow";
+    state.players.nico.board.grassland[1].cardId = "meadowSparrow";
+
+    // Nico pone huevos dos veces seguidas (Santi no tiene cubos, así que el turno vuelve a Nico)
+    state.players.santi.actionCubesAvailable = 0;
+
+    const first = applyMove(state, "nico", {
+      type: "layEggs",
+      eggPlacements: [{ habitat: "grassland", slotIndex: 0 }],
+    });
+    expect(first.players.santi.board.grassland[0].eggs).toBe(1);
+
+    const second = applyMove(first, "nico", {
+      type: "layEggs",
+      eggPlacements: [{ habitat: "grassland", slotIndex: 1 }],
+    });
+    // La segunda vez, dentro de la misma ventana (Santi no tuvo turno propio en el medio),
+    // el poder rosa NO debe volver a activarse.
+    expect(second.players.santi.board.grassland[0].eggs).toBe(1);
+  });
+
+  it("permite saltear un poder onPlay opcional mediante skipPowerIds", () => {
+    const state = createInitialState({ mode: "solo" });
+    state.players.nico.hand = ["orchardFinch"];
+    state.players.nico.resources = { fruit: 1 };
+
+    const move: Move = {
+      type: "playBird",
+      cardId: "orchardFinch",
+      habitat: "grassland",
+      slotIndex: 0,
+      paidResources: ["fruit"],
+      paidEggsFrom: [],
+      skipPowerIds: ["orchardFinch.play.egg"],
+    };
+
+    const next = applyMove(state, "nico", move);
+    expect(next.players.nico.board.grassland[0].eggs).toBe(0);
+  });
+
+  it("permite saltear un poder onActivate opcional mediante skipPowerIds", () => {
+    const state = createInitialState({ mode: "solo" });
+    state.players.nico.board.forest[0].cardId = "acornJay"; // cacheFood seed
+    state.feeder = ["seed", "fruit", "fish"];
+
+    const move: Move = {
+      type: "gainFood",
+      dieIndexes: [0],
+      skipPowerIds: ["acornJay.forest.seed"],
+    };
+
+    const next = applyMove(state, "nico", move);
+    const slot = next.players.nico.board.forest[0];
+    expect(slot.cached).toHaveLength(0);
+  });
+
+  it("respeta la elección del jugador al descartar tras un poder de robar+descartar", () => {
+    const state = createInitialState({ mode: "solo" });
+    state.players.nico.board.wetland[0].cardId = "marshWren"; // draw 1, thenDiscard
+    state.players.nico.hand = ["kelpGull"];
+    state.deck = ["mallard", ...state.deck.filter((id) => id !== "mallard")];
+
+    const move: Move = {
+      type: "drawBirdCards",
+      draws: [{ source: "deck" }],
+      powerCardChoices: { "marshWren.wetland.filter": "kelpGull" },
+    };
+
+    const next = applyMove(state, "nico", move);
+    // Se descartó la carta elegida (kelpGull), no la recién robada (mallard)
+    expect(next.discard).toContain("kelpGull");
+    expect(next.players.nico.hand).toContain("mallard");
+  });
+
+  it("respeta la elección del jugador al solapar una carta de la mano", () => {
+    const state = createInitialState({ mode: "solo" });
+    state.players.nico.board.wetland[0].cardId = "kelpGull"; // tuckCard from hand
+    state.players.nico.hand = ["mallard", "marshWren"];
+
+    const move: Move = {
+      type: "drawBirdCards",
+      draws: [{ source: "deck" }],
+      powerCardChoices: { "kelpGull.wetland.tuck": "mallard" },
+    };
+
+    const next = applyMove(state, "nico", move);
+    expect(next.players.nico.board.wetland[0].tucked).toContain("mallard");
+    expect(next.players.nico.hand).toContain("marshWren");
+  });
 });
+
 
 

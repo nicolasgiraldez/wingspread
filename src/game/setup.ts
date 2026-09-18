@@ -188,5 +188,6 @@ function createPlayer(
     actionCubesAvailable: 8,
     roundGoalScores: [],
     isAutoma,
+    pinkPowersUsed: [],
   };
 }

@@ -30,6 +30,7 @@ export type Power =
       resource?: ResourceFace;
       amount: number;
       from?: "supply" | "feeder";
+      habitat?: HabitatId;
     }
   | {
       id: string;
@@ -163,6 +164,8 @@ export type PlayerState = {
   actionCubesAvailable: number;
   roundGoalScores: number[];
   isAutoma?: boolean;
+  /** IDs de poderes "entre turnos" (rosa) ya activados desde el último turno propio de este jugador. */
+  pinkPowersUsed?: string[];
 };
 
 export type GameLogEntry = {
@@ -229,6 +232,18 @@ export type DrawCardSelection =
   | { source: "deck" }
   | { source: "market"; marketCardId: CardId };
 
+/**
+ * IDs (Power["id"]) de poderes opcionales que el jugador decide NO activar en esta acción.
+ * Todo poder onPlay/onActivate es opcional según el reglamento; si su id no aparece acá, se activa.
+ */
+export type SkipPowerIds = string[];
+
+/**
+ * Elecciones de carta del jugador para poderes que requieren elegir una carta específica
+ * (p. ej. "solapa 1 carta de tu mano" o "descarta 1 carta" tras robar). Clave = Power["id"].
+ */
+export type PowerCardChoices = Record<string, CardId>;
+
 export type Move =
   | {
       type: "playBird";
@@ -237,6 +252,8 @@ export type Move =
       slotIndex: number;
       paidResources: ResourceFace[];
       paidEggsFrom: SlotRef[];
+      skipPowerIds?: SkipPowerIds;
+      powerCardChoices?: PowerCardChoices;
     }
   | {
       type: "gainFood";
@@ -245,16 +262,22 @@ export type Move =
       wildChoices?: Record<number, "insect" | "seed">;
       rerollBefore?: boolean;
       tradeCardId?: CardId;
+      skipPowerIds?: SkipPowerIds;
+      powerCardChoices?: PowerCardChoices;
     }
   | {
       type: "layEggs";
       eggPlacements: SlotRef[];
       tradeResource?: ResourceFace;
+      skipPowerIds?: SkipPowerIds;
+      powerCardChoices?: PowerCardChoices;
     }
   | {
       type: "drawBirdCards";
       draws: DrawCardSelection[];
       tradeEggFrom?: SlotRef;
+      skipPowerIds?: SkipPowerIds;
+      powerCardChoices?: PowerCardChoices;
     }
   | {
       type: "rerollFeeder";

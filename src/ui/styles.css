@@ -513,6 +513,146 @@ button:disabled {
   font-size: 1.3rem;
 }
 
+/* Card Powers Box and Timing Badges */
+.card-powers-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.card-power-item {
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.power-timing-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  align-self: flex-start;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* On Activate (Brown powers) */
+.card-power-item.power-timing-onActivate {
+  background: #fbf5ef;
+  border-left: 3px solid #8d5b36;
+  color: #4a2d18;
+}
+.power-timing-badge.badge-onActivate {
+  background: #eedfd1;
+  color: #6a3e1f;
+}
+
+/* On Play (White powers) */
+.card-power-item.power-timing-onPlay {
+  background: #f5f8f5;
+  border-left: 3px solid #7ea886;
+  color: #27402c;
+}
+.power-timing-badge.badge-onPlay {
+  background: #ddeadf;
+  color: #25492d;
+}
+
+/* Once Between Turns (Pink powers) */
+.card-power-item.power-timing-onceBetweenTurns {
+  background: #fdf2f6;
+  border-left: 3px solid #c44d7b;
+  color: #63223b;
+}
+.power-timing-badge.badge-onceBetweenTurns {
+  background: #f7d2e0;
+  color: #7d264a;
+}
+
+/* Round End (Teal powers) */
+.card-power-item.power-timing-roundEnd {
+  background: #f0f8fa;
+  border-left: 3px solid #1f7a8c;
+  color: #123d46;
+}
+.power-timing-badge.badge-roundEnd {
+  background: #cee9ef;
+  color: #134651;
+}
+
+/* Game End (Yellow powers) */
+.card-power-item.power-timing-gameEnd {
+  background: #fcf9ec;
+  border-left: 3px solid #b8860b;
+  color: #594103;
+}
+.power-timing-badge.badge-gameEnd {
+  background: #faeec4;
+  color: #594103;
+}
+
+/* Power activation checklist (poderes opcionales) */
+.power-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.power-checklist-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #667;
+}
+
+.power-checklist-row {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fafbf9;
+  transition: all 0.12s ease;
+}
+
+.power-checklist-row.checked {
+  background: #f6fbf6;
+  border-color: #b8dbc0;
+}
+
+.power-checklist-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.power-checklist-label input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: #235c3a;
+  cursor: pointer;
+}
+
+.power-checklist-choice {
+  margin: 6px 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.power-checklist-choice select {
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccd8ca;
+  font-size: 0.8rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1024px) {
   .app-shell {
@@ -532,3 +672,4 @@ button:disabled {
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   }
 }
+

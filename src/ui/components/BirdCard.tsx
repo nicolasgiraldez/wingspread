@@ -2,11 +2,11 @@ import React from "react";
 import { Egg, Feather, Layers, Sparkles } from "lucide-react";
 import type { ResourceFace, SpeciesCard } from "../../game";
 import {
+  describePower,
   habitatIcons,
   habitatLabels,
   nestIcons,
   nestLabels,
-  powerTimingLabels,
   resourceIcons,
 } from "../labels";
 
@@ -126,22 +126,17 @@ export const BirdCard: React.FC<BirdCardProps> = ({
 
       {/* Powers Box */}
       {card.powers.length > 0 && (
-        <div className="card-power-box">
+        <div className="card-powers-container">
           {card.powers.map((p) => (
-            <div key={p.id} style={{ display: "flex", gap: 4, alignItems: "center" }}>
-              <strong style={{ fontSize: "0.7rem", textTransform: "uppercase" }}>
-                [{powerTimingLabels[p.timing] ?? p.timing}]
-              </strong>
-              <span>
-                {p.kind === "gainResource" && `Obtén ${p.amount} ${p.resource ? resourceIcons[p.resource] : "alimento"}`}
-                {p.kind === "layEgg" && `Pon ${p.amount} huevo(s) en ${p.target === "self" ? "este nido" : "cualquier ave"}`}
-                {p.kind === "drawCard" && `Roba ${p.amount} carta(s)${p.thenDiscard ? " y descarta 1" : ""}`}
-                {p.kind === "tuckCard" && `Solapa 1 carta${p.source === "deck" ? " del mazo" : " de tu mano"}${p.thenDraw ? " y roba 1" : ""}`}
-                {p.kind === "cacheFood" && `Almacena 1 ${p.resource ? resourceIcons[p.resource] : "semilla"} en esta carta`}
-                {p.kind === "huntPredator" && `Caza: si envergadura mazo ≤ ${p.maxWingspanCm}cm, solapa como presa`}
-                {p.kind === "allPlayersGain" && `Todos obtienen 1 ${p.resource ? resourceIcons[p.resource] : "recurso"}`}
-                {p.kind === "tradeResource" && `Cambia 1 ${resourceIcons[p.costResource]} por 1 ${resourceIcons[p.gainResource]}`}
+            <div key={p.id} className={`card-power-item power-timing-${p.timing}`}>
+              <span className={`power-timing-badge badge-${p.timing}`}>
+                {p.timing === "onActivate" && "Al activar"}
+                {p.timing === "onPlay" && "Al jugar"}
+                {p.timing === "onceBetweenTurns" && "Entre turnos"}
+                {p.timing === "roundEnd" && "Fin de ronda"}
+                {p.timing === "gameEnd" && "Fin de partida"}
               </span>
+              <span className="power-description-text">{describePower(p)}</span>
             </div>
           ))}
         </div>
