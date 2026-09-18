@@ -32,6 +32,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 79,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "americanAvocet.power1",
@@ -53,6 +54,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 107,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "americanBittern.power1",
@@ -74,6 +76,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 5,
     nestType: "platform",
     wingspanCm: 61,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "americanCoot.power1",
@@ -95,6 +98,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 99,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "americanCrow.power1",
@@ -117,6 +121,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 23,
+    nameTags: ["geographic", "color"],
     powers: [
       {
         id: "americanGoldfinch.power1",
@@ -137,6 +142,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 56,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "americanKestrel.power1",
@@ -156,6 +162,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 81,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "americanOystercatcher.power1",
@@ -176,6 +183,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "bowl",
     wingspanCm: 43,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "americanRobin.power1",
@@ -197,6 +205,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 1,
     nestType: "ground",
     wingspanCm: 274,
+    nameTags: ["geographic", "color"],
     powers: [
       {
         id: "americanWhitePelican.power1",
@@ -219,6 +228,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 46,
+    nameTags: ["geographic"],
     powers: [],
   },
   anhinga: {
@@ -250,6 +260,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 13,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "annasHummingbird.power1",
@@ -268,6 +279,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "cavity",
     wingspanCm: 30,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "ashThroatedFlycatcher.power1",
@@ -289,6 +301,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 1,
     nestType: "wild",
     wingspanCm: 53,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "atlanticPuffin.power1",
@@ -309,6 +322,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 23,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "bairdsSparrow.power1",
@@ -351,6 +365,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "wild",
     wingspanCm: 30,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "baltimoreOriole.power1",
@@ -430,6 +445,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "cavity",
     wingspanCm: 71,
+    nameTags: ["possessive", "bodyPart", "color"],
     powers: [
       {
         id: "barrowsGoldeneye.power1",
@@ -451,6 +467,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "wild",
     wingspanCm: 18,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "bellsVireo.power1",
@@ -492,6 +509,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 18,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "bewicksWren.power1",
@@ -510,6 +528,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 112,
+    nameTags: ["color"],
     powers: [
       {
         id: "blackSkimmer.power1",
@@ -530,6 +549,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "wild",
     wingspanCm: 61,
+    nameTags: ["color"],
     powers: [
       {
         id: "blackTern.power1",
@@ -550,6 +570,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 1,
     nestType: "cavity",
     wingspanCm: 150,
+    nameTags: ["color"],
     powers: [
       {
         id: "blackVulture.power1",
@@ -571,6 +592,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 5,
     nestType: "cavity",
     wingspanCm: 76,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "blackBelliedWhistlingDuck.power1",
@@ -593,6 +615,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "wild",
     wingspanCm: 64,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "blackBilledMagpie.power1",
@@ -614,6 +637,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 112,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "blackCrownedNightHeron.power1",
@@ -636,6 +660,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 74,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "blackNeckedStilt.power1",
@@ -655,6 +680,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 28,
+    nameTags: ["color"],
     powers: [
       {
         id: "blueGrosbeak.power1",
@@ -673,6 +699,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 41,
+    nameTags: ["color"],
     powers: [
       {
         id: "blueJay.power1",
@@ -694,6 +721,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 15,
+    nameTags: ["color"],
     powers: [
       {
         id: "blueGrayGnatcatcher.power1",
@@ -714,6 +742,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 20,
+    nameTags: ["bodyPart", "color"],
     powers: [],
   },
   bobolink: {
@@ -747,6 +776,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 41,
+    nameTags: ["possessive", "color"],
     powers: [
       {
         id: "brewersBlackbird.power1",
@@ -767,6 +797,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     points: 5,
     eggCapacity: 0,
     wingspanCm: 36,
+    nameTags: ["color"],
     powers: [
       {
         id: "bronzedCowbird.power1",
@@ -788,6 +819,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 201,
+    nameTags: ["color"],
     powers: [
       {
         id: "brownPelican.power1",
@@ -807,6 +839,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     points: 3,
     eggCapacity: 0,
     wingspanCm: 30,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "brownHeadedCowbird.power1",
@@ -868,6 +901,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 1,
     nestType: "ground",
     wingspanCm: 277,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "californiaCondor.power1",
@@ -888,6 +922,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 6,
     nestType: "ground",
     wingspanCm: 36,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "californiaQuail.power1",
@@ -908,6 +943,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "ground",
     wingspanCm: 132,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "canadaGoose.power1",
@@ -931,6 +967,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 20,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "carolinaChickadee.power1",
@@ -953,6 +990,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 5,
     nestType: "cavity",
     wingspanCm: 20,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "carolinaWren.power1",
@@ -972,6 +1010,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 30,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "cassinsFinch.power1",
@@ -992,6 +1031,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 20,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "cassinsSparrow.power1",
@@ -1033,6 +1073,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 20,
+    nameTags: ["color"],
     powers: [
       {
         id: "ceruleanWarbler.power1",
@@ -1053,6 +1094,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "ground",
     wingspanCm: 25,
+    nameTags: ["color"],
     powers: [
       {
         id: "chestnutCollaredLongspur.power1",
@@ -1073,6 +1115,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "platform",
     wingspanCm: 112,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "chihuahuanRaven.power1",
@@ -1134,6 +1177,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "wild",
     wingspanCm: 61,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "clarksGrebe.power1",
@@ -1154,6 +1198,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 61,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "clarksNutcracker.power1",
@@ -1276,6 +1321,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "bowl",
     wingspanCm: 18,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "commonYellowthroat.power1",
@@ -1296,6 +1342,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 79,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "coopersHawk.power1",
@@ -1315,6 +1362,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "ground",
     wingspanCm: 23,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "darkEyedJunco.power1",
@@ -1357,6 +1405,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "platform",
     wingspanCm: 132,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "doubleCrestedCormorant.power1",
@@ -1399,6 +1448,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 5,
     nestType: "cavity",
     wingspanCm: 33,
+    nameTags: ["geographic", "color"],
     powers: [
       {
         id: "easternBluebird.power1",
@@ -1419,6 +1469,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 38,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "easternKingbird.power1",
@@ -1441,6 +1492,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "wild",
     wingspanCm: 28,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "easternPhoebe.power1",
@@ -1462,6 +1514,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "cavity",
     wingspanCm: 51,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "easternScreechOwl.power1",
@@ -1523,6 +1576,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "wild",
     wingspanCm: 79,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "forstersTern.power1",
@@ -1543,6 +1597,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "wild",
     wingspanCm: 91,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "franklinsGull.power1",
@@ -1563,6 +1618,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 1,
     nestType: "platform",
     wingspanCm: 201,
+    nameTags: ["color"],
     powers: [
       {
         id: "goldenEagle.power1",
@@ -1603,6 +1659,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 28,
+    nameTags: ["color"],
     powers: [
       {
         id: "grayCatbird.power1",
@@ -1621,6 +1678,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 183,
+    nameTags: ["color"],
     powers: [
       {
         id: "greatBlueHeron.power1",
@@ -1640,6 +1698,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 33,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "greatCrestedFlycatcher.power1",
@@ -1680,6 +1739,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 112,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "greatHornedOwl.power1",
@@ -1739,6 +1799,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "platform",
     wingspanCm: 66,
+    nameTags: ["color"],
     powers: [
       {
         id: "greenHeron.power1",
@@ -1811,6 +1872,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "ground",
     wingspanCm: 30,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "hornedLark.power1",
@@ -1872,6 +1934,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "platform",
     wingspanCm: 28,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "incaDove.power1",
@@ -1893,6 +1956,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 20,
+    nameTags: ["color"],
     powers: [
       {
         id: "indigoBunting.power1",
@@ -1999,6 +2063,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 20,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "lincolnsSparrow.power1",
@@ -2017,6 +2082,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "bowl",
     wingspanCm: 30,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "loggerheadShrike.power1",
@@ -2059,6 +2125,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 1,
     nestType: "platform",
     wingspanCm: 79,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "mississippiKite.power1",
@@ -2078,6 +2145,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 5,
     nestType: "cavity",
     wingspanCm: 36,
+    nameTags: ["geographic", "color"],
     powers: [
       {
         id: "mountainBluebird.power1",
@@ -2098,6 +2166,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 23,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "mountainChickadee.power1",
@@ -2139,6 +2208,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 6,
     nestType: "ground",
     wingspanCm: 33,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "northernBobwhite.power1",
@@ -2159,6 +2229,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 5,
     nestType: "bowl",
     wingspanCm: 30,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "northernCardinal.power1",
@@ -2180,6 +2251,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "cavity",
     wingspanCm: 51,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "northernFlicker.power1",
@@ -2202,6 +2274,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 109,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "northernHarrier.power1",
@@ -2221,6 +2294,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "bowl",
     wingspanCm: 36,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "northernMockingbird.power1",
@@ -2239,6 +2313,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "ground",
     wingspanCm: 76,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "northernShoveler.power1",
@@ -2318,6 +2393,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "platform",
     wingspanCm: 41,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "piedBilledGrebe.power1",
@@ -2393,6 +2469,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "platform",
     wingspanCm: 56,
+    nameTags: ["color"],
     powers: [
       {
         id: "purpleGallinule.power1",
@@ -2412,6 +2489,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 46,
+    nameTags: ["color"],
     powers: [
       {
         id: "purpleMartin.power1",
@@ -2455,6 +2533,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 28,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "redCrossbill.power1",
@@ -2476,6 +2555,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 41,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "redBelliedWoodpecker.power1",
@@ -2498,6 +2578,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 23,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "redBreastedNuthatch.power1",
@@ -2519,6 +2600,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "cavity",
     wingspanCm: 36,
+    nameTags: ["color"],
     powers: [
       {
         id: "redCockadedWoodpecker.power1",
@@ -2539,6 +2621,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "wild",
     wingspanCm: 25,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "redEyedVireo.power1",
@@ -2558,6 +2641,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 43,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "redHeadedWoodpecker.power1",
@@ -2579,6 +2663,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 102,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "redShoulderedHawk.power1",
@@ -2598,6 +2683,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 124,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "redTailedHawk.power1",
@@ -2617,6 +2703,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 33,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "redWingedBlackbird.power1",
@@ -2638,6 +2725,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 122,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "ringBilledGull.power1",
@@ -2659,6 +2747,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 33,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "roseBreastedGrosbeak.power1",
@@ -2681,6 +2770,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 127,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "roseateSpoonbill.power1",
@@ -2702,6 +2792,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 20,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "rubyCrownedKinglet.power1",
@@ -2721,6 +2812,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 10,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "rubyThroatedHummingbird.power1",
@@ -2783,6 +2875,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "ground",
     wingspanCm: 18,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "savannahSparrow.power1",
@@ -2802,6 +2895,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 33,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "saysPhoebe.power1",
@@ -2823,6 +2917,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 38,
+    nameTags: ["bodyPart"],
     powers: [
       {
         id: "scissorTailedFlycatcher.power1",
@@ -2942,6 +3037,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "ground",
     wingspanCm: 25,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "spraguesPipit.power1",
@@ -2962,6 +3058,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 48,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "stellersJay.power1",
@@ -2983,6 +3080,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 130,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "swainsonsHawk.power1",
@@ -3076,6 +3174,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 36,
+    nameTags: ["color"],
     powers: [
       {
         id: "violetGreenSwallow.power1",
@@ -3097,6 +3196,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "ground",
     wingspanCm: 38,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "westernMeadowlark.power1",
@@ -3119,6 +3219,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "bowl",
     wingspanCm: 30,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "westernTanager.power1",
@@ -3142,6 +3243,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 28,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "whiteBreastedNuthatch.power1",
@@ -3163,6 +3265,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 5,
     nestType: "ground",
     wingspanCm: 25,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "whiteCrownedSparrow.power1",
@@ -3181,6 +3284,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 91,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "whiteFacedIbis.power1",
@@ -3252,6 +3356,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "ground",
     wingspanCm: 41,
+    nameTags: ["possessive"],
     powers: [
       {
         id: "wilsonsSnipe.power1",
@@ -3311,6 +3416,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "cavity",
     wingspanCm: 41,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "yellowBelliedSapsucker.power1",
@@ -3331,6 +3437,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 46,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "yellowBilledCuckoo.power1",
@@ -3352,6 +3459,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 25,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "yellowBreastedChat.power1",
@@ -3370,6 +3478,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 3,
     nestType: "bowl",
     wingspanCm: 38,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "yellowHeadedBlackbird.power1",
@@ -3392,6 +3501,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "bowl",
     wingspanCm: 23,
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "yellowRumpedWarbler.power1",
@@ -3406,58 +3516,170 @@ export const speciesCards: Record<string, SpeciesCard> = {
 };
 
 export const bonusCardsCatalog: Record<string, BonusCard> = {
-  rodentExpert: {
-    id: "rodentExpert",
-    name: "Experto en Roedores",
-    description: "Aves con coste de roedor en su dieta.",
-    conditionType: "birdsWithFoodCost",
-    resourceCost: "rodent",
-    tiers: [
-      { threshold: 2, points: 3 },
-      { threshold: 4, points: 7 },
-    ],
-  },
-  forestGuardian: {
-    id: "forestGuardian",
-    name: "Guardián de Bosques",
-    description: "Aves que habitan en el bosque.",
+  forester: {
+    id: "forester",
+    name: "Guardabosques",
+    description: "Aves que SOLO pueden vivir en el hábitat de bosque.",
     conditionType: "birdsInHabitat",
     habitat: "forest",
-    tiers: [
-      { threshold: 3, points: 4 },
-      { threshold: 5, points: 8 },
-    ],
+    onlyHabitat: true,
+    tiers: [{ threshold: 3, points: 4 }, { threshold: 5, points: 8 }],
   },
-  wetlandEcologist: {
-    id: "wetlandEcologist",
-    name: "Ecólogo de Humedales",
-    description: "Aves que habitan en el río/humedal.",
+  prairieManager: {
+    id: "prairieManager",
+    name: "Administrador de Praderas",
+    description: "Aves que SOLO pueden vivir en el hábitat de pradera.",
+    conditionType: "birdsInHabitat",
+    habitat: "grassland",
+    onlyHabitat: true,
+    tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 8 }],
+  },
+  wetlandScientist: {
+    id: "wetlandScientist",
+    name: "Científico de Humedales",
+    description: "Aves que SOLO pueden vivir en el hábitat de humedal.",
     conditionType: "birdsInHabitat",
     habitat: "wetland",
-    tiers: [
-      { threshold: 3, points: 4 },
-      { threshold: 5, points: 8 },
-    ],
+    onlyHabitat: true,
+    tiers: [{ threshold: 3, points: 3 }, { threshold: 5, points: 7 }],
   },
-  nestBuilderCavity: {
-    id: "nestBuilderCavity",
-    name: "Arquitecto de Cavidades",
+  anatomist: {
+    id: "anatomist",
+    name: "Anatomista",
+    description: "Aves que tienen una parte del cuerpo en su nombre.",
+    conditionType: "birdsWithNameTag",
+    nameTag: "bodyPart",
+    tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],
+  },
+  cartographer: {
+    id: "cartographer",
+    name: "Cartógrafo",
+    description: "Aves que tienen un término geográfico en su nombre.",
+    conditionType: "birdsWithNameTag",
+    nameTag: "geographic",
+    tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],
+  },
+  historian: {
+    id: "historian",
+    name: "Historiador",
+    description: "Aves nombradas en honor a una persona (nombre posesivo, ej. \"de Anna\").",
+    conditionType: "birdsWithNameTag",
+    nameTag: "possessive",
+    scoringMode: "perBird",
+    pointsPerBird: 2,
+  },
+  photographer: {
+    id: "photographer",
+    name: "Fotógrafo",
+    description: "Aves que tienen un color en su nombre.",
+    conditionType: "birdsWithNameTag",
+    nameTag: "color",
+    tiers: [{ threshold: 4, points: 3 }, { threshold: 6, points: 6 }],
+  },
+  breedingManager: {
+    id: "breedingManager",
+    name: "Gestor de Reproducción",
+    description: "Aves con al menos 4 huevos puestos sobre ellas.",
+    conditionType: "birdsWithMinEggs",
+    minEggs: 4,
+    scoringMode: "perBird",
+    pointsPerBird: 1,
+  },
+  oologist: {
+    id: "oologist",
+    name: "Oólogo",
+    description: "Aves con al menos 1 huevo puesto sobre ellas.",
+    conditionType: "birdsWithMinEggs",
+    minEggs: 1,
+    tiers: [{ threshold: 7, points: 3 }, { threshold: 9, points: 6 }],
+  },
+  enclosureBuilder: {
+    id: "enclosureBuilder",
+    name: "Constructor de Corrales",
+    description: "Aves con nido en el suelo.",
+    conditionType: "birdsWithNest",
+    nestType: "ground",
+    tiers: [{ threshold: 4, points: 4 }, { threshold: 6, points: 7 }],
+  },
+  nestBoxBuilder: {
+    id: "nestBoxBuilder",
+    name: "Constructor de Cajas Nido",
     description: "Aves con nido en cavidad.",
     conditionType: "birdsWithNest",
     nestType: "cavity",
-    tiers: [
-      { threshold: 2, points: 3 },
-      { threshold: 4, points: 7 },
-    ],
+    tiers: [{ threshold: 4, points: 4 }, { threshold: 6, points: 7 }],
   },
-  largeBroods: {
-    id: "largeBroods",
-    name: "Nidadas Grandes",
-    description: "Huevos totales acumulados en tu tablero.",
-    conditionType: "totalEggs",
-    tiers: [
-      { threshold: 6, points: 3 },
-      { threshold: 10, points: 6 },
-    ],
+  platformBuilder: {
+    id: "platformBuilder",
+    name: "Constructor de Plataformas",
+    description: "Aves con nido de plataforma.",
+    conditionType: "birdsWithNest",
+    nestType: "platform",
+    tiers: [{ threshold: 4, points: 4 }, { threshold: 6, points: 7 }],
+  },
+  wildlifeGardener: {
+    id: "wildlifeGardener",
+    name: "Jardinero Silvestre",
+    description: "Aves con nido de tazón.",
+    conditionType: "birdsWithNest",
+    nestType: "bowl",
+    tiers: [{ threshold: 4, points: 4 }, { threshold: 6, points: 7 }],
+  },
+  backyardBirder: {
+    id: "backyardBirder",
+    name: "Observador de Jardín",
+    description: "Aves que valen menos de 4 puntos de victoria.",
+    conditionType: "birdsWithPoints",
+    maxPoints: 3,
+    tiers: [{ threshold: 5, points: 3 }, { threshold: 7, points: 6 }],
+  },
+  passerineSpecialist: {
+    id: "passerineSpecialist",
+    name: "Especialista en Paseriformes",
+    description: "Aves con envergadura de 30 cm o menos.",
+    conditionType: "birdsWithWingspan",
+    maxWingspanCm: 30,
+    tiers: [{ threshold: 4, points: 3 }, { threshold: 6, points: 6 }],
+  },
+  largeBirdSpecialist: {
+    id: "largeBirdSpecialist",
+    name: "Especialista en Aves Grandes",
+    description: "Aves con envergadura mayor a 65 cm.",
+    conditionType: "birdsWithWingspan",
+    minWingspanCm: 66,
+    tiers: [{ threshold: 4, points: 3 }, { threshold: 6, points: 6 }],
+  },
+  birdCounter: {
+    id: "birdCounter",
+    name: "Contador de Aves",
+    description: "Aves con poder de solapar (tuck) cartas.",
+    conditionType: "birdsWithPowerKind",
+    powerKinds: ["tuckCard"],
+    scoringMode: "perBird",
+    pointsPerBird: 2,
+  },
+  falconer: {
+    id: "falconer",
+    name: "Halconero",
+    description: "Aves con poder de depredador.",
+    conditionType: "birdsWithPowerKind",
+    powerKinds: ["huntPredator", "diceHuntPredator"],
+    scoringMode: "perBird",
+    pointsPerBird: 2,
+  },
+  ecologist: {
+    id: "ecologist",
+    name: "Ecólogo",
+    description: "Aves en el hábitat donde tenés menos aves jugadas.",
+    conditionType: "birdsInFewestOwnHabitat",
+    scoringMode: "perBird",
+    pointsPerBird: 2,
+  },
+  visionaryLeader: {
+    id: "visionaryLeader",
+    name: "Líder Visionario",
+    description: "Cartas de ave que quedan en tu mano al final de la partida.",
+    conditionType: "cardsInHand",
+    tiers: [{ threshold: 5, points: 4 }, { threshold: 8, points: 7 }],
   },
 };

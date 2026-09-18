@@ -668,7 +668,7 @@ describe("motor de reglas expandido de wingspread", () => {
           { id: "test.bonus", timing: "onPlay", kind: "gainBonusCard", drawCount: 2, keepCount: 1 },
         ],
       };
-      state.bonusDeck = ["forestGuardian", "wetlandEcologist", "largeBroods"];
+      state.bonusDeck = ["forester", "wetlandScientist", "visionaryLeader"];
       const bonusCountBefore = state.players.nico.bonusCards.length;
 
       const move: Move = {
@@ -682,9 +682,9 @@ describe("motor de reglas expandido de wingspread", () => {
       const next = applyMove(state, "nico", move);
 
       expect(next.players.nico.bonusCards.length).toBe(bonusCountBefore + 1);
-      expect(next.players.nico.bonusCards.map((b) => b.id)).toContain("forestGuardian");
-      expect(next.bonusDeck).toEqual(["largeBroods"]);
-      expect(next.bonusDiscard).toEqual(["wetlandEcologist"]);
+      expect(next.players.nico.bonusCards.map((b) => b.id)).toContain("forester");
+      expect(next.bonusDeck).toEqual(["visionaryLeader"]);
+      expect(next.bonusDiscard).toEqual(["wetlandScientist"]);
     });
 
     it("respeta la elección del jugador sobre cuál carta de bonificación conservar", () => {
@@ -692,7 +692,7 @@ describe("motor de reglas expandido de wingspread", () => {
       state.players.nico.hand = ["acornJay"];
       state.players.nico.resources = { seed: 1, fruit: 1 };
       // El setup reparte una carta de bonificación inicial al azar; la limpiamos para que la
-      // aserción "not.toContain forestGuardian" no dependa de esa asignación aleatoria.
+      // aserción "not.toContain forester" no dependa de esa asignación aleatoria.
       state.players.nico.bonusCards = [];
       state.cards.acornJay = {
         ...state.cards.acornJay,
@@ -700,7 +700,7 @@ describe("motor de reglas expandido de wingspread", () => {
           { id: "test.bonus", timing: "onPlay", kind: "gainBonusCard", drawCount: 2, keepCount: 1 },
         ],
       };
-      state.bonusDeck = ["forestGuardian", "wetlandEcologist", "largeBroods"];
+      state.bonusDeck = ["forester", "wetlandScientist", "visionaryLeader"];
 
       const move: Move = {
         type: "playBird",
@@ -709,13 +709,13 @@ describe("motor de reglas expandido de wingspread", () => {
         slotIndex: 0,
         paidResources: ["seed", "fruit"],
         paidEggsFrom: [],
-        powerCardChoices: { "test.bonus": "wetlandEcologist" },
+        powerCardChoices: { "test.bonus": "wetlandScientist" },
       };
       const next = applyMove(state, "nico", move);
 
-      expect(next.players.nico.bonusCards.map((b) => b.id)).toContain("wetlandEcologist");
-      expect(next.players.nico.bonusCards.map((b) => b.id)).not.toContain("forestGuardian");
-      expect(next.bonusDiscard).toEqual(["forestGuardian"]);
+      expect(next.players.nico.bonusCards.map((b) => b.id)).toContain("wetlandScientist");
+      expect(next.players.nico.bonusCards.map((b) => b.id)).not.toContain("forester");
+      expect(next.bonusDiscard).toEqual(["forester"]);
     });
   });
 
@@ -1526,6 +1526,56 @@ describe("motor de reglas expandido de wingspread", () => {
         ],
       };
       expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(7);
+    });
+  });
+
+  describe("cartas de bonificación reales (bonusCardsCatalog: las 20 del juego base)", () => {
+    // Usa createInitialState directo (no createTestState): estos tests validan el catálogo real
+    // tal cual, y varios ids reales (redTailedHawk, tuftedTitmouse, etc.) están sobreescritos por
+    // TEST_CARDS en createTestState, así que se evitan esos ids acá.
+    it("largeBirdSpecialist (minWingspanCm) puntúa aves reales con envergadura > 65cm", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.wetland[0].cardId = "baldEagle"; // 203cm
+      state.players.nico.board.wetland[1].cardId = "osprey"; // 160cm
+      state.players.nico.board.forest[0].cardId = "greatHornedOwl"; // 112cm
+      state.players.nico.board.forest[1].cardId = "redShoulderedHawk"; // 102cm
+      state.players.nico.board.forest[2].cardId = "acornWoodpecker"; // 46cm, no califica
+
+      const bonus = state.bonusCardsCatalog!.largeBirdSpecialist;
+      expect(bonus).toBeDefined();
+      // 4 aves ≥66cm alcanzan el primer umbral (4 aves → 3 pts); acornWoodpecker no suma.
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(3);
+    });
+
+    it("forester (onlyHabitat) puntúa solo aves reales que viven EXCLUSIVAMENTE en bosque", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornWoodpecker"; // solo bosque
+      state.players.nico.board.forest[1].cardId = "downyWoodpecker"; // solo bosque
+      state.players.nico.board.forest[2].cardId = "redBelliedWoodpecker"; // solo bosque
+      state.players.nico.board.forest[3].cardId = "americanCrow"; // bosque+pradera+humedal, no califica
+
+      const bonus = state.bonusCardsCatalog!.forester;
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(4); // 3 especialistas → primer umbral
+    });
+
+    it("anatomist (nameTag bodyPart) puntúa aves reales con parte del cuerpo en el nombre", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "redShoulderedHawk"; // "Shouldered"
+      state.players.nico.board.forest[1].cardId = "greatHornedOwl"; // "Horned"
+      state.players.nico.board.forest[2].cardId = "acornWoodpecker"; // sin tag
+
+      const bonus = state.bonusCardsCatalog!.anatomist;
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(3); // 2 aves → primer umbral
+    });
+
+    it("falconer (birdsWithPowerKind) puntúa por ave depredadora usando el catálogo real", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "redShoulderedHawk"; // huntPredator
+      state.players.nico.board.forest[1].cardId = "greatHornedOwl"; // huntPredator
+      state.players.nico.board.forest[2].cardId = "acornWoodpecker"; // no depredador
+
+      const bonus = state.bonusCardsCatalog!.falconer;
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(4); // 2 aves × 2 pts
     });
   });
 });
