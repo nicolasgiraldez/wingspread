@@ -41,13 +41,16 @@ class FakeConnection extends Emitter implements ConnectionLike {
 
   close() {
     const other = this.other;
+    const wasOpen = this.open;
     this.other = null;
     this.open = false;
     later(() => this.emit("close"));
     if (other) {
       other.other = null;
       other.open = false;
-      later(() => other.emit("close"));
+      // Como en PeerJS real: si se cierra antes de abrir, el otro extremo no se entera nunca
+      // (queda colgado esperando). Solo un canal ya abierto notifica el cierre.
+      if (wasOpen) later(() => other.emit("close"));
     }
   }
 }
@@ -287,13 +290,32 @@ describe("NetworkManager", () => {
       await advance();
       expect(guestLog.messages).toEqual([ping]); // el invitado original sigue conectado
       expect(intruderLog.messages).toEqual([]);
-      expect(intruderLog.last()).not.toBe("connected");
 
-      // El invitado original se va: el asiento queda libre y el otro puede entrar al reintentar.
+      // Al intruso se le avisa (no queda colgado) y no insiste en reintentar por su cuenta.
+      expect(intruderLog.last()).toBe("error");
+      expect(intruderLog.texts[intruderLog.texts.length - 1]).toContain("otro invitado");
+      const statusesAfterError = intruderLog.statuses.length;
+      await advance(60_000);
+      expect(intruderLog.statuses.length).toBe(statusesAfterError);
+
+      // El invitado original se va y el asiento queda libre: si la persona pulsa "Reintentar", entra.
       guest.cleanup();
-      await advance(1000);
+      await advance();
+      expect(hostLog.last()).toBe("waiting_for_opponent");
+      intruder.initGuest("sala-1", intruderLog.callbacks);
+      await advance();
       expect(hostLog.last()).toBe("connected");
       expect(intruderLog.last()).toBe("connected");
+    });
+
+    it("quien se queda sin asiento no deja peers abiertos", async () => {
+      await connectedPair();
+      sessionStorage.clear();
+      const intruder = manager();
+      intruder.initGuest("sala-1", recorder().callbacks);
+      await advance(5_000);
+
+      expect(net.peers.size).toBe(2); // solo el anfitrión y el invitado original
     });
   });
 

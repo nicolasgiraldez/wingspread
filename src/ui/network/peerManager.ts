@@ -165,7 +165,7 @@ function tokenOf(metadata: unknown): string | null {
 
 /** Cada lado solo acepta los mensajes que le corresponde recibir. */
 const HOST_ACCEPTS = new Set<NetworkMessage["type"]>(["GUEST_JOIN", "APPLY_MOVE", "PING"]);
-const GUEST_ACCEPTS = new Set<NetworkMessage["type"]>(["SYNC_STATE", "RESTART_GAME", "PING"]);
+const GUEST_ACCEPTS = new Set<NetworkMessage["type"]>(["SYNC_STATE", "RESTART_GAME", "ROOM_FULL", "PING"]);
 
 // ── Reintentos ───────────────────────────────────────────────────────────────
 
@@ -295,13 +295,31 @@ export class NetworkManager {
         this.connection = null;
         current.close();
       } else {
-        conn.close();
+        this.rejectGuest(conn);
         return;
       }
     }
     if (token !== null) this.guestToken = token;
     this.connection = conn;
     this.setupConnection(conn);
+  }
+
+  /**
+   * Rechaza a alguien que intenta sentarse en un asiento ocupado. Cerrar la conexión sin más deja
+   * a esa persona colgada en "buscando sala" (el canal ni llega a abrirse): se le avisa por el
+   * canal en cuanto abre y solo entonces se cierra.
+   */
+  private rejectGuest(conn: ConnectionLike) {
+    const notify = () => {
+      try {
+        conn.send({ type: "ROOM_FULL" } satisfies NetworkMessage);
+      } catch {
+        // si no se pudo avisar, igual se cierra
+      }
+      this.later(() => conn.close(), 500);
+    };
+    if (conn.open) notify();
+    else conn.on("open", notify);
   }
 
   // ── Invitado ───────────────────────────────────────────────────────────────
@@ -396,9 +414,12 @@ export class NetworkManager {
       if (!current() || !this.callbacks) return;
       const type = (data as { type?: unknown } | null)?.type;
       const accepted = this.isHost ? HOST_ACCEPTS : GUEST_ACCEPTS;
-      if (typeof type === "string" && accepted.has(type as NetworkMessage["type"])) {
-        this.callbacks.onMessage(data as NetworkMessage);
+      if (typeof type !== "string" || !accepted.has(type as NetworkMessage["type"])) return;
+      if (type === "ROOM_FULL") {
+        this.giveUpBecauseRoomIsFull();
+        return;
       }
+      this.callbacks.onMessage(data as NetworkMessage);
     });
 
     conn.on("close", () => {
@@ -416,6 +437,20 @@ export class NetworkManager {
       this.status("error", `Error en el canal de datos: ${err.message}`);
       if (!this.isHost) this.scheduleGuestReconnect(err.message);
     });
+  }
+
+  /** El anfitrión nos rechazó: reintentar no sirve (el asiento sigue ocupado), así que se corta y se avisa. */
+  private giveUpBecauseRoomIsFull() {
+    const callbacks = this.callbacks;
+    this.session += 1;
+    this.timers.forEach((timer) => clearTimeout(timer));
+    this.timers.clear();
+    this.retryTimer = null;
+    this.destroyPeer();
+    callbacks?.onStatusChange(
+      "error",
+      "La sala ya tiene otro invitado conectado. Si eras tú desde otra pestaña, ciérrala e inténtalo de nuevo.",
+    );
   }
 
   /** Devuelve false si no hay conexión abierta (el mensaje NO se envió). */

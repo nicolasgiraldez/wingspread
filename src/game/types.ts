@@ -462,4 +462,6 @@ export type NetworkMessage =
   | { type: "GUEST_JOIN"; guestName: string }
   | { type: "APPLY_MOVE"; move: Move; playerId: PlayerId }
   | { type: "RESTART_GAME" }
+  /** El anfitrión rechaza a quien intenta sentarse en un asiento ya ocupado por otro invitado. */
+  | { type: "ROOM_FULL" }
   | { type: "PING" };
