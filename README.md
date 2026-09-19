@@ -73,7 +73,7 @@ npm run preview
 - PeerJS ya incluye un STUN de Google y TURN públicos de peerjs.com. Son compartidos y "best effort": si tus jugadores están tras redes muy restrictivas puedes añadir un TURN propio con la variable `VITE_ICE_SERVERS` (JSON), que se **suma** a los anteriores:
 
 ```bash
-VITE_ICE_SERVERS=[urls:turn:turn.midominio.com:3478]
+VITE_ICE_SERVERS='[{"urls":"turn:turn.midominio.com:3478","username":"usuario","credential":"clave"}]'
 ```
 
 En Vercel: *Project Settings → Environment Variables*. Ojo: al ir en el bundle del navegador, las credenciales son visibles; usa credenciales temporales o de bajo privilegio.
