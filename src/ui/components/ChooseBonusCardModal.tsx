@@ -7,9 +7,7 @@ interface ChooseBonusCardModalProps {
   /** Las cartas ofrecidas (ya resueltas desde el catálogo); vacío mientras se espera a otro jugador. */
   options: BonusCard[];
   onChoose: (bonusCardId: string) => void;
-  /** true = elección inicial (2 al azar antes de la ronda 1); false = elección tras un poder de ave. */
-  initial?: boolean;
-  /** Texto de espera cuando no hay nada que elegir (por defecto, el del setup inicial). */
+  /** Texto de espera cuando no hay nada que elegir. */
   waiting?: { title: string; text: string };
 }
 
@@ -22,7 +20,6 @@ export const ChooseBonusCardModal: React.FC<ChooseBonusCardModalProps> = ({
   playerName,
   options,
   onChoose,
-  initial = true,
   waiting,
 }) => {
   if (options.length === 0) {
@@ -30,9 +27,9 @@ export const ChooseBonusCardModal: React.FC<ChooseBonusCardModalProps> = ({
       <div className="modal-backdrop">
         <div className="modal-content" style={{ maxWidth: 420, textAlign: "center" }}>
           <Hourglass size={32} color="#3fae72" style={{ margin: "0 auto 10px auto" }} />
-          <h2 style={{ margin: "0 0 6px 0", fontSize: "1.15rem" }}>{waiting?.title ?? "Ya elegiste tu carta"}</h2>
+          <h2 style={{ margin: "0 0 6px 0", fontSize: "1.15rem" }}>{waiting?.title ?? "Esperando"}</h2>
           <p style={{ margin: 0, color: "#93a397", fontSize: "0.9rem" }}>
-            {waiting?.text ?? "Esperando a que el resto de los jugadores elija la suya para empezar la Ronda 1..."}
+            {waiting?.text ?? "Esperando al resto de los jugadores..."}
           </p>
         </div>
       </div>
@@ -45,12 +42,10 @@ export const ChooseBonusCardModal: React.FC<ChooseBonusCardModalProps> = ({
         <div style={{ textAlign: "center", padding: "6px 0 14px 0" }}>
           <Sparkles size={36} color="#3fae72" style={{ margin: "0 auto 8px auto" }} />
           <h2 style={{ margin: "0 0 6px 0", fontSize: "1.25rem" }}>
-            {playerName}, elegí tu carta de bonificación{initial ? " inicial" : ""}
+            {playerName}, elegí tu carta de bonificación
           </h2>
           <p style={{ margin: 0, color: "#93a397", fontSize: "0.88rem" }}>
-            {initial
-              ? "Te tocaron estas 2 al azar. Quedate con 1; la otra vuelve al descarte."
-              : `Se revelaron ${options.length} cartas. Quedate con 1; el resto vuelve al descarte.`}
+            Se revelaron {options.length} cartas. Quedate con 1; el resto vuelve al descarte.
           </p>
         </div>
 

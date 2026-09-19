@@ -1,4 +1,3 @@
-import { automaCardsCatalog } from "./automaCards";
 import { rollInitialFeeder, rollRandomDie, shuffle } from "./setup";
 import type {
   BonusCard,
@@ -28,13 +27,23 @@ export const actionCountsByRound = {
   4: 5,
 } as const;
 
+/**
+ * Copia del estado para aplicar un movimiento. Los catálogos de cartas son de solo lectura (el
+ * motor nunca los modifica), así que se comparten en vez de copiarse: son ~85 % del tamaño del estado.
+ */
+function cloneState(state: GameState): GameState {
+  const { cards, bonusCardsCatalog, ...rest } = state;
+  return { ...structuredClone(rest), cards, bonusCardsCatalog } as GameState;
+}
+
 const moveLogLabels: Record<Move["type"], string> = {
   playBird: "Jugó un ave.",
   gainFood: "Obtuvo alimento del comedero.",
   layEggs: "Puso huevos.",
   drawBirdCards: "Robó cartas de ave.",
   rerollFeeder: "Relanzó los dados del comedero.",
-  chooseBonusCard: "Eligió su carta de bonificación inicial.",
+  chooseStart: "Terminó su preparación inicial.",
+  chooseBonusCard: "Eligió su carta de bonificación.",
 };
 
 export function canRerollFeeder(feeder: ResourceFace[]): boolean {
@@ -139,6 +148,12 @@ function isWellFormedMove(move: unknown): move is Move {
       return true;
     case "chooseBonusCard":
       return typeof move.bonusCardId === "string";
+    case "chooseStart":
+      return (
+        typeof move.bonusCardId === "string" &&
+        isArrayOf(move.keepCards, (id) => typeof id === "string") &&
+        isArrayOf(move.discardFood, (res) => FOOD_FACES.includes(res))
+      );
     case "playBird":
       return (
         typeof move.cardId === "string" &&
@@ -177,14 +192,26 @@ function isWellFormedMove(move: unknown): move is Move {
 export function isLegalMove(state: GameState, playerId: string, move: Move): boolean {
   if (!isWellFormedMove(move)) return false;
 
+  if (move.type === "chooseStart") {
+    const player = state.players[playerId];
+    if (state.phase !== "setup" || !player?.pendingStartingHand) return false;
+    const { keepCards, discardFood } = move;
+    if (new Set(keepCards).size !== keepCards.length || !keepCards.every((id) => player.hand.includes(id))) return false;
+    // Por cada ave que se conserva se descarta 1 ficha de alimento, de tipos distintos y que tenga.
+    if (discardFood.length !== keepCards.length || new Set(discardFood).size !== discardFood.length) return false;
+    if (!discardFood.every((res) => isFoodFace(res) && (player.resources[res] ?? 0) >= 1)) return false;
+    return !!player.pendingBonusChoice?.includes(move.bonusCardId);
+  }
+
   if (move.type === "chooseBonusCard") {
     const player = state.players[playerId];
-    return !!player && !player.isAutoma && !!player.pendingBonusChoice?.includes(move.bonusCardId);
+    // Durante la preparación la bonificación se elige dentro de chooseStart.
+    return !!player && !player.pendingStartingHand && !!player.pendingBonusChoice?.includes(move.bonusCardId);
   }
 
   if (state.phase !== "round" || state.currentPlayerId !== playerId) return false;
   const player = state.players[playerId];
-  if (!player || player.actionCubesAvailable <= 0 || player.isAutoma) return false;
+  if (!player || player.actionCubesAvailable <= 0) return false;
   // Con una carta de bonificación por elegir no se puede hacer otra cosa hasta resolverla.
   if (player.pendingBonusChoice?.length) return false;
 
@@ -286,13 +313,22 @@ export function isLegalMove(state: GameState, playerId: string, move: Move): boo
   return false;
 }
 
-export function applyMove(state: GameState, playerId: string, move: Move): GameState {
+/**
+ * Aplica UN movimiento de un jugador (humano o rival de la IA) y devuelve el estado nuevo; no
+ * modifica el original. No hace jugar a los rivales de la IA: eso lo hace `applyMove` (turns.ts).
+ */
+export function applyPlayerMove(state: GameState, playerId: string, move: Move): GameState {
   if (!isLegalMove(state, playerId, move)) {
     throw new Error(`Movimiento ilegal: ${move.type}`);
   }
 
-  let next = structuredClone(state) as GameState;
+  const next = cloneState(state);
   const player = next.players[playerId];
+
+  if (move.type === "chooseStart") {
+    chooseStart(next, player, move);
+    return next;
+  }
 
   if (move.type === "chooseBonusCard") {
     resolveBonusCardChoice(next, player, move.bonusCardId);
@@ -325,116 +361,51 @@ export function applyMove(state: GameState, playerId: string, move: Move): GameS
   });
 
   advanceTurn(next);
-
-  // Auto execute Automa turn if next player is Automa
-  while (
-    next.phase === "round" &&
-    next.currentPlayerId === "automa" &&
-    next.players.automa?.actionCubesAvailable > 0
-  ) {
-    next = executeAutomaTurn(next);
-  }
-
   return next;
 }
 
-/**
- * Resuelve la elección de una carta de bonificación ofrecida: conserva la elegida y descarta las
- * demás. Si era la elección inicial, arranca la Ronda 1 (fase "round") cuando todos los jugadores
- * humanos ya eligieron.
- */
-function resolveBonusCardChoice(state: GameState, player: PlayerState, chosenId: string) {
+/** Conserva la carta de bonificación elegida de la oferta pendiente y descarta las demás. */
+function keepBonusCard(state: GameState, player: PlayerState, chosenId: string) {
   const offered = player.pendingBonusChoice ?? [];
   const discarded = offered.filter((id) => id !== chosenId);
   const chosen = state.bonusCardsCatalog?.[chosenId];
   if (chosen) player.bonusCards.push(chosen);
   state.bonusDiscard.push(...discarded);
   player.pendingBonusChoice = undefined;
+  return { chosen, discarded };
+}
+
+/** Elección de una carta de bonificación revelada por un poder de ave. */
+function resolveBonusCardChoice(state: GameState, player: PlayerState, chosenId: string) {
+  const { chosen, discarded } = keepBonusCard(state, player, chosenId);
+  state.log.push({
+    playerId: player.id,
+    message: `Conservó la carta de bonificación [${chosen?.name ?? chosenId}] y descartó ${discarded.length === 1 ? "la otra" : "las otras"}.`,
+  });
+}
+
+/**
+ * Preparación inicial de un jugador: conserva las aves elegidas (las demás van al descarte),
+ * descarta 1 ficha de alimento por cada ave conservada y se queda con una carta de bonificación.
+ * La partida arranca (fase "round") cuando todos los jugadores terminaron.
+ */
+function chooseStart(state: GameState, player: PlayerState, move: Extract<Move, { type: "chooseStart" }>) {
+  const keep = new Set(move.keepCards);
+  state.discard.push(...player.hand.filter((id) => !keep.has(id)));
+  player.hand = player.hand.filter((id) => keep.has(id));
+  for (const res of move.discardFood) player.resources[res] = (player.resources[res] ?? 1) - 1;
+  player.pendingStartingHand = undefined;
+  const { chosen } = keepBonusCard(state, player, move.bonusCardId);
 
   state.log.push({
     playerId: player.id,
-    message:
-      state.phase === "setup"
-        ? `Eligió su carta de bonificación inicial: [${chosen?.name ?? chosenId}].`
-        : `Conservó la carta de bonificación [${chosen?.name ?? chosenId}] y descartó ${discarded.length === 1 ? "la otra" : "las otras"}.`,
+    message: `Preparación lista: conservó ${move.keepCards.length} ave(s), descartó ${move.discardFood.length} alimento(s) y eligió la bonificación [${chosen?.name ?? move.bonusCardId}].`,
   });
 
-  const stillPending = Object.values(state.players).some(
-    (p) => !p.isAutoma && p.pendingBonusChoice && p.pendingBonusChoice.length > 0,
-  );
-  if (state.phase === "setup" && !stillPending) {
+  if (state.phase === "setup" && !Object.values(state.players).some((p) => p.pendingStartingHand)) {
     state.phase = "round";
-    state.log.push({ message: "¡Todos eligieron su carta de bonificación! Comienza la Ronda 1." });
+    state.log.push({ message: "¡Todos terminaron la preparación! Comienza la Ronda 1." });
   }
-}
-
-export function executeAutomaTurn(state: GameState): GameState {
-  const next = structuredClone(state) as GameState;
-  const automa = next.players.automa;
-  if (!automa || !next.automaState || automa.actionCubesAvailable <= 0) {
-    return next;
-  }
-
-  // Draw Automa card
-  if (next.automaState.deck.length === 0) {
-    next.automaState.deck = [...next.automaState.discard];
-    next.automaState.discard = [];
-  }
-
-  const cardId = next.automaState.deck.shift() ?? Object.keys(automaCardsCatalog)[0];
-  const automaCard = automaCardsCatalog[cardId];
-  next.automaState.currentCard = automaCard;
-  next.automaState.discard.push(cardId);
-
-  const actions = automaCard.roundActions[next.round] ?? [];
-  const actionDescriptions: string[] = [];
-
-  for (const act of actions) {
-    if (act.type === "gainFoodFromFeeder") {
-      for (let i = 0; i < act.count; i += 1) {
-        if (next.feeder.length > 0) {
-          const removed = next.feeder.shift();
-          actionDescriptions.push(`tomó 1 ${removed} del comedero`);
-        }
-      }
-      if (next.feeder.length === 0) {
-        next.feeder = rollInitialFeeder(5);
-      }
-    } else if (act.type === "drawMarketCard") {
-      const count = act.count ?? 1;
-      for (let i = 0; i < count; i += 1) {
-        if (next.market.length > 0) {
-          next.market.shift();
-          actionDescriptions.push(`robó 1 carta del mercado`);
-          const rep = drawCardFromDeck(next);
-          if (rep) next.market.push(rep);
-        }
-      }
-    } else if (act.type === "stashCardFromDeck") {
-      for (let i = 0; i < act.count; i += 1) {
-        const stashed = drawCardFromDeck(next);
-        if (stashed) {
-          next.automaState.stashedCardsCount += 1;
-        }
-      }
-      actionDescriptions.push(`guardó ${act.count} ave(s) en su reserva`);
-    } else if (act.type === "layEggs") {
-      next.automaState.eggs += act.count;
-      actionDescriptions.push(`acumuló ${act.count} huevo(s)`);
-    } else if (act.type === "advanceGoal") {
-      next.automaState.roundGoalMetric += act.metricBonus;
-      actionDescriptions.push(`+${act.metricBonus} progreso en objetivo`);
-    }
-  }
-
-  automa.actionCubesAvailable -= 1;
-  next.log.push({
-    playerId: "automa",
-    message: `[${automaCard.name}]: ${actionDescriptions.join(", ")}.`,
-  });
-
-  advanceTurn(next);
-  return next;
 }
 
 export function canPayResources(
@@ -716,7 +687,7 @@ function triggerPinkPowers(
     | { type: "drawBirdCards" },
 ) {
   for (const [pId, otherPlayer] of Object.entries(state.players)) {
-    if (pId === actingPlayerId || otherPlayer.isAutoma) continue;
+    if (pId === actingPlayerId) continue;
     if (!otherPlayer.pinkPowersUsed) otherPlayer.pinkPowersUsed = [];
 
     for (const hab of ["forest", "grassland", "wetland"] as HabitatId[]) {
@@ -922,7 +893,6 @@ export function resolvePower(
 
     if (power.target === "allPlayersNestType") {
       for (const p of Object.values(state.players)) {
-        if (p.isAutoma) continue;
         const target = findEggTargetByNestType(state, p, power.nestType);
         if (target) applyEggsToTarget(state, p, target, 1, birdName);
       }
@@ -1078,7 +1048,6 @@ export function resolvePower(
   if (power.kind === "allPlayersGain") {
     if (power.benefitType === "card") {
       for (const p of Object.values(state.players)) {
-        if (p.isAutoma) continue;
         const drawn = drawCardFromDeck(state);
         if (drawn) p.hand.push(drawn);
       }
@@ -1091,9 +1060,7 @@ export function resolvePower(
 
     const res = power.resource ?? "seed";
     for (const p of Object.values(state.players)) {
-      if (!p.isAutoma) {
-        p.resources[res] = (p.resources[res] ?? 0) + 1;
-      }
+      p.resources[res] = (p.resources[res] ?? 0) + 1;
     }
     state.log.push({
       playerId: player.id,
@@ -1129,7 +1096,7 @@ export function resolvePower(
     const chosenId = cardChoices?.[power.id];
     const preChosen = !!chosenId && drawn.includes(chosenId);
     const canAsk =
-      !preChosen && !player.isAutoma && power.keepCount === 1 && drawn.length > 1 && !player.pendingBonusChoice?.length;
+      !preChosen && power.keepCount === 1 && drawn.length > 1 && !player.pendingBonusChoice?.length;
     if (canAsk) {
       player.pendingBonusChoice = drawn;
       state.log.push({
@@ -1265,7 +1232,6 @@ export function resolvePower(
 
   if (power.kind === "fewestBirdsBenefit") {
     const counts = Object.values(state.players)
-      .filter((p) => !p.isAutoma)
       .map((p) => ({ player: p, count: p.board[power.habitat].filter((s) => s.cardId).length }));
     if (counts.length === 0) return;
 
@@ -1303,7 +1269,7 @@ export function resolvePower(
     const order = [player.id, ...state.playerOrder.filter((id) => id !== player.id)];
     for (const pId of order) {
       const p = state.players[pId];
-      if (!p || p.isAutoma) continue;
+      if (!p) continue;
       const die = takeDieFromFeeder(state);
       if (die) {
         p.resources[die] = (p.resources[die] ?? 0) + 1;
@@ -1321,10 +1287,6 @@ export function evaluateRoundGoalMetric(
   state: GameState,
   goal: RoundGoal,
 ): number {
-  if (player.isAutoma && state.automaState) {
-    return state.automaState.roundGoalMetric;
-  }
-
   if (goal.type === "eggsInHabitat" && goal.habitat) {
     return player.board[goal.habitat].reduce((sum, slot) => sum + slot.eggs, 0);
   }
@@ -1404,10 +1366,6 @@ export function resolveRoundEnd(state: GameState) {
     state.players[id].roundGoalScores.push(score);
   }
 
-  if (state.automaState) {
-    state.automaState.roundGoalMetric = 0;
-  }
-
   // Refresh market
   state.discard.push(...state.market);
   state.market = [];
@@ -1485,7 +1443,7 @@ function findFewestBirdsHabitat(player: PlayerState): HabitatId {
   return best;
 }
 
-function countBonusQualifyingUnits(player: PlayerState, state: GameState, bonus: BonusCard): number {
+export function countBonusQualifyingUnits(player: PlayerState, state: GameState, bonus: BonusCard): number {
   if (bonus.conditionType === "cardsInHand") {
     return player.hand.length;
   }
@@ -1563,27 +1521,6 @@ export function calculateBonusPoints(
 export function scorePlayerDetails(state: GameState, playerId: string): ScoreBreakdown {
   const player = state.players[playerId];
 
-  if (playerId === "automa" && state.automaState) {
-    const diffMultipliers = { easy: 3, normal: 4, hard: 5 };
-    const diffBonus = { easy: 0, normal: 3, hard: 6 };
-    const multiplier = diffMultipliers[state.automaState.difficulty] ?? 4;
-    const birds = state.automaState.stashedCardsCount * multiplier;
-    const eggs = state.automaState.eggs;
-    const roundGoals = player.roundGoalScores.reduce((sum, v) => sum + v, 0);
-    const bonusCards = diffBonus[state.automaState.difficulty] ?? 3;
-    const total = birds + eggs + roundGoals + bonusCards;
-
-    return {
-      birds,
-      eggs,
-      cachedFood: 0,
-      tuckedCards: 0,
-      roundGoals,
-      bonusCards,
-      total,
-    };
-  }
-
   let birds = 0;
   let eggs = 0;
   let cachedFood = 0;
@@ -1617,6 +1554,34 @@ export function scorePlayerDetails(state: GameState, playerId: string): ScoreBre
     bonusCards,
     total,
   };
+}
+
+/** Fichas de alimento sin gastar de un jugador (criterio de desempate). */
+function unusedFood(player: PlayerState): number {
+  return Object.values(player.resources).reduce((sum, amount) => sum + (amount ?? 0), 0);
+}
+
+export type Standing = { playerId: PlayerId; total: number; unusedFood: number };
+
+/**
+ * Clasificación final: por puntos totales y, si empatan, por más alimento sin usar (regla oficial).
+ * `winnerIds` son los que quedan primeros tras el desempate (más de uno = empate total), y
+ * `decidedByFood` indica que hubo empate a puntos y lo resolvió el alimento.
+ */
+export function rankPlayers(state: GameState): { standings: Standing[]; winnerIds: PlayerId[]; decidedByFood: boolean } {
+  const standings = state.playerOrder
+    .map((playerId) => ({
+      playerId,
+      total: scorePlayerDetails(state, playerId).total,
+      unusedFood: unusedFood(state.players[playerId]),
+    }))
+    .sort((a, b) => b.total - a.total || b.unusedFood - a.unusedFood);
+  const best = standings[0];
+  const winnerIds = standings
+    .filter((s) => s.total === best.total && s.unusedFood === best.unusedFood)
+    .map((s) => s.playerId);
+  const tiedOnPoints = standings.filter((s) => s.total === best.total).length > 1;
+  return { standings, winnerIds, decidedByFood: tiedOnPoints && winnerIds.length === 1 };
 }
 
 export function scorePlayer(state: GameState, playerId: string): number {

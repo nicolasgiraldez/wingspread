@@ -201,9 +201,12 @@ await step("El invitado se une con el enlace y ambos quedan conectados", async (
   return `conectados en ${seconds(started)}`;
 });
 
-await step("Ambos eligen su carta de bonificación y arranca la ronda 1", async () => {
-  await host.page.getByRole("button", { name: "Elegir esta" }).first().click({ timeout: 15_000 });
-  await guest.page.getByRole("button", { name: "Elegir esta" }).first().click({ timeout: 15_000 });
+await step("Ambos preparan su mano inicial (bonificación y confirmar) y arranca la ronda 1", async () => {
+  // Sin conservar aves no hay que descartar comida: basta elegir la bonificación y confirmar.
+  for (const player of [host, guest]) {
+    await player.page.getByRole("button", { name: "Elegir esta" }).first().click({ timeout: 15_000 });
+    await player.page.getByRole("button", { name: "Confirmar mano inicial" }).click();
+  }
   await host.page.getByText(/Ronda\s*1\s*de 4/).first().waitFor({ timeout: 15_000 });
   await guest.page.getByText(/Ronda\s*1\s*de 4/).first().waitFor({ timeout: 15_000 });
   await sameState("tras el setup");

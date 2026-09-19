@@ -30,12 +30,12 @@ import type {
   ResourceFace,
   SpeciesCard,
 } from "../game";
-import { AutomaPanel } from "./components/AutomaPanel";
 import { BirdCard } from "./components/BirdCard";
 import { BirdFeeder } from "./components/BirdFeeder";
 import { BirdMarket } from "./components/BirdMarket";
 import { ChooseBonusCardModal } from "./components/ChooseBonusCardModal";
 import { ConnectingScreen } from "./components/ConnectingScreen";
+import { StartingHandModal } from "./components/StartingHandModal";
 import { ConnectionStatusBar } from "./components/ConnectionStatusBar";
 import { GameOverModal } from "./components/GameOverModal";
 import { HabitatPowersModal } from "./components/HabitatPowersModal";
@@ -217,13 +217,15 @@ export const App: React.FC = () => {
     if (config.mode === "solo") {
       const customNames: Record<string, string> = {
         nico: config.playerName,
-        automa: "Automa (IA)",
+        bot: "Rival (IA)",
       };
       const state = createInitialState({
         mode: "solo",
-        automaDifficulty: config.automaDifficulty ?? "normal",
-        playerIds: ["nico", "automa"],
+        botDifficulty: config.botDifficulty ?? "normal",
+        playerIds: ["nico", "bot"],
         customPlayerNames: customNames,
+        // El primer jugador se sortea, como en el juego de mesa.
+        firstPlayerId: Math.random() < 0.5 ? "nico" : "bot",
       });
       setGameState(state);
       setLocalPlayerId("nico");
@@ -242,6 +244,7 @@ export const App: React.FC = () => {
         mode: "online",
         playerIds: [HOST_PLAYER_ID, GUEST_PLAYER_ID],
         customPlayerNames: customNames,
+        firstPlayerId: Math.random() < 0.5 ? HOST_PLAYER_ID : GUEST_PLAYER_ID,
       });
       startHosting(code, state, false);
 
@@ -493,7 +496,7 @@ export const App: React.FC = () => {
             <h1>Wingspread</h1>
             <p>
               {gameState.gameMode === "solo"
-                ? "Modo Solitario (vs Automa)"
+                ? "Modo Solitario (vs la IA)"
                 : "Multijugador Online (P2P)"}
             </p>
           </div>
@@ -503,7 +506,7 @@ export const App: React.FC = () => {
         <div className={`status-card ${isMyTurn ? "active-turn" : ""}`}>
           <h4>Turno Actual</h4>
           <div className="player-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {currentPlayer?.isAutoma ? <Bot size={20} /> : null}
+            {currentPlayer?.botLevel ? <Bot size={20} /> : null}
             {getDisplayName(gameState, gameState.currentPlayerId)}
             {gameState.currentPlayerId === localPlayerId && (
               <span style={{ fontSize: "0.75rem", color: "var(--color-forest)", fontWeight: 700 }}>(Tú)</span>
@@ -579,18 +582,14 @@ export const App: React.FC = () => {
                   fontSize: "0.8rem",
                 }}
               >
-                {gameState.players[pId]?.isAutoma
-                  ? "Automa"
-                  : pId === localPlayerId
-                  ? `${getDisplayName(gameState, pId)} (Tú)`
-                  : getDisplayName(gameState, pId)}
+                {pId === localPlayerId ? `${getDisplayName(gameState, pId)} (Tú)` : getDisplayName(gameState, pId)}
               </button>
             ))}
           </div>
         </div>
 
         {/* Resources */}
-        {viewedPlayer && !viewedPlayer.isAutoma && (
+        {viewedPlayer && (
           <div className="status-card">
             <h4>Recursos de {getDisplayName(gameState, viewedPlayer.id)}</h4>
             <div className="resources-grid">
@@ -607,7 +606,7 @@ export const App: React.FC = () => {
         )}
 
         {/* Bonus cards */}
-        {viewedPlayer && !viewedPlayer.isAutoma && (
+        {viewedPlayer && (
           <div className="status-card">
             <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Sparkles size={14} color="var(--color-forest)" /> Cartas de Bonificación
@@ -715,14 +714,6 @@ export const App: React.FC = () => {
 
         <RoundGoalsMat gameState={gameState} />
 
-        {gameState.gameMode === "solo" && gameState.automaState && gameState.players.automa && (
-          <AutomaPanel
-            automaState={gameState.automaState}
-            automaPlayer={gameState.players.automa}
-            gameState={gameState}
-          />
-        )}
-
         <BirdFeeder
           feeder={gameState.feeder}
           onTakeDie={handleGainFood}
@@ -747,7 +738,7 @@ export const App: React.FC = () => {
           </span>
           {gameState.playerOrder.map((pId) => {
             const isMe = pId === localPlayerId;
-            const isAut = gameState.players[pId]?.isAutoma;
+            const isAut = !!gameState.players[pId]?.botLevel;
             const pName = getDisplayName(gameState, pId);
             const isCurrentActive = activeTab === pId;
 
@@ -771,7 +762,7 @@ export const App: React.FC = () => {
                 }}
               >
                 {isMe ? <Feather size={14} /> : isAut ? <Bot size={14} /> : <Eye size={14} />}
-                {isMe ? `Mi Tablero (${pName})` : isAut ? "Tablero Automa" : `Tablero de ${pName}`}
+                {isMe ? `Mi Tablero (${pName})` : `Tablero de ${pName}`}
                 {!isMe && !isAut && (
                   <span
                     style={{
@@ -792,7 +783,7 @@ export const App: React.FC = () => {
           })}
         </div>
 
-        {viewedPlayer && !viewedPlayer.isAutoma && (
+        {viewedPlayer && (
           <PlayerBoard
             player={viewedPlayer}
             gameState={gameState}
@@ -810,7 +801,7 @@ export const App: React.FC = () => {
         )}
 
         {/* Opponent's Hand (Cartas ocultas / boca abajo) */}
-        {activeTab !== localPlayerId && viewedPlayer && !viewedPlayer.isAutoma && (
+        {activeTab !== localPlayerId && viewedPlayer && (
           <section
             style={{
               background: "var(--color-panel-bg-alt)",
@@ -993,9 +984,31 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Elección de bonificación: al inicio (fase setup) o tras un poder que revela cartas. */}
-      {gameState.players[localPlayerId] &&
-        (gameState.phase === "setup" || playersChoosingBonus(gameState).includes(localPlayerId)) && (
+      {/* Preparación inicial: elegir aves, alimento y bonificación (o esperar a los demás). */}
+      {gameState.phase === "setup" &&
+        gameState.players[localPlayerId] &&
+        (gameState.players[localPlayerId].pendingStartingHand ? (
+          <StartingHandModal
+            player={gameState.players[localPlayerId]}
+            gameState={gameState}
+            onConfirm={(move) => executeSetupMove(move)}
+          />
+        ) : (
+          <ChooseBonusCardModal
+            playerName={getDisplayName(gameState, localPlayerId)}
+            options={[]}
+            onChoose={() => {}}
+            waiting={{
+              title: "Preparación lista",
+              text: "Esperando a que el resto de los jugadores termine la suya para empezar la Ronda 1...",
+            }}
+          />
+        ))}
+
+      {/* Carta de bonificación revelada por un poder de ave: hay que elegir cuál conservar. */}
+      {gameState.phase !== "setup" &&
+        gameState.players[localPlayerId] &&
+        playersChoosingBonus(gameState).includes(localPlayerId) && (
           <ChooseBonusCardModal
             playerName={getDisplayName(gameState, localPlayerId)}
             options={
@@ -1004,7 +1017,6 @@ export const App: React.FC = () => {
                 .filter((b): b is BonusCard => !!b)
             }
             onChoose={(bonusCardId) => executeSetupMove({ type: "chooseBonusCard", bonusCardId })}
-            initial={gameState.phase === "setup"}
           />
         )}
 
@@ -1018,7 +1030,6 @@ export const App: React.FC = () => {
               playerName=""
               options={[]}
               onChoose={() => {}}
-              initial={false}
               waiting={{
                 title: "Conteo final en pausa",
                 text: `Esperando a que ${playersChoosingBonus(gameState)

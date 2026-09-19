@@ -1,6 +1,6 @@
 import React from "react";
 import { Bot, RefreshCw, Trophy } from "lucide-react";
-import { scorePlayerDetails } from "../../game";
+import { rankPlayers, scorePlayerDetails } from "../../game";
 import type { GameState } from "../../game";
 import { playerNames } from "../labels";
 
@@ -13,22 +13,22 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   gameState,
   onRestart,
 }) => {
-  const playerScores = gameState.playerOrder.map((pId) => ({
-    id: pId,
-    name: gameState.players[pId]?.name || playerNames[pId] || pId,
-    isAutoma: gameState.players[pId]?.isAutoma,
-    details: scorePlayerDetails(gameState, pId),
+  const { standings, winnerIds, decidedByFood } = rankPlayers(gameState);
+  const playerScores = standings.map(({ playerId, unusedFood }) => ({
+    id: playerId,
+    name: gameState.players[playerId]?.name || playerNames[playerId] || playerId,
+    isBot: !!gameState.players[playerId]?.botLevel,
+    unusedFood,
+    details: scorePlayerDetails(gameState, playerId),
   }));
-
-  playerScores.sort((a, b) => b.details.total - a.details.total);
-  const isTie = playerScores[0]?.details.total === playerScores[1]?.details.total;
+  const isTie = winnerIds.length > 1;
   const winner = playerScores[0];
 
   return (
     <div className="modal-backdrop">
       <div className="modal-content" style={{ maxWidth: 640 }}>
         <div style={{ textAlign: "center", padding: "10px 0" }}>
-          {winner.isAutoma ? (
+          {winner.isBot && !isTie ? (
             <Bot size={48} color="#93a397" style={{ margin: "0 auto 10px auto" }} />
           ) : (
             <Trophy size={48} color="#f0bf5c" style={{ margin: "0 auto 10px auto" }} />
@@ -36,13 +36,21 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           <h2 style={{ margin: "0 0 6px 0", fontSize: "1.7rem" }}>
             {isTie
               ? "¡Empate en la Partida!"
-              : winner.isAutoma
-                ? "¡Victoria de Automa!"
-                : `¡Victoria de ${winner.name}!`}
+              : `¡Victoria de ${winner.name}!`}
           </h2>
           <p style={{ margin: 0, color: "#93a397", fontSize: "0.95rem" }}>
             Fin de la Ronda 4. Desglose final de puntuaciones ecológicas.
           </p>
+          {decidedByFood && (
+            <p style={{ margin: "6px 0 0 0", color: "#d9a83b", fontSize: "0.85rem" }}>
+              Empate a puntos: gana quien tiene más alimento sin usar ({playerScores.map((p) => `${p.name}: ${p.unusedFood}`).join(" · ")}).
+            </p>
+          )}
+          {isTie && (
+            <p style={{ margin: "6px 0 0 0", color: "#d9a83b", fontSize: "0.85rem" }}>
+              Mismos puntos y el mismo alimento sin usar ({winner.unusedFood}): empate total.
+            </p>
+          )}
         </div>
 
         {/* Detailed scoring comparison table */}
@@ -59,7 +67,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </thead>
           <tbody>
             <tr style={{ borderBottom: "1px solid #2b332e" }}>
-              <td style={{ padding: "8px 12px" }}>🪶 Puntos de Aves / Reserva</td>
+              <td style={{ padding: "8px 12px" }}>🪶 Puntos de Aves</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.birds}

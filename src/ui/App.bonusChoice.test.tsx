@@ -22,10 +22,15 @@ import { App } from "./App";
 function gameWithPendingBonus(): GameState {
   let state = createInitialState({
     mode: "solo",
-    playerIds: ["nico", "automa"],
+    playerIds: ["nico", "bot"],
     customPlayerNames: { nico: "Lucía" },
   });
-  state = applyMove(state, "nico", { type: "chooseBonusCard", bonusCardId: state.players.nico.pendingBonusChoice![0] });
+  state = applyMove(state, "nico", {
+    type: "chooseStart",
+    keepCards: [],
+    discardFood: [],
+    bonusCardId: state.players.nico.pendingBonusChoice![0],
+  });
   const offered = ["forester", "wetlandScientist"];
   state.bonusDeck = state.bonusDeck.filter((id) => !offered.includes(id));
   state.players.nico.pendingBonusChoice = offered;

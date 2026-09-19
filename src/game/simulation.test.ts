@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { bonusCardsCatalog, speciesCards } from "./cards";
 import { playGame, type SimulationOptions } from "./simulation";
-import type { AutomaDifficulty } from "./types";
+import type { BotDifficulty } from "./types";
 
 // Partidas por modo. Subir para una pasada exhaustiva: VITE_SIM_GAMES=1000 npx vitest run simulation
 const GAMES = Number(import.meta.env.VITE_SIM_GAMES ?? 40);
 // Cada partida tarda ~50 ms; el margen evita falsos timeouts en corridas grandes.
 const TIMEOUT = 30_000 + GAMES * 150;
-const difficulties: AutomaDifficulty[] = ["easy", "normal", "hard"];
+const difficulties: BotDifficulty[] = ["easy", "normal", "hard"];
 const modes: SimulationOptions["mode"][] = ["solo", "online"];
 
 function runGames(mode: SimulationOptions["mode"], games = GAMES, deckSize?: number) {
@@ -22,7 +22,7 @@ function failures(results: ReturnType<typeof runGames>) {
 }
 
 describe("simulación de partidas completas con jugador aleatorio", () => {
-  it("modo solitario vs Automa: todas las partidas terminan sin violar invariantes", () => {
+  it("modo solitario vs la IA: todas las partidas terminan sin violar invariantes", () => {
     const results = runGames("solo");
     expect(failures(results)).toEqual([]);
     expect(results.every((result) => result.finished)).toBe(true);

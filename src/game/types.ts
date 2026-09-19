@@ -13,7 +13,8 @@ export type CardId = string;
 export type PlayerId = string;
 
 export type GameMode = "solo" | "online";
-export type AutomaDifficulty = "easy" | "normal" | "hard";
+/** Nivel del rival controlado por la IA: cuánto y cómo piensa cada jugada. */
+export type BotDifficulty = "easy" | "normal" | "hard";
 
 export type PowerTiming =
   | "onPlay"
@@ -293,14 +294,21 @@ export type PlayerState = {
   board: Record<HabitatId, BoardSlot[]>;
   actionCubesAvailable: number;
   roundGoalScores: number[];
-  isAutoma?: boolean;
+  /** Si es un rival controlado por la IA, su nivel; undefined para un jugador humano. */
+  botLevel?: BotDifficulty;
+  /**
+   * true durante la preparación inicial, hasta que el jugador elige qué aves y alimento conserva
+   * (y su carta de bonificación) con un movimiento chooseStart.
+   */
+  pendingStartingHand?: boolean;
   /** IDs de poderes "entre turnos" (rosa) ya activados desde el último turno propio de este jugador. */
   pinkPowersUsed?: string[];
   /**
    * Cartas de bonificación ofrecidas al jugador, de las que debe elegir 1 para conservar (las
-   * demás se descartan). Se ofrecen 2 al inicio de la partida y también cuando un poder de ave
-   * "roba 2 cartas de bonificación y conserva 1". Mientras haya una oferta pendiente el jugador
-   * no puede hacer otra cosa; elegir no gasta acción ni exige ser su turno. undefined si no hay.
+   * demás se descartan). Se ofrecen 2 al inicio de la partida (se resuelve dentro de chooseStart)
+   * y también cuando un poder de ave "roba 2 cartas de bonificación y conserva 1" (se resuelve con
+   * chooseBonusCard). Mientras haya una oferta pendiente el jugador no puede hacer otra cosa;
+   * elegir no gasta acción ni exige ser su turno. undefined si no hay.
    */
   pendingBonusChoice?: string[];
 };
@@ -318,30 +326,6 @@ export type ScoreBreakdown = {
   roundGoals: number;
   bonusCards: number;
   total: number;
-};
-
-export type AutomaCardAction =
-  | { type: "gainFoodFromFeeder"; foodType?: ResourceFace | "any"; count: number }
-  | { type: "drawMarketCard"; slotIndex?: number; count?: number }
-  | { type: "stashCardFromDeck"; count: number }
-  | { type: "layEggs"; count: number }
-  | { type: "advanceGoal"; metricBonus: number };
-
-export type AutomaCard = {
-  id: string;
-  name: string;
-  description?: string;
-  roundActions: Record<1 | 2 | 3 | 4, AutomaCardAction[]>;
-};
-
-export type AutomaState = {
-  difficulty: AutomaDifficulty;
-  deck: string[];
-  discard: string[];
-  currentCard: AutomaCard | null;
-  stashedCardsCount: number;
-  eggs: number;
-  roundGoalMetric: number;
 };
 
 export type GameState = {
@@ -365,7 +349,6 @@ export type GameState = {
   bonusDeck: string[];
   /** Cartas de bonificación reveladas y no conservadas. */
   bonusDiscard: string[];
-  automaState?: AutomaState;
   log: GameLogEntry[];
 };
 
@@ -457,7 +440,18 @@ export type Move =
       type: "rerollFeeder";
     }
   | {
-      /** Elección de la carta de bonificación inicial a conservar (fase "setup"). */
+      /**
+       * Preparación inicial (fase "setup"): de las 5 aves repartidas se conservan `keepCards` y por
+       * cada una se descarta 1 ficha de alimento (`discardFood`, tipos distintos); además se elige
+       * 1 de las 2 cartas de bonificación ofrecidas.
+       */
+      type: "chooseStart";
+      keepCards: CardId[];
+      discardFood: ResourceFace[];
+      bonusCardId: string;
+    }
+  | {
+      /** Elección de la carta de bonificación a conservar de las reveladas por un poder de ave. */
       type: "chooseBonusCard";
       bonusCardId: string;
     };

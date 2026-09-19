@@ -4,10 +4,9 @@ Juego web interactivo de construcción de motor ecológico inspirado en **Wingsp
 
 ## Modos de Juego
 
-1. **🤖 Modo Solitario (vs Automa)**:
-   - Partidas individuales contra el oponente IA oficial de Wingspan.
-   - 3 niveles de dificultad: **Fácil (Pichón)**, **Normal (Águila)** y **Difícil (Halcón)**.
-   - Mazo de acciones dinámico con interacción en comedero, mercado, reservas y objetivos de ronda.
+1. **🤖 Modo Solitario (1 contra 1 contra la IA)**:
+   - Una partida estándar de dos jugadores contra un rival controlado por la IA. No hay un modo solitario oficial: el rival es un jugador más, con su tablero, su mano, su alimento y sus poderes, y juega con exactamente las mismas reglas y puntuación que un humano.
+   - 3 niveles: **Fácil (Pichón)**, **Normal (Águila)** y **Difícil (Halcón)** (ver "El rival de la IA").
 
 2. **🌐 Multijugador Online con Salas P2P (PeerJS / WebRTC)**:
    - Crea salas privadas con códigos únicos (ej. `wingspread.vercel.app?room=halcon-482`).
@@ -27,11 +26,12 @@ Juego web interactivo de construcción de motor ecológico inspirado en **Wingsp
 ## Características Principales
 
 - **Motor de Reglas Completo**:
+  - Preparación estándar: cada jugador recibe 5 aves, 5 fichas de alimento (1 de cada tipo) y 2 bonificaciones; se queda con las aves que quiera descartando 1 alimento por cada una, y con 1 bonificación. El primer jugador se sortea.
   - Comedero con 5 dados aleatorios de 6 caras y relanzamiento dinámico.
   - Regla de sustitución de recursos 2:1 y costes de alimento comodín (`wild`).
   - Filas de hábitat con beneficios progresivos por columna (Bosque, Pradera, Río) y costes en huevos.
   - Poderes de aves: almacenamiento de comida (*cache*), solapamiento (*tuck*), depredadores/caza (*predator*) y beneficios colectivos.
-  - Objetivos de fin de ronda: en cada partida se sortean 4 de los 16 del juego base (aves y huevos por hábitat, aves y huevos por tipo de nido, conjuntos de huevos, aves totales), con puntuación por posición.
+  - Objetivos de fin de ronda: en cada partida se sortean 4 de los 16 del juego base (aves y huevos por hábitat, aves y huevos por tipo de nido, conjuntos de huevos, aves totales), con puntuación por posición. Ante un empate a puntos gana quien tiene más alimento sin usar.
   - Cartas de bonificación personal (26 del juego base, incluidas las de categoría por nombre, con marca en las aves que cuentan); las que se roban con un poder se eligen viendo las cartas reveladas.
 - **Interfaz Web Interactiva**:
   - Tablero temático con fichas de huevos, comida almacenada y cartas solapadas.
@@ -69,6 +69,18 @@ npm run build
 # Previsualizar el build de producción localmente
 npm run preview
 ```
+
+## El rival de la IA
+
+El rival (`src/game/bot.ts`) no tiene reglas propias: en cada turno genera jugadas candidatas válidas, las simula con el propio motor y elige la que deja mejor el estado (puntos actuales, valor del alimento, las cartas y las aves en juego, y la carrera por el objetivo de la ronda). Al empezar elige qué aves conservar según lo que podría pagar con el alimento que le queda, y la bonificación que mejor encaja.
+
+| Nivel | Cómo juega | Puntos medios* |
+|---|---|---|
+| Fácil | Jugadas válidas al azar | ~40 |
+| Normal | Compara pocas candidatas y decide con mucho ruido | ~50 |
+| Difícil | Compara muchas y mira también su siguiente jugada | ~57 |
+
+\*Partidas entre IAs de distinto nivel. Difícil gana al normal en ~2 de cada 3 partidas y al fácil en casi todas.
 
 ## Multijugador: conexión y reconexión
 

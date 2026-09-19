@@ -6,40 +6,13 @@
  * Todo es reproducible: `playGame({ seed })` reemplaza `Math.random` por un generador con
  * semilla, así que una partida que falla se puede repetir exactamente con la misma semilla.
  */
-import {
-  actionCountsByRound,
-  applyMove,
-  canPayResources,
-  canRerollFeeder,
-  getActivatablePowers,
-  getHabitatActionAllowance,
-  getOnPlayPowers,
-  isLegalMove,
-  scorePlayerDetails,
-} from "./engine";
+import { actionCountsByRound, applyPlayerMove, canRerollFeeder, isLegalMove, scorePlayerDetails } from "./engine";
+import { FOODS, HABITATS, occupiedSlots, randomMove, slotRefs } from "./moveGen";
 import { createInitialState, standardDieFaces } from "./setup";
-import type {
-  AutomaDifficulty,
-  BoardSlot,
-  CardId,
-  DrawCardSelection,
-  GameState,
-  HabitatId,
-  Move,
-  Power,
-  PowerCardChoices,
-  PowerEggChoices,
-  PowerMoveChoices,
-  PowerPlayBirdChoices,
-  PlayerId,
-  PlayerState,
-  ResourceFace,
-  SlotRef,
-  SpeciesCard,
-} from "./types";
+import { chooseBotMove, fallbackMove } from "./bot";
+import { nextBotActor } from "./turns";
+import type { BotDifficulty, CardId, GameState, HabitatId, Move, PlayerId, ResourceFace, SlotRef } from "./types";
 
-const HABITATS: HabitatId[] = ["forest", "grassland", "wetland"];
-const FOODS: ResourceFace[] = ["seed", "fruit", "insect", "fish", "rodent"];
 /** Tope de movimientos por partida: una partida real tiene a lo sumo 26 por jugador. */
 const MAX_STEPS = 400;
 
@@ -65,284 +38,6 @@ export function withSeededRandom<T>(seed: number, fn: () => T): T {
   } finally {
     Math.random = original;
   }
-}
-
-const chance = (probability: number) => Math.random() < probability;
-const randomInt = (min: number, max: number) => min + Math.floor(Math.random() * (max - min + 1));
-const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)];
-
-function sample<T>(items: readonly T[], count: number): T[] {
-  const pool = [...items];
-  const picked: T[] = [];
-  while (picked.length < count && pool.length > 0) {
-    picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-  }
-  return picked;
-}
-
-// ── Generación de movimientos ────────────────────────────────────────────────
-
-/** Regla del reglamento, repetida a propósito: el oráculo no debe depender del motor. */
-function eggCostForSlot(slotIndex: number): number {
-  if (slotIndex <= 0) return 0;
-  return slotIndex <= 2 ? 1 : 2;
-}
-
-function slotRefs(player: PlayerState, filter: (slot: BoardSlot) => boolean): SlotRef[] {
-  const refs: SlotRef[] = [];
-  for (const habitat of HABITATS) {
-    player.board[habitat].forEach((slot, slotIndex) => {
-      if (filter(slot)) refs.push({ habitat, slotIndex });
-    });
-  }
-  return refs;
-}
-
-const occupiedSlots = (player: PlayerState) => slotRefs(player, (slot) => slot.cardId !== null);
-const slotsWithEggs = (player: PlayerState) => slotRefs(player, (slot) => slot.eggs > 0);
-
-function availableFoods(player: PlayerState): ResourceFace[] {
-  return FOODS.filter((food) => (player.resources[food] ?? 0) > 0);
-}
-
-/** Arma un pago válido para `card`: lo exacto primero y, si falta, 2 recursos cualesquiera por 1. */
-function findPayment(player: PlayerState, card: SpeciesCard): ResourceFace[] | null {
-  const pool: Partial<Record<ResourceFace, number>> = { ...player.resources };
-  const paid: ResourceFace[] = [];
-  const has = (food: ResourceFace) => (pool[food] ?? 0) > 0;
-  const take = (food: ResourceFace) => {
-    pool[food] = (pool[food] ?? 0) - 1;
-    paid.push(food);
-  };
-  let missing = 0;
-
-  for (const [food, count] of Object.entries(card.cost)) {
-    if (food === "wild") continue;
-    for (let i = 0; i < (count ?? 0); i += 1) {
-      if (has(food as ResourceFace)) take(food as ResourceFace);
-      else missing += 1;
-    }
-  }
-  if (card.costAnyOf && card.costAnyOf.length > 0) {
-    const options = card.costAnyOf.filter(has);
-    if (options.length > 0) take(pick(options));
-    else missing += 1;
-  }
-  for (let i = 0; i < (card.cost.wild ?? 0); i += 1) {
-    const options = FOODS.filter(has);
-    if (options.length > 0) take(pick(options));
-    else missing += 1;
-  }
-  for (let i = 0; i < missing; i += 1) {
-    const remaining = FOODS.filter(has);
-    const total = remaining.reduce((sum, food) => sum + (pool[food] ?? 0), 0);
-    if (total < 2) return null;
-    take(pick(remaining));
-    take(pick(FOODS.filter(has)));
-  }
-
-  return canPayResources(player, paid, card.cost, card.costAnyOf) ? paid : null;
-}
-
-function findEggPayment(player: PlayerState, cost: number): SlotRef[] | null {
-  const eggs = slotRefs(player, (slot) => slot.eggs > 0).flatMap((ref) =>
-    Array<SlotRef>(player.board[ref.habitat][ref.slotIndex].eggs).fill(ref),
-  );
-  return eggs.length >= cost ? sample(eggs, cost) : null;
-}
-
-type BirdPlay = {
-  cardId: CardId;
-  habitat: HabitatId;
-  slotIndex: number;
-  paidResources: ResourceFace[];
-  paidEggsFrom: SlotRef[];
-};
-
-/** Todas las formas en que el jugador puede jugar un ave de su mano en este momento. */
-function planBirdPlays(
-  state: GameState,
-  player: PlayerState,
-  allowedHabitats: readonly HabitatId[] = HABITATS,
-): BirdPlay[] {
-  const plays: BirdPlay[] = [];
-  for (const cardId of player.hand) {
-    const card = state.cards[cardId];
-    for (const habitat of card.habitats) {
-      if (!allowedHabitats.includes(habitat)) continue;
-      const slotIndex = player.board[habitat].findIndex((slot) => slot.cardId === null);
-      if (slotIndex === -1) continue;
-      const paidResources = findPayment(player, card);
-      const paidEggsFrom = findEggPayment(player, eggCostForSlot(slotIndex));
-      if (paidResources && paidEggsFrom) plays.push({ cardId, habitat, slotIndex, paidResources, paidEggsFrom });
-    }
-  }
-  return plays;
-}
-
-/** El jugador tal como quedaría tras jugar `play`, para planear una segunda ave encima. */
-function afterPlaying(player: PlayerState, play: BirdPlay): PlayerState {
-  const next = structuredClone(player);
-  next.hand = next.hand.filter((id) => id !== play.cardId);
-  next.board[play.habitat][play.slotIndex].cardId = play.cardId;
-  for (const food of play.paidResources) next.resources[food] = (next.resources[food] ?? 0) - 1;
-  for (const ref of play.paidEggsFrom) next.board[ref.habitat][ref.slotIndex].eggs -= 1;
-  return next;
-}
-
-type PowerChoiceFields = {
-  skipPowerIds: string[];
-  powerCardChoices: PowerCardChoices;
-  powerEggChoices: PowerEggChoices;
-  powerMoveChoices: PowerMoveChoices;
-};
-
-/** Decide, poder por poder, si se salta y qué elecciones opcionales (carta/ave/hábitat) se hacen. */
-function buildPowerChoices(state: GameState, player: PlayerState, powers: Power[]): PowerChoiceFields {
-  const fields: PowerChoiceFields = {
-    skipPowerIds: [],
-    powerCardChoices: {},
-    powerEggChoices: {},
-    powerMoveChoices: {},
-  };
-  const occupied = occupiedSlots(player);
-
-  for (const power of powers) {
-    if (chance(0.15)) {
-      fields.skipPowerIds.push(power.id);
-      continue;
-    }
-    if (power.kind === "tradeResource" && power.costResource === "wild") {
-      // "pagado>recibido": un alimento que tenga y otro distinto.
-      const owned = availableFoods(player);
-      if (owned.length > 0 && chance(0.7)) {
-        const pay = pick(owned);
-        fields.powerCardChoices[power.id] = `${pay}>${pick(FOODS.filter((food) => food !== pay))}`;
-      }
-    } else if (power.kind === "gainResource" && power.resource === "wild") {
-      // "1 alimento a elección": la elección viaja en powerCardChoices, como las de cartas.
-      if (chance(0.7)) fields.powerCardChoices[power.id] = pick(FOODS);
-    } else if (power.kind === "gainBonusCard") {
-      // Las cartas reveladas salen del frente del mazo de bonificación.
-      const revealed = state.bonusDeck.slice(0, power.drawCount);
-      if (revealed.length > 0 && chance(0.7)) fields.powerCardChoices[power.id] = pick(revealed);
-    } else if (player.hand.length > 0 && chance(0.7)) {
-      fields.powerCardChoices[power.id] = pick(player.hand);
-    }
-    if (occupied.length > 0 && chance(0.7)) fields.powerEggChoices[power.id] = pick(occupied);
-    if (chance(0.7)) fields.powerMoveChoices[power.id] = pick(HABITATS);
-  }
-  return fields;
-}
-
-function randomPlayBird(state: GameState, player: PlayerState): Move | null {
-  const plays = planBirdPlays(state, player);
-  if (plays.length === 0) return null;
-  const play = pick(plays);
-  const card = state.cards[play.cardId];
-  const powers = getOnPlayPowers(card);
-
-  const choices = buildPowerChoices(state, { ...player, hand: player.hand.filter((id) => id !== play.cardId) }, powers);
-  const powerPlayBirdChoices: PowerPlayBirdChoices = {};
-  const afterFirstBird = afterPlaying(player, play);
-  for (const power of powers) {
-    if (power.kind !== "playSecondBird" || choices.skipPowerIds.includes(power.id) || chance(0.4)) continue;
-    const second = planBirdPlays(state, afterFirstBird, power.habitats);
-    if (second.length > 0) powerPlayBirdChoices[power.id] = pick(second);
-  }
-
-  return { type: "playBird", ...play, ...choices, powerPlayBirdChoices };
-}
-
-function randomGainFood(state: GameState, player: PlayerState): Move {
-  const allowance = getHabitatActionAllowance(player, "forest");
-  const rerollBefore = canRerollFeeder(state.feeder) && chance(0.3);
-  const feederSize = rerollBefore ? 5 : state.feeder.length;
-  const tradeCardId = allowance.canTradeCard && player.hand.length > 0 && chance(0.4) ? pick(player.hand) : undefined;
-  const maxDice = allowance.baseAmount + (tradeCardId ? 1 : 0);
-  const count = Math.min(randomInt(1, maxDice), feederSize);
-  const dieIndexes = sample(Array.from({ length: feederSize }, (_, index) => index), count);
-  const wildChoices: Record<number, "insect" | "seed"> = {};
-  for (const index of dieIndexes) wildChoices[index] = pick(["insect", "seed"] as const);
-
-  const powers = getActivatablePowers(state, player, "forest").map(({ power }) => power);
-  return {
-    type: "gainFood",
-    dieIndexes,
-    wildChoices,
-    rerollBefore,
-    tradeCardId,
-    ...buildPowerChoices(state, player, powers),
-  };
-}
-
-function randomLayEggs(state: GameState, player: PlayerState): Move | null {
-  const allowance = getHabitatActionAllowance(player, "grassland");
-  const spaces = occupiedSlots(player).flatMap((ref) => {
-    const slot = player.board[ref.habitat][ref.slotIndex];
-    return Array<SlotRef>(Math.max(0, state.cards[slot.cardId!].eggCapacity - slot.eggs)).fill(ref);
-  });
-  if (spaces.length === 0) return null;
-
-  const foods = availableFoods(player);
-  const tradeResource = allowance.canTradeFood && foods.length > 0 && chance(0.4) ? pick(foods) : undefined;
-  const maxEggs = allowance.baseAmount + (tradeResource ? 1 : 0);
-  const eggPlacements = sample(spaces, randomInt(1, maxEggs));
-
-  const powers = getActivatablePowers(state, player, "grassland").map(({ power }) => power);
-  return { type: "layEggs", eggPlacements, tradeResource, ...buildPowerChoices(state, player, powers) };
-}
-
-function randomDrawBirdCards(state: GameState, player: PlayerState): Move | null {
-  const allowance = getHabitatActionAllowance(player, "wetland");
-  const eggSlots = slotsWithEggs(player);
-  const tradeEggFrom = allowance.canTradeEgg && eggSlots.length > 0 && chance(0.4) ? pick(eggSlots) : undefined;
-  const maxDraws = allowance.baseAmount + (tradeEggFrom ? 1 : 0);
-
-  const marketLeft = [...state.market];
-  const draws: DrawCardSelection[] = [];
-  for (let i = 0; i < randomInt(1, maxDraws); i += 1) {
-    const canDrawDeck = state.deck.length > 0;
-    if (marketLeft.length > 0 && (!canDrawDeck || chance(0.5))) {
-      draws.push({ source: "market", marketCardId: marketLeft.splice(Math.floor(Math.random() * marketLeft.length), 1)[0] });
-    } else if (canDrawDeck) {
-      draws.push({ source: "deck" });
-    }
-  }
-  if (draws.length === 0) return null;
-
-  const powers = getActivatablePowers(state, player, "wetland").map(({ power }) => power);
-  return { type: "drawBirdCards", draws, tradeEggFrom, ...buildPowerChoices(state, player, powers) };
-}
-
-/**
- * Quién debe mover ahora: primero quien tenga una carta de bonificación por elegir (al inicio o
- * tras un poder; no exige turno ni gasta acción) y si no, el jugador del turno.
- */
-export function nextActor(state: GameState): PlayerId | null {
-  const choosing = state.playerOrder.find(
-    (id) => (state.players[id].pendingBonusChoice?.length ?? 0) > 0 && !state.players[id].isAutoma,
-  );
-  if (choosing) return choosing;
-  return state.phase === "round" ? state.currentPlayerId : null;
-}
-
-/** Un movimiento válido elegido al azar entre todas las acciones que el jugador puede hacer. */
-export function randomMove(state: GameState, playerId: PlayerId): Move | null {
-  const player = state.players[playerId];
-  if (player.pendingBonusChoice?.length) return { type: "chooseBonusCard", bonusCardId: pick(player.pendingBonusChoice) };
-  if (state.phase === "setup") return null;
-
-  const candidates: Move[] = [randomGainFood(state, player)];
-  const playBird = randomPlayBird(state, player);
-  const layEggs = randomLayEggs(state, player);
-  const drawBirdCards = randomDrawBirdCards(state, player);
-  // Jugar aves y poner huevos pesa más: son las acciones que hacen crecer el tablero.
-  if (playBird) candidates.push(playBird, playBird);
-  if (layEggs) candidates.push(layEggs);
-  if (drawBirdCards) candidates.push(drawBirdCards);
-  if (canRerollFeeder(state.feeder) && chance(0.25)) candidates.push({ type: "rerollFeeder" });
-  return pick(candidates);
 }
 
 // ── Movimientos inválidos ────────────────────────────────────────────────────
@@ -506,9 +201,11 @@ export function checkInvariants(state: GameState): string[] {
 
   // Turnos.
   if (state.phase === "round") {
+    for (const player of Object.values(state.players)) {
+      if (player.pendingStartingHand) errors.push(`${player.id} sigue sin elegir su mano inicial con la ronda en marcha`);
+    }
     const current = state.players[state.currentPlayerId];
     if (!current) errors.push(`el turno es de un jugador inexistente (${state.currentPlayerId})`);
-    else if (current.isAutoma) errors.push("quedó el turno en el Automa: debería haber jugado solo");
     else if (current.actionCubesAvailable <= 0) errors.push(`el turno es de ${current.id}, que no tiene acciones`);
   }
 
@@ -547,10 +244,27 @@ function checkRoundTransition(state: GameState): string[] {
 
 // ── Partida completa ─────────────────────────────────────────────────────────
 
+/**
+ * Quién de los jugadores HUMANOS debe mover ahora: primero quien tenga una elección pendiente
+ * (mano inicial o carta de bonificación; no exige turno) y si no, el jugador del turno. Los rivales
+ * de la IA juegan solos dentro de `applyMove`, así que nunca se los devuelve aquí.
+ */
+export function nextActor(state: GameState): PlayerId | null {
+  const isHuman = (id: PlayerId) => !state.players[id].botLevel;
+  const choosing = state.playerOrder.find(
+    (id) => isHuman(id) && (state.players[id].pendingStartingHand || (state.players[id].pendingBonusChoice?.length ?? 0) > 0),
+  );
+  if (choosing) return choosing;
+  return state.phase === "round" && isHuman(state.currentPlayerId) ? state.currentPlayerId : null;
+}
+
+export { randomMove };
+
 export type SimulationOptions = {
   seed: number;
   mode: "solo" | "online";
-  difficulty?: AutomaDifficulty;
+  /** Nivel del rival de la IA en el modo "solo". */
+  difficulty?: BotDifficulty;
   /** Recorta el mazo inicial para forzar que se agote (y se barajen los descartes) durante la partida. */
   deckSize?: number;
 };
@@ -568,11 +282,46 @@ export type SimulationResult = {
 
 const showMove = (move: Move) => JSON.stringify(move);
 
+export type BotMatchResult = {
+  scores: Record<PlayerId, number>;
+  finalState: GameState;
+  problems: string[];
+};
+
+/**
+ * Partida entre rivales de la IA (cada uno con su nivel), paso a paso y comprobando los invariantes
+ * tras cada movimiento. Sirve para probar que la IA juega sin romper nada y para comparar niveles.
+ */
+export function playBotMatch(seed: number, levels: Record<PlayerId, BotDifficulty>): BotMatchResult {
+  return withSeededRandom(seed, () => {
+    let state = createInitialState({ mode: "solo", playerIds: Object.keys(levels), bots: levels });
+    const problems: string[] = [];
+    for (let steps = 1; steps <= MAX_STEPS && problems.length === 0; steps += 1) {
+      const actor = nextBotActor(state);
+      if (!actor) break;
+      const move = chooseBotMove(state, actor) ?? fallbackMove(state, actor);
+      try {
+        state = applyPlayerMove(state, actor, move);
+      } catch (error) {
+        problems.push(`[semilla ${seed}, paso ${steps}] la IA (${actor}) armó una jugada que el motor rechaza: ${String(error)} ${showMove(move)}`);
+        break;
+      }
+      for (const error of checkInvariants(state)) problems.push(`[semilla ${seed}, paso ${steps}] ${error}\n    tras ${showMove(move)}`);
+    }
+    if (state.phase !== "gameEnd" && problems.length === 0) problems.push(`[semilla ${seed}] la partida entre IAs no terminó`);
+    return {
+      scores: Object.fromEntries(state.playerOrder.map((id) => [id, scorePlayerDetails(state, id).total])),
+      finalState: state,
+      problems,
+    };
+  });
+}
+
 export function playGame({ seed, mode, difficulty = "normal", deckSize }: SimulationOptions): SimulationResult {
   return withSeededRandom(seed, () => {
     let state = createInitialState(
       mode === "solo"
-        ? { mode: "solo", automaDifficulty: difficulty, playerIds: ["nico", "automa"] }
+        ? { mode: "solo", botDifficulty: difficulty, playerIds: ["nico", "bot"] }
         : { mode: "online", playerIds: ["nico", "santi"] },
     );
     if (deckSize !== undefined) state = { ...state, deck: state.deck.slice(0, deckSize) };
@@ -580,6 +329,28 @@ export function playGame({ seed, mode, difficulty = "normal", deckSize }: Simula
     let steps = 0;
     const report = (message: string) => problems.push(`[${mode} semilla ${seed}, paso ${steps}] ${message}`);
     checkInvariants(state).forEach(report);
+
+    /** Aplica UN movimiento y comprueba que no modifica la entrada y que el estado resultante es sano. */
+    const applyChecked = (actor: PlayerId, move: Move): boolean => {
+      const previous = state;
+      // El catálogo de cartas (pesado) se compara aparte, en el test de catálogos compartidos.
+      const snapshot = JSON.stringify({ ...previous, cards: null });
+      try {
+        state = applyPlayerMove(previous, actor, move);
+      } catch (error) {
+        report(`applyPlayerMove lanzó con un movimiento de ${actor}: ${String(error)}\n    ${showMove(move)}`);
+        return false;
+      }
+      if (JSON.stringify({ ...previous, cards: null }) !== snapshot) {
+        report(`applyPlayerMove modificó el estado de entrada: ${showMove(move)}`);
+      }
+      const errors = checkInvariants(state);
+      if (state.round !== previous.round || (state.phase === "gameEnd" && previous.phase !== "gameEnd")) {
+        errors.push(...checkRoundTransition(state));
+      }
+      errors.forEach((error) => report(`${error}\n    tras ${actor}: ${showMove(move)}`));
+      return true;
+    };
 
     // Tras la última acción puede quedar una carta de bonificación por elegir: se juega hasta resolverla.
     while ((state.phase !== "gameEnd" || nextActor(state) !== null) && problems.length === 0) {
@@ -609,22 +380,17 @@ export function playGame({ seed, mode, difficulty = "normal", deckSize }: Simula
         }
       }
 
-      const previous = state;
-      // El catálogo de cartas (pesado) se compara aparte, en el test de catálogos compartidos.
-      const snapshot = JSON.stringify({ ...previous, cards: null });
-      try {
-        state = applyMove(previous, actor, move);
-      } catch (error) {
-        report(`applyMove lanzó con un movimiento legal: ${String(error)}\n    ${showMove(move)}`);
-        break;
+      // La jugada del humano y, a continuación, una a una las de los rivales de la IA (lo que hace
+      // applyMove), comprobando los invariantes tras CADA jugada y no solo al final de la cadena.
+      if (!applyChecked(actor, move)) break;
+      for (let bot = nextBotActor(state); bot && problems.length === 0; bot = nextBotActor(state)) {
+        steps += 1;
+        if (steps > MAX_STEPS) {
+          report(`la partida no termina tras ${MAX_STEPS} movimientos`);
+          break;
+        }
+        if (!applyChecked(bot, chooseBotMove(state, bot) ?? fallbackMove(state, bot))) break;
       }
-      if (JSON.stringify({ ...previous, cards: null }) !== snapshot) report(`applyMove modificó el estado de entrada: ${showMove(move)}`);
-
-      const errors = checkInvariants(state);
-      if (state.round !== previous.round || (state.phase === "gameEnd" && previous.phase !== "gameEnd")) {
-        errors.push(...checkRoundTransition(state));
-      }
-      errors.forEach((error) => report(`${error}\n    tras ${showMove(move)}`));
     }
 
     const finished = state.phase === "gameEnd";

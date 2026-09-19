@@ -11,14 +11,15 @@ import {
   summarizeSavedGame,
 } from "./savedGame";
 
-const STORAGE_KEY = "wingspread.savedGame.v1";
+const STORAGE_KEY = "wingspread.savedGame.v2";
+const LEGACY_STORAGE_KEY = "wingspread.savedGame.v1";
 
 /** Partida a medio jugar (reproducible): `moves` movimientos aleatorios desde el inicio. */
 function midGame(mode: "solo" | "online", moves: number): GameState {
   return withSeededRandom(11, () => {
     let state = createInitialState(
       mode === "solo"
-        ? { mode: "solo", playerIds: ["nico", "automa"] }
+        ? { mode: "solo", playerIds: ["nico", "bot"] }
         : { mode: "online", playerIds: ["nico", "santi"] },
     );
     for (let i = 0; i < moves && state.phase !== "gameEnd"; i += 1) {
@@ -82,6 +83,20 @@ describe("partida guardada", () => {
       }
     });
     expect(state.phase).toBe("gameEnd");
+  });
+
+  it("ignora y borra las partidas guardadas por la versión anterior (con el Automa)", () => {
+    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify({ kind: "solo", savedAt: 1, state: { players: { automa: { isAutoma: true } } } }));
+    expect(loadSavedGame()).toBeNull();
+    expect(localStorage.getItem(LEGACY_STORAGE_KEY)).toBeNull();
+  });
+
+  it("rechaza una partida solitaria sin rival de la IA", () => {
+    saveGame({ kind: "solo", state: midGame("solo", 8), savedAt: 1 });
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+    delete stored.state.players.bot.botLevel;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    expect(loadSavedGame()).toBeNull();
   });
 
   it("clearSavedGame la borra", () => {

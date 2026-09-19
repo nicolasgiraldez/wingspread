@@ -12,7 +12,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import type { AutomaDifficulty } from "../../game";
+import type { BotDifficulty } from "../../game";
 import { difficultyLabels } from "../labels";
 import { extractRoomCode, generateRoomCode } from "../network/peerManager";
 import { formatSavedAgo } from "../savedGame";
@@ -22,7 +22,7 @@ export interface HomePageConfig {
   mode: "solo" | "online-host" | "online-join";
   playerName: string;
   opponentName?: string;
-  automaDifficulty?: AutomaDifficulty;
+  botDifficulty?: BotDifficulty;
   roomCode?: string;
 }
 
@@ -47,7 +47,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [section, setSection] = useState<Section>(defaultJoinCode ? "online" : "welcome");
   const [playerName, setPlayerName] = useState("");
   const [opponentName, setOpponentName] = useState("");
-  const [difficulty, setDifficulty] = useState<AutomaDifficulty>("normal");
+  const [difficulty, setDifficulty] = useState<BotDifficulty>("normal");
   const [joinCode, setJoinCode] = useState(defaultJoinCode);
   const [joinError, setJoinError] = useState("");
 
@@ -58,7 +58,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     onStart({
       mode: "solo",
       playerName: playerName.trim(),
-      automaDifficulty: difficulty,
+      botDifficulty: difficulty,
     });
   };
 
@@ -189,7 +189,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             >
               <Bot size={28} />
               <span style={styles.modeLabel}>Modo Solitario</span>
-              <span style={styles.modeDesc}>Juega contra la IA Automa</span>
+              <span style={styles.modeDesc}>Una partida 1 contra 1 contra la IA</span>
               <ChevronRight size={16} style={styles.modeArrow} />
             </button>
 
@@ -231,7 +231,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: "1.4rem" }}>Modo Solitario</h2>
-              <p style={{ margin: 0, color: "#93a397", fontSize: "0.85rem" }}>Juega contra el Automa (IA)</p>
+              <p style={{ margin: 0, color: "#93a397", fontSize: "0.85rem" }}>Juega contra un rival controlado por la IA</p>
             </div>
           </div>
 
@@ -250,9 +250,9 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Difficulty */}
           <div style={styles.fieldGroup}>
-            <label style={styles.label}>Dificultad del Automa</label>
+            <label style={styles.label}>Dificultad del rival</label>
             <div style={{ display: "flex", gap: 8 }}>
-              {(["easy", "normal", "hard"] as AutomaDifficulty[]).map((d) => (
+              {(["easy", "normal", "hard"] as BotDifficulty[]).map((d) => (
                 <button
                   key={d}
                   onClick={() => setDifficulty(d)}

@@ -8,7 +8,12 @@ import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./hostGame";
 function onlineState(): GameState {
   let state = createInitialState({ mode: "online", playerIds: [HOST_PLAYER_ID, GUEST_PLAYER_ID] });
   for (const id of [HOST_PLAYER_ID, GUEST_PLAYER_ID]) {
-    state = applyMove(state, id, { type: "chooseBonusCard", bonusCardId: state.players[id].pendingBonusChoice![0] });
+    state = applyMove(state, id, {
+      type: "chooseStart",
+      keepCards: state.players[id].hand.slice(0, 2),
+      discardFood: ["fish", "rodent"],
+      bonusCardId: state.players[id].pendingBonusChoice![0],
+    });
   }
   return state;
 }

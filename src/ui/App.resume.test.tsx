@@ -25,7 +25,7 @@ function midGame(mode: "solo" | "online"): GameState {
   return withSeededRandom(3, () => {
     let state = createInitialState(
       mode === "solo"
-        ? { mode: "solo", playerIds: ["nico", "automa"], customPlayerNames: { nico: "Lucía" } }
+        ? { mode: "solo", playerIds: ["nico", "bot"], customPlayerNames: { nico: "Lucía" } }
         : { mode: "online", playerIds: ["nico", "santi"], customPlayerNames: { nico: "Lucía", santi: "Mateo" } },
     );
     for (let i = 0; i < 8; i += 1) {
@@ -91,7 +91,7 @@ describe("reanudar una partida guardada", () => {
   });
 
   it("una partida guardada corrupta se ignora sin romper la pantalla de inicio", () => {
-    localStorage.setItem("wingspread.savedGame.v1", "{roto");
+    localStorage.setItem("wingspread.savedGame.v2", "{roto");
     render(<App />);
     expect(screen.queryByText("Partida en curso")).toBeNull();
     expect(screen.getByText("Wingspread")).toBeTruthy();

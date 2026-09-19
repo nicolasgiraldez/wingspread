@@ -1,12 +1,12 @@
-import type { AutomaDifficulty, BonusCard, HabitatId, NameTag, NestType, Power, ResourceFace } from "../game";
+import type { BonusCard, BotDifficulty, HabitatId, NameTag, NestType, Power, ResourceFace } from "../game";
 
 export const playerNames: Record<string, string> = {
   nico: "Nico",
   santi: "Santi",
-  automa: "Automa (IA)",
+  bot: "Rival (IA)",
 };
 
-export const difficultyLabels: Record<AutomaDifficulty, string> = {
+export const difficultyLabels: Record<BotDifficulty, string> = {
   easy: "Fácil (Pichón)",
   normal: "Normal (Águila)",
   hard: "Difícil (Halcón)",

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  applyMove,
+  applyMove as applyMoveWithBots,
+  applyPlayerMove,
   calculateBonusPoints,
   canPayResources,
   canRerollFeeder,
@@ -10,6 +11,7 @@ import {
   resolvePower,
   resolveRoundEnd,
   pickRoundGoals,
+  rankPlayers,
   rollInitialFeeder,
   roundGoalPool,
   scorePlayer,
@@ -17,7 +19,7 @@ import {
   shuffle,
   standardDieFaces,
 } from ".";
-import type { BonusCard, Move, SpeciesCard } from "./types";
+import type { BonusCard, GameState, Move, SpeciesCard } from "./types";
 
 /**
  * Aves ficticias de prueba con poderes simples y deterministas, independientes del catálogo
@@ -184,19 +186,36 @@ const TEST_CARDS: Record<string, SpeciesCard> = {
 function createTestState(...args: Parameters<typeof createInitialState>): ReturnType<typeof createInitialState> {
   let state = createInitialState(...args);
   Object.assign(state.cards, TEST_CARDS);
-  // Resuelve automáticamente la elección de carta de bonificación inicial (primera opción
-  // ofrecida) para que los tests de mecánica arranquen directo en fase "round", como antes de
-  // que existiera este paso de setup. Los tests que sí quieren cubrir el paso de elección usan
-  // createInitialState directamente.
+  // Resuelve la preparación inicial de todos los jugadores para que los tests de mecánica arranquen
+  // directo en fase "round". Cada uno conserva sus 2 primeras aves y las fichas de semilla, fruta e
+  // insecto (descarta pez y roedor): la mano y el alimento con los que se escribieron estos tests.
+  // Los tests que sí cubren la preparación usan createInitialState directamente.
   for (const player of Object.values(state.players)) {
-    if (!player.isAutoma && player.pendingBonusChoice && player.pendingBonusChoice.length > 0) {
-      state = applyMove(state, player.id, {
-        type: "chooseBonusCard",
-        bonusCardId: player.pendingBonusChoice[0],
-      });
-    }
+    state = applyPlayerMove(state, player.id, {
+      type: "chooseStart",
+      keepCards: player.hand.slice(0, 2),
+      discardFood: ["fish", "rodent"],
+      bonusCardId: player.pendingBonusChoice![0],
+    });
   }
   return state;
+}
+
+/**
+ * Aplica un movimiento SIN la IA real: si después le toca a un rival de la IA hace un movimiento
+ * mínimo (tomar el primer dado) para devolver el turno al humano. Así los tests de mecánica son
+ * deterministas; el juego real de la IA se prueba en bot.test.ts.
+ */
+function applyMove(state: GameState, playerId: string, move: Move): GameState {
+  let next = applyPlayerMove(state, playerId, move);
+  while (
+    next.phase === "round" &&
+    next.players[next.currentPlayerId]?.botLevel &&
+    next.players[next.currentPlayerId].actionCubesAvailable > 0
+  ) {
+    next = applyPlayerMove(next, next.currentPlayerId, { type: "gainFood", dieIndexes: [0] });
+  }
+  return next;
 }
 
 describe("motor de reglas expandido de wingspread", () => {
@@ -372,45 +391,32 @@ describe("motor de reglas expandido de wingspread", () => {
     expect(scorePlayer(state, "nico")).toBe(21);
   });
 
-  // Tests para Modo Solitario con Automa
-  it("inicializa correctamente el modo solitario contra el Automa", () => {
-    const state = createTestState({ mode: "solo", automaDifficulty: "hard" });
+  // Modo solitario: un rival de la IA que es un jugador más, con tablero y reglas normales.
+  it("inicializa el modo solitario con un rival de la IA como un jugador más", () => {
+    const state = createTestState({ mode: "solo", botDifficulty: "hard" });
 
     expect(state.gameMode).toBe("solo");
-    expect(state.players.nico).toBeDefined();
-    expect(state.players.automa).toBeDefined();
-    expect(state.players.automa.isAutoma).toBe(true);
-    expect(state.automaState).toBeDefined();
-    expect(state.automaState?.difficulty).toBe("hard");
-    expect(state.automaState?.deck.length).toBeGreaterThanOrEqual(10);
+    expect(state.playerOrder).toEqual(["nico", "bot"]);
+    expect(state.players.nico.botLevel).toBeUndefined();
+    expect(state.players.bot.botLevel).toBe("hard");
+    // El rival tiene tablero, mano, alimento y acciones como cualquiera.
+    expect(state.players.bot.actionCubesAvailable).toBe(8);
+    expect(state.players.bot.hand).toHaveLength(2);
+    expect(Object.keys(state.players.bot.board)).toEqual(["forest", "grassland", "wetland"]);
   });
 
-  it("ejecuta el turno del Automa tras la jugada del jugador humano", () => {
-    const state = createTestState({ mode: "solo", automaDifficulty: "normal" });
-    state.feeder = ["seed", "fruit", "insect", "fish", "rodent"];
-    const move: Move = { type: "gainFood", dieIndexes: [0] };
+  it("tras la jugada del humano juega el rival de la IA con las reglas normales y devuelve el turno", () => {
+    const state = createInitialState({ mode: "solo", botDifficulty: "normal" });
+    const chosen = state.players.nico.pendingBonusChoice![0];
+    const ready = applyMoveWithBots(state, "nico", { type: "chooseStart", keepCards: [], discardFood: [], bonusCardId: chosen });
+    expect(ready.phase).toBe("round");
+    expect(ready.currentPlayerId).toBe("nico");
 
-    const next = applyMove(state, "nico", move);
+    const next = applyMoveWithBots(ready, "nico", { type: "gainFood", dieIndexes: [0] });
     expect(next.players.nico.actionCubesAvailable).toBe(7);
-    expect(next.players.automa.actionCubesAvailable).toBe(7);
-    expect(next.automaState?.currentCard).toBeDefined();
+    expect(next.players.bot.actionCubesAvailable).toBe(7); // el rival gastó una acción real
     expect(next.currentPlayerId).toBe("nico");
-  });
-
-  it("calcula la puntuación del Automa según su dificultad", () => {
-    const state = createTestState({ mode: "solo", automaDifficulty: "hard" });
-    if (state.automaState) {
-      state.automaState.stashedCardsCount = 4;
-      state.automaState.eggs = 5;
-    }
-    state.players.automa.roundGoalScores = [4, 5];
-
-    const breakdown = scorePlayerDetails(state, "automa");
-    expect(breakdown.birds).toBe(20);
-    expect(breakdown.eggs).toBe(5);
-    expect(breakdown.roundGoals).toBe(9);
-    expect(breakdown.bonusCards).toBe(6);
-    expect(breakdown.total).toBe(40);
+    expect(next.log.some((entry) => entry.playerId === "bot")).toBe(true);
   });
 
   it("permite elegir entre insecto o trigo al tomar un dado con cara comodín", () => {
@@ -739,7 +745,7 @@ describe("motor de reglas expandido de wingspread", () => {
     it("con una carta de bonificación por elegir no se puede hacer otra acción", () => {
       const state = withBonusBird();
       const played = applyMove(state, "nico", playBonusBird);
-      expect(played.currentPlayerId).toBe("nico"); // el Automa ya jugó su turno
+      expect(played.currentPlayerId).toBe("nico"); // el rival de la IA ya jugó su turno
 
       expect(isLegalMove(played, "nico", { type: "gainFood", dieIndexes: [0] })).toBe(false);
       expect(isLegalMove(played, "nico", { type: "rerollFeeder" })).toBe(false);
@@ -943,9 +949,9 @@ describe("motor de reglas expandido de wingspread", () => {
         ],
       };
       state.feeder = ["fish", "seed", "fish", "fruit", "fish"];
-      // Evita que el Automa juegue su turno automáticamente después del de Nico dentro del
-      // mismo applyMove (podría tocar el comedero y volver no determinística la aserción).
-      state.players.automa.actionCubesAvailable = 0;
+      // Evita que el rival de la IA juegue su turno después del de Nico (podría tocar el comedero
+      // y volver no determinística la aserción).
+      state.players.bot.actionCubesAvailable = 0;
 
       const move: Move = { type: "gainFood", dieIndexes: [1] }; // toma "seed", deja 3 fish + fruit
       const next = applyMove(state, "nico", move);
@@ -981,7 +987,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   describe("poder allPlayersGain con benefitType 'card'", () => {
-    it("todos los jugadores no-automa roban 1 carta del mazo", () => {
+    it("todos los jugadores roban 1 carta del mazo", () => {
       const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.cards.acornJay = {
@@ -1084,7 +1090,7 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   describe("poder allPlayersGainDie", () => {
-    it("cada jugador no-automa toma 1 dado del comedero", () => {
+    it("cada jugador toma 1 dado del comedero", () => {
       const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.nico.board.forest[0].cardId = "acornJay";
       state.cards.acornJay = {
@@ -1681,73 +1687,178 @@ describe("motor de reglas expandido de wingspread", () => {
     });
   });
 
-  describe("elección de carta de bonificación inicial (fase setup)", () => {
-    it("reparte 2 cartas de bonificación por jugador humano y arranca en fase 'setup'", () => {
+  describe("preparación inicial (fase setup)", () => {
+    const FOODS = ["seed", "fruit", "insect", "fish", "rodent"] as const;
+    const start = (state: GameState, id: string, keep: number, bonusIndex = 0): Move => ({
+      type: "chooseStart",
+      keepCards: state.players[id].hand.slice(0, keep),
+      discardFood: FOODS.slice(0, keep) as (typeof FOODS)[number][],
+      bonusCardId: state.players[id].pendingBonusChoice![bonusIndex],
+    });
+
+    it("reparte 5 aves, 5 fichas de alimento (1 de cada tipo) y 2 bonificaciones a cada jugador", () => {
       const state = createInitialState(["nico", "santi"]);
 
       expect(state.phase).toBe("setup");
-      expect(state.players.nico.pendingBonusChoice).toHaveLength(2);
-      expect(state.players.santi.pendingBonusChoice).toHaveLength(2);
-      expect(state.players.nico.bonusCards).toHaveLength(0);
-      expect(state.players.santi.bonusCards).toHaveLength(0);
+      for (const id of ["nico", "santi"]) {
+        const player = state.players[id];
+        expect(player.hand).toHaveLength(5);
+        expect(player.resources).toEqual({ seed: 1, fruit: 1, insect: 1, fish: 1, rodent: 1 });
+        expect(player.pendingBonusChoice).toHaveLength(2);
+        expect(player.pendingStartingHand).toBe(true);
+        expect(player.bonusCards).toHaveLength(0);
+      }
+      // El mercado son 3 aves boca arriba y el comedero 5 dados.
+      expect(state.market).toHaveLength(3);
+      expect(state.feeder).toHaveLength(5);
     });
 
-    it("no reparte cartas de bonificación al Automa (modo solo)", () => {
+    it("nadie puede jugar acciones mientras la fase siga en 'setup'", () => {
       const state = createInitialState({ mode: "solo" });
-      expect(state.players.automa.pendingBonusChoice ?? []).toHaveLength(0);
-    });
-
-    it("ningún movimiento de juego es legal mientras la fase siga en 'setup'", () => {
-      const state = createInitialState({ mode: "solo" });
-      expect(state.phase).toBe("setup");
       expect(isLegalMove(state, "nico", { type: "gainFood", dieIndexes: [0] })).toBe(false);
     });
 
-    it("chooseBonusCard conserva la elegida, descarta la otra, y pasa a fase 'round' (modo solo)", () => {
-      const state = createInitialState({ mode: "solo" });
-      const [chosenId, otherId] = state.players.nico.pendingBonusChoice!;
+    it("chooseStart conserva las aves elegidas, descarta las demás, gasta 1 alimento por ave y guarda la bonificación", () => {
+      const state = createInitialState(["nico", "santi"]);
+      const [keepA, keepB, ...dropped] = state.players.nico.hand;
+      const [chosenBonus, otherBonus] = state.players.nico.pendingBonusChoice!;
 
-      expect(isLegalMove(state, "nico", { type: "chooseBonusCard", bonusCardId: chosenId })).toBe(true);
-      const next = applyMove(state, "nico", { type: "chooseBonusCard", bonusCardId: chosenId });
+      const next = applyPlayerMove(state, "nico", {
+        type: "chooseStart",
+        keepCards: [keepA, keepB],
+        discardFood: ["fish", "rodent"],
+        bonusCardId: chosenBonus,
+      });
 
-      expect(next.players.nico.bonusCards.map((b) => b.id)).toEqual([chosenId]);
+      expect(next.players.nico.hand).toEqual([keepA, keepB]);
+      expect(next.discard).toEqual(expect.arrayContaining(dropped));
+      expect(next.players.nico.resources).toEqual({ seed: 1, fruit: 1, insect: 1, fish: 0, rodent: 0 });
+      expect(next.players.nico.bonusCards.map((b) => b.id)).toEqual([chosenBonus]);
+      expect(next.bonusDiscard).toContain(otherBonus);
       expect(next.players.nico.pendingBonusChoice).toBeUndefined();
-      expect(next.bonusDiscard).toContain(otherId);
-      // Único jugador humano en modo solo: al elegir, la partida arranca sola.
+      expect(next.players.nico.pendingStartingHand).toBeUndefined();
+    });
+
+    it("conservar las 5 aves cuesta todo el alimento y conservar 0 no cuesta nada", () => {
+      const state = createInitialState(["nico", "santi"]);
+      const all = applyPlayerMove(state, "nico", start(state, "nico", 5));
+      expect(all.players.nico.hand).toHaveLength(5);
+      expect(Object.values(all.players.nico.resources).every((n) => n === 0)).toBe(true);
+
+      const none = applyPlayerMove(state, "santi", start(state, "santi", 0));
+      expect(none.players.santi.hand).toHaveLength(0);
+      expect(none.players.santi.resources).toEqual({ seed: 1, fruit: 1, insect: 1, fish: 1, rodent: 1 });
+    });
+
+    it("es ilegal descartar distinta cantidad de alimento que aves conservadas, o alimento repetido o inexistente", () => {
+      const state = createInitialState(["nico", "santi"]);
+      const hand = state.players.nico.hand;
+      const bonusCardId = state.players.nico.pendingBonusChoice![0];
+      const legal = (keepCards: string[], discardFood: string[]) =>
+        isLegalMove(state, "nico", { type: "chooseStart", keepCards, discardFood, bonusCardId } as Move);
+
+      expect(legal([hand[0], hand[1]], ["fish", "rodent"])).toBe(true);
+      expect(legal([hand[0], hand[1]], ["fish"])).toBe(false); // falta 1 alimento por descartar
+      expect(legal([hand[0]], ["fish", "rodent"])).toBe(false); // sobra alimento
+      expect(legal([hand[0], hand[1]], ["fish", "fish"])).toBe(false); // repetido
+      expect(legal([hand[0]], ["wild"])).toBe(false); // no es un alimento
+    });
+
+    it("es ilegal conservar aves que no se tienen o repetidas, o una bonificación que no se ofreció", () => {
+      const state = createInitialState(["nico", "santi"]);
+      const hand = state.players.nico.hand;
+      const bonusCardId = state.players.nico.pendingBonusChoice![0];
+      const legal = (keepCards: string[], bonus = bonusCardId) =>
+        isLegalMove(state, "nico", { type: "chooseStart", keepCards, discardFood: ["fish", "rodent"].slice(0, keepCards.length), bonusCardId: bonus } as Move);
+
+      expect(legal([hand[0]])).toBe(true);
+      expect(legal(["noEsMia"])).toBe(false);
+      expect(legal([hand[0], hand[0]])).toBe(false);
+      expect(legal([hand[0]], "no-ofrecida")).toBe(false);
+      // La mano del rival no vale.
+      expect(legal([state.players.santi.hand[0]])).toBe(false);
+    });
+
+    it("la partida arranca cuando TODOS terminaron la preparación, sin depender del turno", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
+      expect(state.currentPlayerId).toBe("nico");
+
+      // Santi puede terminar antes aunque el turno sea de nico: la preparación es simultánea.
+      const afterSanti = applyPlayerMove(state, "santi", start(state, "santi", 2));
+      expect(afterSanti.phase).toBe("setup");
+
+      const afterNico = applyPlayerMove(afterSanti, "nico", start(afterSanti, "nico", 3));
+      expect(afterNico.phase).toBe("round");
+      expect(afterNico.log[afterNico.log.length - 1].message).toContain("Comienza la Ronda 1");
+    });
+
+    it("no se puede repetir la preparación ni usar chooseBonusCard durante ella", () => {
+      const state = createInitialState(["nico", "santi"]);
+      const offered = state.players.nico.pendingBonusChoice![0];
+      expect(isLegalMove(state, "nico", { type: "chooseBonusCard", bonusCardId: offered })).toBe(false);
+
+      const done = applyPlayerMove(state, "nico", start(state, "nico", 1));
+      expect(isLegalMove(done, "nico", start(state, "nico", 1))).toBe(false);
+    });
+
+    it("puede empezar cualquiera de los jugadores", () => {
+      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"], firstPlayerId: "santi" });
+      expect(state.firstPlayerId).toBe("santi");
+      expect(state.currentPlayerId).toBe("santi");
+    });
+
+    it("en solitario, cuando el humano termina la preparación el rival de la IA hace la suya y arranca la partida", () => {
+      const state = createInitialState({ mode: "solo", botDifficulty: "hard" });
+      expect(state.players.bot.pendingStartingHand).toBe(true);
+
+      const next = applyMoveWithBots(state, "nico", start(state, "nico", 2));
+
+      expect(next.players.bot.pendingStartingHand).toBeUndefined();
+      expect(next.players.bot.pendingBonusChoice).toBeUndefined();
+      expect(next.players.bot.bonusCards).toHaveLength(1);
       expect(next.phase).toBe("round");
     });
 
-    it("en modo online, la fase permanece en 'setup' hasta que TODOS los jugadores eligieron", () => {
-      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
-      const nicoChoice = state.players.nico.pendingBonusChoice![0];
-      const santiChoice = state.players.santi.pendingBonusChoice![0];
+    it("si el rival de la IA empieza, juega su primer turno en cuanto termina la preparación", () => {
+      const state = createInitialState({ mode: "solo", botDifficulty: "normal", firstPlayerId: "bot" });
+      const next = applyMoveWithBots(state, "nico", start(state, "nico", 2));
 
-      const afterNico = applyMove(state, "nico", { type: "chooseBonusCard", bonusCardId: nicoChoice });
-      expect(afterNico.phase).toBe("setup"); // santi todavía no eligió
-      expect(afterNico.players.nico.pendingBonusChoice).toBeUndefined();
+      expect(next.phase).toBe("round");
+      expect(next.players.bot.actionCubesAvailable).toBe(7);
+      expect(next.currentPlayerId).toBe("nico");
+    });
+  });
 
-      const afterSanti = applyMove(afterNico, "santi", { type: "chooseBonusCard", bonusCardId: santiChoice });
-      expect(afterSanti.phase).toBe("round");
+  describe("desempate y ganador", () => {
+    const withScores = (nicoEggs: number, santiEggs: number, nicoFood: number, santiFood: number) => {
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.players.nico.board.forest[0].eggs = nicoEggs;
+      state.players.santi.board.forest[0].cardId = "acornJay";
+      state.players.santi.board.forest[0].eggs = santiEggs;
+      state.players.nico.resources = { seed: nicoFood };
+      state.players.santi.resources = { seed: santiFood };
+      return state;
+    };
+
+    it("gana quien tiene más puntos", () => {
+      const ranking = rankPlayers(withScores(3, 1, 0, 5));
+      expect(ranking.winnerIds).toEqual(["nico"]);
+      expect(ranking.decidedByFood).toBe(false);
+      expect(ranking.standings.map((s) => s.playerId)).toEqual(["nico", "santi"]);
     });
 
-    it("chooseBonusCard no depende de currentPlayerId (elección simultánea, no por turnos)", () => {
-      const state = createInitialState({ mode: "online", playerIds: ["nico", "santi"] });
-      expect(state.currentPlayerId).toBe("nico");
-      const santiChoice = state.players.santi.pendingBonusChoice![0];
-      // Santi puede elegir aunque currentPlayerId sea "nico": la elección inicial es simultánea.
-      expect(isLegalMove(state, "santi", { type: "chooseBonusCard", bonusCardId: santiChoice })).toBe(true);
+    it("con los mismos puntos gana quien tiene más alimento sin usar", () => {
+      const ranking = rankPlayers(withScores(2, 2, 1, 4));
+      expect(ranking.winnerIds).toEqual(["santi"]);
+      expect(ranking.decidedByFood).toBe(true);
+      expect(ranking.standings[0]).toMatchObject({ playerId: "santi", unusedFood: 4 });
     });
 
-    it("chooseBonusCard es ilegal con un id no ofrecido, fuera de fase 'setup', o para el Automa", () => {
-      const state = createInitialState({ mode: "solo" });
-      const [chosenId] = state.players.nico.pendingBonusChoice!;
-
-      expect(isLegalMove(state, "nico", { type: "chooseBonusCard", bonusCardId: "not-offered" })).toBe(false);
-      expect(isLegalMove(state, "automa", { type: "chooseBonusCard", bonusCardId: chosenId })).toBe(false);
-
-      const resolved = applyMove(state, "nico", { type: "chooseBonusCard", bonusCardId: chosenId });
-      expect(resolved.phase).toBe("round");
-      expect(isLegalMove(resolved, "nico", { type: "chooseBonusCard", bonusCardId: chosenId })).toBe(false);
+    it("con los mismos puntos y el mismo alimento es empate", () => {
+      const ranking = rankPlayers(withScores(2, 2, 3, 3));
+      expect(ranking.winnerIds).toEqual(["nico", "santi"]);
+      expect(ranking.decidedByFood).toBe(false);
     });
   });
 

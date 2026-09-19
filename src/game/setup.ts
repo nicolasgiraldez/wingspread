@@ -1,9 +1,7 @@
-import { automaCardsCatalog } from "./automaCards";
 import { bonusCardsCatalog, speciesCards } from "./cards";
 import type {
-  AutomaDifficulty,
-  AutomaState,
   BoardSlot,
+  BotDifficulty,
   GameMode,
   GameState,
   HabitatId,
@@ -113,32 +111,43 @@ export function pickRoundGoals(count = 4): RoundGoal[] {
 
 export interface CreateGameOptions {
   mode?: GameMode;
-  automaDifficulty?: AutomaDifficulty;
+  /** Nivel del rival "bot" en el modo solitario (por defecto "normal"). */
+  botDifficulty?: BotDifficulty;
+  /** Jugadores controlados por la IA y su nivel (por defecto, en solitario, el jugador "bot"). */
+  bots?: Record<PlayerId, BotDifficulty>;
   playerIds?: PlayerId[];
+  /** Quién empieza (por defecto el primero de playerIds). */
+  firstPlayerId?: PlayerId;
   customPlayerNames?: Record<PlayerId, string>;
   /** Objetivos de ronda fijos (por defecto se sortean 4 entre los 16 del juego base). */
   roundGoals?: RoundGoal[];
 }
 
 export function createInitialState(
-  optionsOrPlayerIds: CreateGameOptions | PlayerId[] = { mode: "solo", automaDifficulty: "normal" },
+  optionsOrPlayerIds: CreateGameOptions | PlayerId[] = { mode: "solo" },
 ): GameState {
   let mode: GameMode = "solo";
-  let automaDifficulty: AutomaDifficulty = "normal";
-  let playerIds: PlayerId[] = ["nico", "automa"];
+  let botDifficulty: BotDifficulty = "normal";
+  let playerIds: PlayerId[] = ["nico", "bot"];
   let customNames: Record<PlayerId, string> = {};
   let fixedRoundGoals: RoundGoal[] | undefined;
+  let bots: Record<PlayerId, BotDifficulty> | undefined;
+  let firstPlayerId: PlayerId | undefined;
 
   if (Array.isArray(optionsOrPlayerIds)) {
     playerIds = optionsOrPlayerIds;
-    mode = playerIds.includes("automa") ? "solo" : "online";
+    mode = playerIds.includes("bot") ? "solo" : "online";
   } else if (typeof optionsOrPlayerIds === "object") {
     mode = optionsOrPlayerIds.mode ?? "solo";
-    automaDifficulty = optionsOrPlayerIds.automaDifficulty ?? "normal";
-    playerIds = optionsOrPlayerIds.playerIds ?? (mode === "solo" ? ["nico", "automa"] : ["nico", "santi"]);
+    botDifficulty = optionsOrPlayerIds.botDifficulty ?? "normal";
+    playerIds = optionsOrPlayerIds.playerIds ?? (mode === "solo" ? ["nico", "bot"] : ["nico", "santi"]);
     customNames = optionsOrPlayerIds.customPlayerNames ?? {};
     fixedRoundGoals = optionsOrPlayerIds.roundGoals;
+    bots = optionsOrPlayerIds.bots;
+    firstPlayerId = optionsOrPlayerIds.firstPlayerId;
   }
+  const botLevels: Record<PlayerId, BotDifficulty> =
+    bots ?? (playerIds.includes("bot") ? { bot: botDifficulty } : {});
 
   if (playerIds.length < 2) {
     throw new Error("Wingspread requiere al menos 2 jugadores.");
@@ -147,48 +156,32 @@ export function createInitialState(
   const defaultNames: Record<string, string> = {
     nico: "Nico",
     santi: "Santi",
-    automa: "Automa (IA)",
+    bot: "Rival (IA)",
   };
 
   const deck = shuffle(Object.keys(speciesCards));
   const bonusDeck = shuffle(Object.keys(bonusCardsCatalog));
 
+  // Preparación estándar: cada jugador recibe 5 aves, 5 fichas de alimento (1 de cada tipo) y 2 cartas
+  // de bonificación al azar. Antes de empezar elige (chooseStart) qué aves conserva —descartando 1
+  // alimento por cada una— y con qué bonificación se queda.
   const players: Record<PlayerId, PlayerState> = Object.fromEntries(
     playerIds.map((id) => {
-      const isAutoma = id === "automa";
-      const hand = isAutoma ? [] : deck.splice(0, 2);
-      // Cada jugador humano recibe 2 cartas de bonificación al azar y elige 1 para conservar
-      // (pendingBonusChoice); la partida no empieza a jugarse hasta que todos hayan elegido.
-      const pendingBonusChoice = isAutoma ? [] : bonusDeck.splice(0, 2);
+      const hand = deck.splice(0, 5);
+      const bonusOffer = bonusDeck.splice(0, 2);
       const name = customNames[id] || defaultNames[id] || id;
-      return [id, createPlayer(id, name, hand, pendingBonusChoice, isAutoma)];
+      return [id, createPlayer(id, name, hand, bonusOffer, botLevels[id])];
     }),
   );
 
-  const hasPendingBonusChoice = Object.values(players).some(
-    (p) => !p.isAutoma && p.pendingBonusChoice && p.pendingBonusChoice.length > 0,
-  );
-
-  let automaState: AutomaState | undefined;
-  if (mode === "solo" || playerIds.includes("automa")) {
-    const automaDeck = shuffle(Object.keys(automaCardsCatalog));
-    automaState = {
-      difficulty: automaDifficulty,
-      deck: automaDeck,
-      discard: [],
-      currentCard: null,
-      stashedCardsCount: 0,
-      eggs: 0,
-      roundGoalMetric: 0,
-    };
-  }
+  const first = firstPlayerId && playerIds.includes(firstPlayerId) ? firstPlayerId : playerIds[0];
 
   return {
     gameMode: mode,
-    phase: hasPendingBonusChoice ? "setup" : "round",
+    phase: "setup",
     round: 1,
-    currentPlayerId: playerIds[0],
-    firstPlayerId: playerIds[0],
+    currentPlayerId: first,
+    firstPlayerId: first,
     players,
     playerOrder: playerIds,
     customPlayerNames: customNames,
@@ -204,11 +197,8 @@ export function createInitialState(
     bonusCardsCatalog: { ...bonusCardsCatalog },
     bonusDeck,
     bonusDiscard: [],
-    automaState,
     log: [{
-      message: mode === "solo"
-        ? `Partida iniciada en Modo Solitario vs Automa [${automaDifficulty}].`
-        : "Partida Multijugador Online iniciada.",
+      message: mode === "solo" ? `Partida iniciada contra un rival de la IA (${botDifficulty}).` : "Partida Multijugador Online iniciada.",
     }],
   };
 }
@@ -218,7 +208,7 @@ function createPlayer(
   name: string,
   hand: string[],
   pendingBonusChoice: string[] = [],
-  isAutoma = false,
+  botLevel?: BotDifficulty,
 ): PlayerState {
   return {
     id,
@@ -226,13 +216,14 @@ function createPlayer(
     hand,
     bonusCards: [],
     pendingBonusChoice: pendingBonusChoice.length > 0 ? pendingBonusChoice : undefined,
-    resources: isAutoma ? {} : { seed: 1, fruit: 1, insect: 1 },
+    resources: { seed: 1, fruit: 1, insect: 1, fish: 1, rodent: 1 },
     board: Object.fromEntries(
       habitats.map((habitat) => [habitat, makeSlots()]),
     ) as Record<HabitatId, BoardSlot[]>,
     actionCubesAvailable: 8,
     roundGoalScores: [],
-    isAutoma,
+    botLevel,
+    pendingStartingHand: true,
     pinkPowersUsed: [],
   };
 }

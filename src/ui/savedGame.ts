@@ -10,7 +10,9 @@ export type SavedGame =
   | { kind: "solo"; state: GameState; savedAt: number }
   | { kind: "online-host"; state: GameState; roomCode: string; savedAt: number };
 
-const STORAGE_KEY = "wingspread.savedGame.v1";
+const STORAGE_KEY = "wingspread.savedGame.v2";
+/** Versión anterior (partidas con el Automa y la preparación antigua): incompatible, se descarta. */
+const LEGACY_STORAGE_KEY = "wingspread.savedGame.v1";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -38,6 +40,7 @@ export function clearSavedGame(): void {
 export function loadSavedGame(): SavedGame | null {
   let raw: string | null;
   try {
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
     raw = localStorage.getItem(STORAGE_KEY);
   } catch {
     return null;
@@ -64,6 +67,9 @@ export function restoreGame(value: unknown): SavedGame | null {
   const kind = value.kind;
   if (kind !== "solo" && kind !== "online-host") return null;
   if (kind === "online-host" && (typeof value.roomCode !== "string" || value.roomCode === "")) return null;
+  // Una partida solitaria necesita un rival de la IA que juegue; sin él quedaría parada.
+  const hasBot = isRecord(value.state.players) && Object.values(value.state.players).some((p) => isRecord(p) && p.botLevel);
+  if (kind === "solo" && !hasBot) return null;
 
   const raw = value.state;
   const players = raw.players;
