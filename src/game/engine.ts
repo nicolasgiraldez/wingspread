@@ -167,7 +167,7 @@ export function isLegalMove(state: GameState, playerId: string, move: Move): boo
     for (const ref of move.eggPlacements) {
       const key = `${ref.habitat}:${ref.slotIndex}`;
       simulatedEggs[key] = (simulatedEggs[key] ?? 0) + 1;
-      const slot = player.board[ref.habitat][ref.slotIndex];
+      const slot = player.board[ref.habitat]?.[ref.slotIndex];
       if (!slot?.cardId) return false;
       const card = state.cards[slot.cardId];
       if (slot.eggs + simulatedEggs[key] > card.eggCapacity) return false;
@@ -192,7 +192,8 @@ export function isLegalMove(state: GameState, playerId: string, move: Move): boo
     const remainingMarket = [...state.market];
     for (const draw of move.draws) {
       if (draw.source === "deck") {
-        if (state.deck.length === 0) return false;
+        // Con el mazo vacío se baraja el descarte (ver drawCardFromDeck): solo es imposible sin ninguna carta.
+        if (state.deck.length + state.discard.length === 0) return false;
       } else {
         const idx = remainingMarket.indexOf(draw.marketCardId);
         if (idx === -1) return false;
@@ -322,13 +323,13 @@ export function executeAutomaTurn(state: GameState): GameState {
         if (next.market.length > 0) {
           next.market.shift();
           actionDescriptions.push(`robó 1 carta del mercado`);
-          const rep = next.deck.shift();
+          const rep = drawCardFromDeck(next);
           if (rep) next.market.push(rep);
         }
       }
     } else if (act.type === "stashCardFromDeck") {
       for (let i = 0; i < act.count; i += 1) {
-        const stashed = next.deck.shift();
+        const stashed = drawCardFromDeck(next);
         if (stashed) {
           next.automaState.stashedCardsCount += 1;
         }
@@ -549,6 +550,14 @@ export function drawCardFromDeck(state: GameState): string | undefined {
   return state.deck.shift();
 }
 
+/** Saca 1 dado del comedero; si queda vacío, se relanzan los 5 dados de inmediato (regla oficial). */
+function takeDieFromFeeder(state: GameState): ResourceFace | undefined {
+  if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
+  const die = state.feeder.shift();
+  if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
+  return die;
+}
+
 export function drawBonusCardFromDeck(state: GameState): string | undefined {
   if (state.bonusDeck.length === 0 && state.bonusDiscard.length > 0) {
     state.bonusDeck = shuffle([...state.bonusDiscard]);
@@ -710,8 +719,7 @@ export function resolvePower(
     }
     const eggNote = power.costsEgg ? " (descartando 1 huevo)" : "";
     if (power.from === "feeder" && power.anyDie) {
-      if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
-      const die = state.feeder.shift();
+      const die = takeDieFromFeeder(state);
       if (die) {
         player.resources[die] = (player.resources[die] ?? 0) + power.amount;
         state.log.push({
@@ -1173,8 +1181,7 @@ export function resolvePower(
       });
     } else {
       for (const winner of winners) {
-        if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
-        const die = state.feeder.shift();
+        const die = takeDieFromFeeder(state);
         if (die) {
           winner.resources[die] = (winner.resources[die] ?? 0) + 1;
         }
@@ -1192,8 +1199,7 @@ export function resolvePower(
     for (const pId of order) {
       const p = state.players[pId];
       if (!p || p.isAutoma) continue;
-      if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
-      const die = state.feeder.shift();
+      const die = takeDieFromFeeder(state);
       if (die) {
         p.resources[die] = (p.resources[die] ?? 0) + 1;
       }
@@ -1309,9 +1315,10 @@ export function resolveRoundEnd(state: GameState) {
   // Refresh market
   state.discard.push(...state.market);
   state.market = [];
-  while (state.market.length < 3 && state.deck.length > 0) {
-    const card = state.deck.shift();
-    if (card) state.market.push(card);
+  while (state.market.length < 3) {
+    const card = drawCardFromDeck(state);
+    if (!card) break;
+    state.market.push(card);
   }
 
   // Rotate first player

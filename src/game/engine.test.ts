@@ -1769,4 +1769,55 @@ describe("motor de reglas expandido de wingspread", () => {
       expect(calculateBonusPoints(state.players.nico, state, state.bonusCardsCatalog!.historian)).toBe(6);
     });
   });
+
+  describe("regresiones halladas por la simulación de partidas", () => {
+    it("un poder que toma el último dado del comedero lo relanza de inmediato", () => {
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.allDie", timing: "onActivate", kind: "allPlayersGainDie" }],
+      };
+      // nico toma 1 dado, y luego el poder le da 1 a nico y 1 a santi: el comedero se vacía.
+      state.feeder = ["seed", "fruit", "insect"];
+
+      const next = applyMove(state, "nico", { type: "gainFood", dieIndexes: [0] });
+
+      expect(next.feeder).toHaveLength(5);
+    });
+
+    it("al cerrar la ronda el mercado se repone reciclando el descarte si el mazo se agotó", () => {
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.deck = [];
+      state.discard = ["meadowSparrow", "riverHeron"];
+      state.market = ["orchardFinch", "marshWren", "cliffSwallow"];
+
+      resolveRoundEnd(state);
+
+      expect(state.market).toHaveLength(3);
+      const allCards = [...state.market, ...state.deck, ...state.discard];
+      expect(new Set(allCards).size).toBe(5);
+    });
+
+    it("se puede robar del mazo si está vacío pero hay descarte para barajar", () => {
+      const state = createTestState({ mode: "solo" });
+      state.deck = [];
+      state.discard = ["meadowSparrow"];
+      state.market = [];
+      state.players.nico.hand = [];
+
+      const move: Move = { type: "drawBirdCards", draws: [{ source: "deck" }] };
+      expect(isLegalMove(state, "nico", move)).toBe(true);
+
+      const next = applyMove(state, "nico", move);
+      expect(next.players.nico.hand).toEqual(["meadowSparrow"]);
+    });
+
+    it("isLegalMove rechaza (sin lanzar) huevos en un hábitat inexistente", () => {
+      const state = createTestState({ mode: "solo" });
+      const move = { type: "layEggs", eggPlacements: [{ habitat: "moon", slotIndex: 0 }] } as unknown as Move;
+
+      expect(isLegalMove(state, "nico", move)).toBe(false);
+    });
+  });
 });
