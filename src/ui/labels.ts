@@ -1,4 +1,4 @@
-import type { AutomaDifficulty, HabitatId, NestType, Power, PowerTiming, ResourceFace } from "../game";
+import type { AutomaDifficulty, BonusCard, HabitatId, NameTag, NestType, Power, PowerTiming, ResourceFace } from "../game";
 
 export const playerNames: Record<string, string> = {
   nico: "Nico",
@@ -23,6 +23,19 @@ export const habitatIcons: Record<HabitatId, string> = {
   grassland: "🌾",
   wetland: "🌊",
 };
+
+/** Carta de bonificación asociada a cada categoría de nombre curada en SpeciesCard.nameTags. */
+export const nameTagBonus: Record<NameTag, { label: string; icon: string }> = {
+  color: { label: "Fotógrafo", icon: "📷" },
+  bodyPart: { label: "Anatomista", icon: "🫀" },
+  geographic: { label: "Cartógrafo", icon: "🗺️" },
+  possessive: { label: "Historiador", icon: "👤" },
+};
+
+/** Categorías de nombre que puntúan alguna de las cartas de bonificación dadas. */
+export function bonusNameTags(bonusCards: BonusCard[] | undefined): NameTag[] {
+  return (bonusCards ?? []).flatMap((b) => (b.conditionType === "birdsWithNameTag" && b.nameTag ? [b.nameTag] : []));
+}
 
 export const actionLabels = {
   playBird: "Jugá un ave",

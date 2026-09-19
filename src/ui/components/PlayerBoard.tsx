@@ -1,7 +1,7 @@
 import React from "react";
 import { TreePine, Waves, Wind } from "lucide-react";
 import { getHabitatActionAllowance, getHabitatActiveColumn } from "../../game";
-import type { GameState, HabitatId, PlayerState } from "../../game";
+import type { GameState, HabitatId, NameTag, PlayerState } from "../../game";
 import { habitatLabels, playerNames } from "../labels";
 import { BirdCard } from "./BirdCard";
 
@@ -9,6 +9,7 @@ interface PlayerBoardProps {
   player: PlayerState;
   gameState: GameState;
   isOwner?: boolean;
+  highlightNameTags?: NameTag[];
   onOpenLayEggsModal?: (initialBird?: { habitat: HabitatId; slotIndex: number }) => void;
   onSelectEmptySlot?: (habitat: HabitatId, slotIndex: number) => void;
   selectedHabitat?: HabitatId;
@@ -28,6 +29,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
   player,
   gameState,
   isOwner = true,
+  highlightNameTags,
   onOpenLayEggsModal,
   onSelectEmptySlot,
   selectedHabitat,
@@ -167,6 +169,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                       <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                         <BirdCard
                           card={card}
+                          highlightNameTags={highlightNameTags}
                           eggs={slot.eggs}
                           cached={slot.cached}
                           tucked={slot.tucked}

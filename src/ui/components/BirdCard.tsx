@@ -1,12 +1,13 @@
 import React from "react";
 import { Egg, Feather, Layers, Sparkles } from "lucide-react";
-import type { ResourceFace, SpeciesCard } from "../../game";
+import type { NameTag, ResourceFace, SpeciesCard } from "../../game";
 import {
   costIcon,
   costLabel,
   describePower,
   habitatIcons,
   habitatLabels,
+  nameTagBonus,
   nestIcons,
   nestLabels,
   resourceIcons,
@@ -22,6 +23,8 @@ interface BirdCardProps {
   actionLabel?: string;
   onAction?: (e: React.MouseEvent) => void;
   compact?: boolean;
+  /** Categorías de nombre de las bonificaciones que tiene el jugador: se marcan con un icono discreto. */
+  highlightNameTags?: NameTag[];
 }
 
 export const BirdCard: React.FC<BirdCardProps> = ({
@@ -34,7 +37,15 @@ export const BirdCard: React.FC<BirdCardProps> = ({
   actionLabel,
   onAction,
   compact = false,
+  highlightNameTags = [],
 }) => {
+  const nameTags = card.nameTags ?? [];
+  const highlighted = nameTags.filter((tag) => highlightNameTags.includes(tag));
+  const countsForTitle =
+    nameTags.length > 0
+      ? ["Esta ave cuenta para:", ...nameTags.map((tag) => `✓ ${nameTagBonus[tag].label}`)].join("\n")
+      : undefined;
+
   return (
     <div
       className={`bird-card-wrapper ${isSelected ? "selected" : ""}`}
@@ -107,7 +118,14 @@ export const BirdCard: React.FC<BirdCardProps> = ({
 
       {/* Card Names */}
       <div>
-        <h4 className="card-title">{card.name}</h4>
+        <h4 className="card-title" title={countsForTitle}>
+          {card.name}
+          {highlighted.map((tag) => (
+            <span key={tag} className="card-bonus-mark" title={`Cuenta para tu bonificación: ${nameTagBonus[tag].label}`}>
+              {nameTagBonus[tag].icon}
+            </span>
+          ))}
+        </h4>
         {card.scientificName && !compact && (
           <div className="card-scientific">{card.scientificName}</div>
         )}

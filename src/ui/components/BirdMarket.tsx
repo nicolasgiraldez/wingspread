@@ -1,6 +1,6 @@
 import React from "react";
 import { Feather, Sparkles } from "lucide-react";
-import type { CardId, SpeciesCard } from "../../game";
+import type { CardId, NameTag, SpeciesCard } from "../../game";
 import { BirdCard } from "./BirdCard";
 
 interface BirdMarketProps {
@@ -10,6 +10,7 @@ interface BirdMarketProps {
   onDrawMarketCard: (cardId: CardId) => void;
   onDrawFromDeck: () => void;
   disabled?: boolean;
+  highlightNameTags?: NameTag[];
 }
 
 export const BirdMarket: React.FC<BirdMarketProps> = ({
@@ -19,6 +20,7 @@ export const BirdMarket: React.FC<BirdMarketProps> = ({
   onDrawMarketCard,
   onDrawFromDeck,
   disabled = false,
+  highlightNameTags,
 }) => {
   return (
     <div style={{ background: "#182019", padding: 16, borderRadius: 12, border: "1px solid #2b332e" }}>
@@ -47,6 +49,7 @@ export const BirdMarket: React.FC<BirdMarketProps> = ({
             <BirdCard
               key={cardId}
               card={card}
+              highlightNameTags={highlightNameTags}
               actionLabel="Robar esta ave"
               onAction={() => onDrawMarketCard(cardId)}
               compact

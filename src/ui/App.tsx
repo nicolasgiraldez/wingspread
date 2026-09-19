@@ -47,6 +47,7 @@ import { PlayBirdModal } from "./components/PlayBirdModal";
 import { PlayerBoard } from "./components/PlayerBoard";
 import { RoundGoalsMat } from "./components/RoundGoalsMat";
 import {
+  bonusNameTags,
   resourceIcons,
   resourceLabels,
 } from "./labels";
@@ -399,6 +400,7 @@ export const App: React.FC = () => {
 
   const currentPlayer = gameState.players[gameState.currentPlayerId];
   const viewedPlayer = gameState.players[activeTab];
+  const myNameTags = bonusNameTags(gameState.players[localPlayerId]?.bonusCards);
   const isMyTurn = gameState.currentPlayerId === localPlayerId;
   const isControlsActive =
     isMyTurn &&
@@ -661,6 +663,7 @@ export const App: React.FC = () => {
           onDrawMarketCard={handleDrawFromMarket}
           onDrawFromDeck={handleDrawFromDeck}
           disabled={!isControlsActive}
+          highlightNameTags={myNameTags}
         />
 
         {/* Selector de Tablero */}
@@ -720,6 +723,7 @@ export const App: React.FC = () => {
             player={viewedPlayer}
             gameState={gameState}
             isOwner={activeTab === localPlayerId}
+            highlightNameTags={activeTab === localPlayerId ? myNameTags : undefined}
             onOpenLayEggsModal={handleOpenLayEggs}
             onSelectEmptySlot={(hab, sIdx) => {
               setSelectedHabitat(hab);
@@ -851,6 +855,7 @@ export const App: React.FC = () => {
                     <BirdCard
                       key={cardId}
                       card={card}
+                      highlightNameTags={myNameTags}
                       actionLabel={isControlsActive ? "Jugar esta ave" : undefined}
                       onAction={() => setSelectedCardForPlay(card)}
                     />

@@ -279,7 +279,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "cavity",
     wingspanCm: 30,
-    nameTags: ["bodyPart"],
+    nameTags: ["bodyPart", "color"],
     powers: [
       {
         id: "ashThroatedFlycatcher.power1",
@@ -1094,7 +1094,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "ground",
     wingspanCm: 25,
-    nameTags: ["color"],
+    nameTags: ["color", "bodyPart"],
     powers: [
       {
         id: "chestnutCollaredLongspur.power1",
@@ -1534,6 +1534,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 142,
+    nameTags: ["color"],
     powers: [
       {
         id: "ferruginousHawk.power1",
@@ -2041,6 +2042,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 4,
     nestType: "bowl",
     wingspanCm: 23,
+    nameTags: ["color"],
     powers: [
       {
         id: "lazuliBunting.power1",
@@ -2832,6 +2834,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 5,
     nestType: "platform",
     wingspanCm: 48,
+    nameTags: ["color"],
     powers: [
       {
         id: "ruddyDuck.power1",
@@ -2852,6 +2855,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 1,
     nestType: "ground",
     wingspanCm: 196,
+    nameTags: ["geographic"],
     powers: [
       {
         id: "sandhillCrane.power1",
@@ -2939,6 +2943,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     eggCapacity: 2,
     nestType: "platform",
     wingspanCm: 104,
+    nameTags: ["color"],
     powers: [
       {
         id: "snowyEgret.power1",
@@ -3574,7 +3579,7 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
     description: "Aves que tienen un color en su nombre.",
     conditionType: "birdsWithNameTag",
     nameTag: "color",
-    tiers: [{ threshold: 4, points: 3 }, { threshold: 6, points: 6 }],
+    tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],
   },
   breedingManager: {
     id: "breedingManager",

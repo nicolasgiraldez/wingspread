@@ -1664,4 +1664,110 @@ describe("motor de reglas expandido de wingspread", () => {
       expect(isLegalMove(resolved, "nico", { type: "chooseBonusCard", bonusCardId: chosenId })).toBe(false);
     });
   });
+
+  describe("bonificaciones dependientes del nombre (Fotógrafo/Anatomista/Cartógrafo/Historiador)", () => {
+    const tagsOf = (state: ReturnType<typeof createInitialState>, id: string) => state.cards[id].nameTags ?? [];
+
+    it("la elegibilidad viene de nameTags curados y no del nombre español mostrado", () => {
+      const state = createInitialState({ mode: "solo" });
+      // "Tordo Sargento" (Red-winged Blackbird) no contiene ningún color en español, pero cuenta.
+      expect(state.cards.redWingedBlackbird.name).toBe("Tordo Sargento");
+      expect(tagsOf(state, "redWingedBlackbird")).toEqual(expect.arrayContaining(["color", "bodyPart"]));
+      // "Cardenal Rojo" (Northern Cardinal) sí dice "Rojo" en español, pero en inglés no hay color: no cuenta.
+      expect(state.cards.northernCardinal.name).toBe("Cardenal Rojo");
+      expect(tagsOf(state, "northernCardinal")).toEqual(["geographic"]);
+      // "Chara Crestada" (Steller's Jay) es homenaje a una persona aunque el nombre español no es posesivo.
+      expect(tagsOf(state, "stellersJay")).toContain("possessive");
+    });
+
+    it("cambiar el nombre mostrado no altera el puntaje de la bonificación", () => {
+      const state = createInitialState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "redWingedBlackbird";
+      state.players.nico.board.forest[1].cardId = "blueJay";
+      const bonus = state.bonusCardsCatalog!.photographer;
+      const before = calculateBonusPoints(state.players.nico, state, bonus);
+
+      state.cards.redWingedBlackbird = { ...state.cards.redWingedBlackbird, name: "Nombre cualquiera" };
+      state.cards.blueJay = { ...state.cards.blueJay, name: "Otro nombre" };
+      expect(calculateBonusPoints(state.players.nico, state, bonus)).toBe(before);
+      expect(before).toBe(3);
+    });
+
+    it("coincidencias de texto accidentales no crean elegibilidad de Anatomista", () => {
+      const state = createInitialState({ mode: "solo" });
+      // Grosbeak contiene "beak" y Burrowing contiene "wing", pero ninguno es un término anatómico.
+      expect(tagsOf(state, "blueGrosbeak")).not.toContain("bodyPart");
+      expect(tagsOf(state, "burrowingOwl")).not.toContain("bodyPart");
+    });
+
+    it("colores poco comunes cuentan para Fotógrafo (ash, ferruginous, lazuli, ruddy, snowy)", () => {
+      const state = createInitialState({ mode: "solo" });
+      for (const id of ["ashThroatedFlycatcher", "ferruginousHawk", "lazuliBunting", "ruddyDuck", "snowyEgret"]) {
+        expect(tagsOf(state, id), id).toContain("color");
+      }
+    });
+
+    it("Sandhill Crane cuenta para Cartógrafo y Chestnut-collared Longspur para Anatomista", () => {
+      const state = createInitialState({ mode: "solo" });
+      expect(tagsOf(state, "sandhillCrane")).toContain("geographic");
+      expect(tagsOf(state, "chestnutCollaredLongspur")).toEqual(expect.arrayContaining(["color", "bodyPart"]));
+    });
+
+    it("Historiador cubre exactamente las 19 aves nombradas por una persona del juego base", () => {
+      const state = createInitialState({ mode: "solo" });
+      const historians = Object.values(state.cards)
+        .filter((c) => c.nameTags?.includes("possessive"))
+        .map((c) => c.id)
+        .sort();
+      expect(historians).toEqual(
+        [
+          "annasHummingbird", "bairdsSparrow", "barrowsGoldeneye", "bellsVireo", "bewicksWren",
+          "brewersBlackbird", "cassinsFinch", "cassinsSparrow", "clarksGrebe", "clarksNutcracker",
+          "coopersHawk", "forstersTern", "franklinsGull", "lincolnsSparrow", "saysPhoebe",
+          "spraguesPipit", "stellersJay", "swainsonsHawk", "wilsonsSnipe",
+        ].sort(),
+      );
+    });
+
+    it("las 170 aves del catálogo tienen nameTags válidos y sin duplicados", () => {
+      const state = createInitialState({ mode: "solo" });
+      const valid = new Set(["bodyPart", "geographic", "color", "possessive"]);
+      const birds = Object.values(state.cards).filter((c) => !c.id.startsWith("test"));
+      expect(birds.length).toBeGreaterThanOrEqual(170);
+      for (const bird of birds) {
+        const tags = bird.nameTags ?? [];
+        expect(new Set(tags).size, bird.id).toBe(tags.length);
+        for (const tag of tags) expect(valid.has(tag), `${bird.id}:${tag}`).toBe(true);
+      }
+    });
+
+    it("Fotógrafo, Anatomista y Cartógrafo: 2–3 aves → 3 PV, 4+ aves → 7 PV", () => {
+      const cases: [string, string[]][] = [
+        ["photographer", ["blueJay", "grayCatbird", "greenHeron", "indigoBunting"]],
+        ["anatomist", ["redTailedHawk", "redEyedVireo", "whiteBreastedNuthatch", "blackNeckedStilt"]],
+        ["cartographer", ["americanRobin", "canadaGoose", "northernFlicker", "westernTanager"]],
+      ];
+      for (const [bonusId, ids] of cases) {
+        const state = createInitialState({ mode: "solo" });
+        const bonus = state.bonusCardsCatalog![bonusId];
+        const slots = state.players.nico.board.forest;
+        const score = (n: number) => {
+          slots.forEach((s, i) => (s.cardId = i < n ? ids[i] : null));
+          return calculateBonusPoints(state.players.nico, state, bonus);
+        };
+        expect(score(1), `${bonusId} 1`).toBe(0);
+        expect(score(2), `${bonusId} 2`).toBe(3);
+        expect(score(3), `${bonusId} 3`).toBe(3);
+        expect(score(4), `${bonusId} 4`).toBe(7);
+      }
+    });
+
+    it("Historiador puntúa 2 PV por ave sin techo", () => {
+      const state = createInitialState({ mode: "solo" });
+      const slots = state.players.nico.board.forest;
+      ["stellersJay", "coopersHawk", "saysPhoebe"].forEach((id, i) => (slots[i].cardId = id));
+      slots[3].cardId = "acornWoodpecker"; // no es homenaje a una persona
+      expect(calculateBonusPoints(state.players.nico, state, state.bonusCardsCatalog!.historian)).toBe(6);
+    });
+  });
 });

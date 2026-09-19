@@ -468,6 +468,13 @@ textarea {
   color: var(--color-text);
 }
 
+.card-bonus-mark {
+  margin-left: 4px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
 .card-scientific {
   font-size: 0.7rem;
   font-style: italic;
