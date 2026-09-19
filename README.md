@@ -70,6 +70,7 @@ npm run preview
 
 - El anfitrión (`nico`) es la única fuente de verdad: valida cada jugada del invitado (`santi`) y le reenvía el estado.
 - Si el invitado recarga la página o pierde la conexión, se reconecta solo (reintenta ~47 s) y recupera su asiento; el anfitrión lo reconoce por un token de sesión.
+- La partida solitaria y la sala del anfitrión se guardan en el navegador tras cada jugada. Si recargas o cierras la pestaña, la pantalla de inicio ofrece **Continuar partida**: la sala se reabre con el mismo código y el invitado se reconecta. Solo se guarda una partida a la vez y se borra al terminar.
 - PeerJS ya incluye un STUN de Google y TURN públicos de peerjs.com. Son compartidos y "best effort": si tus jugadores están tras redes muy restrictivas puedes añadir un TURN propio con la variable `VITE_ICE_SERVERS` (JSON), que se **suma** a los anteriores:
 
 ```bash

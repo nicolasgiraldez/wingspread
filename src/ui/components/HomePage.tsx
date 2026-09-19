@@ -5,14 +5,18 @@ import {
   ChevronRight,
   Feather,
   Globe,
+  History,
   LogIn,
   PlusCircle,
+  Trash2,
   User,
   Users,
 } from "lucide-react";
 import type { AutomaDifficulty } from "../../game";
 import { difficultyLabels } from "../labels";
 import { extractRoomCode, generateRoomCode } from "../network/peerManager";
+import { formatSavedAgo } from "../savedGame";
+import type { SavedGameSummary } from "../savedGame";
 
 export interface HomePageConfig {
   mode: "solo" | "online-host" | "online-join";
@@ -25,11 +29,21 @@ export interface HomePageConfig {
 interface HomePageProps {
   onStart: (config: HomePageConfig) => void;
   defaultJoinCode?: string;
+  /** Partida en curso guardada en el navegador: se ofrece continuarla o descartarla. */
+  savedGame?: SavedGameSummary | null;
+  onResumeSaved?: () => void;
+  onDiscardSaved?: () => void;
 }
 
 type Section = "welcome" | "solo" | "online";
 
-export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "" }) => {
+export const HomePage: React.FC<HomePageProps> = ({
+  onStart,
+  defaultJoinCode = "",
+  savedGame = null,
+  onResumeSaved,
+  onDiscardSaved,
+}) => {
   const [section, setSection] = useState<Section>(defaultJoinCode ? "online" : "welcome");
   const [playerName, setPlayerName] = useState("");
   const [opponentName, setOpponentName] = useState("");
@@ -111,6 +125,37 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "
               </p>
             </div>
           </div>
+
+          {/* Partida guardada: continuar donde se dejó */}
+          {savedGame && onResumeSaved && (
+            <div style={styles.savedCard}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={styles.savedTitle}>
+                  <History size={16} style={{ marginRight: 6 }} />
+                  Partida en curso
+                </div>
+                <div style={styles.savedInfo}>
+                  {savedGame.kind === "solo" ? "Modo solitario" : `Sala ${savedGame.roomCode}`} · Ronda {savedGame.round} ·
+                  guardada {formatSavedAgo(savedGame.savedAt)}
+                </div>
+                {savedGame.kind === "online-host" && (
+                  <div style={styles.savedHint}>
+                    Al continuar se reabre la sala: tu invitado se reconecta solo o con el mismo enlace.
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <button onClick={onResumeSaved} style={styles.savedResume}>
+                  Continuar
+                </button>
+                {onDiscardSaved && (
+                  <button onClick={onDiscardSaved} style={styles.savedDiscard} title="Borrar la partida guardada">
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Player name always first */}
           <div style={styles.nameSection}>
@@ -411,6 +456,44 @@ const styles: Record<string, React.CSSProperties> = {
   },
   nameSection: {
     marginBottom: 24,
+  },
+  savedCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "wrap",
+    padding: 14,
+    marginBottom: 20,
+    background: "rgba(63, 174, 114, 0.1)",
+    border: "1px solid rgba(63, 174, 114, 0.35)",
+    borderRadius: 12,
+  },
+  savedTitle: {
+    display: "flex",
+    alignItems: "center",
+    fontWeight: 700,
+    fontSize: "0.9rem",
+    color: "#3fae72",
+    marginBottom: 2,
+  },
+  savedInfo: {
+    fontSize: "0.82rem",
+    color: "#c3ccc5",
+  },
+  savedHint: {
+    fontSize: "0.75rem",
+    color: "#93a397",
+    marginTop: 4,
+  },
+  savedResume: {
+    background: "#1f7a4f",
+    color: "#ffffff",
+    fontWeight: 700,
+  },
+  savedDiscard: {
+    background: "#212b22",
+    color: "#c3ccc5",
+    padding: "0 10px",
   },
   label: {
     display: "flex",

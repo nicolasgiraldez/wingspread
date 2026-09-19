@@ -50,6 +50,8 @@ import {
   resourceLabels,
 } from "./labels";
 import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./network/hostGame";
+import { clearSavedGame, loadSavedGame, saveGame, summarizeSavedGame } from "./savedGame";
+import type { SavedGame } from "./savedGame";
 import {
   ConnectionStatus,
   networkManager,
@@ -79,6 +81,9 @@ export const App: React.FC = () => {
     { roomCode: string; playerName: string } | null
   >(null);
 
+  // Partida en curso guardada en el navegador (solitaria o sala del anfitrión), para reanudarla.
+  const [savedGame, setSavedGame] = useState<SavedGame | null>(() => loadSavedGame());
+
   const [selectedCardForPlay, setSelectedCardForPlay] = useState<SpeciesCard | null>(null);
   const [selectedHabitat, setSelectedHabitat] = useState<HabitatId>("forest");
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
@@ -100,6 +105,19 @@ export const App: React.FC = () => {
     gameStateRef.current = gameState;
   }, [gameState]);
 
+  // Guarda la partida tras cada cambio para poder continuarla si se recarga la página. El invitado
+  // no guarda nada: el anfitrión es la fuente de verdad y le reenvía el estado al reconectar.
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.phase === "gameEnd") {
+      clearSavedGame();
+    } else if (gameState.gameMode === "solo") {
+      saveGame({ kind: "solo", state: gameState, savedAt: Date.now() });
+    } else if (isHost && roomCode) {
+      saveGame({ kind: "online-host", state: gameState, roomCode, savedAt: Date.now() });
+    }
+  }, [gameState, isHost, roomCode]);
+
   // Cambia el estado y actualiza el ref al instante: el anfitrión procesa mensajes de red que
   // pueden llegar antes de que React re-renderice, y cada uno debe partir del estado más nuevo.
   const commitGameState = (next: GameState) => {
@@ -107,48 +125,18 @@ export const App: React.FC = () => {
     setGameState(next);
   };
 
-  // ── Handle HomePage submission ────────────────────────────────────────────
-  const handleHomeStart = (config: HomePageConfig) => {
-    networkManager.cleanup();
-    setSelectedCardForPlay(null);
+  // ── Crear o reanudar una sala como anfitrión ──────────────────────────────
+  const startHosting = (code: string, state: GameState, resume: boolean) => {
+    commitGameState(state);
+    setLocalPlayerId(HOST_PLAYER_ID);
+    setActiveTab(HOST_PLAYER_ID);
+    setIsHost(true);
+    setRoomCode(code);
+    setConnectionStatus("connecting");
 
-    if (config.mode === "solo") {
-      const customNames: Record<string, string> = {
-        nico: config.playerName,
-        automa: "Automa (IA)",
-      };
-      const state = createInitialState({
-        mode: "solo",
-        automaDifficulty: config.automaDifficulty ?? "normal",
-        playerIds: ["nico", "automa"],
-        customPlayerNames: customNames,
-      });
-      setGameState(state);
-      setLocalPlayerId("nico");
-      setActiveTab("nico");
-      setIsHost(true);
-      setRoomCode("");
-      setConnectionStatus("disconnected");
-
-    } else if (config.mode === "online-host") {
-      const code = config.roomCode!;
-      const customNames: Record<string, string> = {
-        [HOST_PLAYER_ID]: config.playerName,
-        [GUEST_PLAYER_ID]: config.opponentName || "Invitado",
-      };
-      const state = createInitialState({
-        mode: "online",
-        playerIds: [HOST_PLAYER_ID, GUEST_PLAYER_ID],
-        customPlayerNames: customNames,
-      });
-      setGameState(state);
-      setLocalPlayerId(HOST_PLAYER_ID);
-      setActiveTab(HOST_PLAYER_ID);
-      setIsHost(true);
-      setRoomCode(code);
-      setConnectionStatus("connecting");
-
-      networkManager.initHost(code, {
+    networkManager.initHost(
+      code,
+      {
         onStatusChange: (status, message) => {
           setConnectionStatus(status);
           if (message) setConnectionMessage(message);
@@ -185,7 +173,72 @@ export const App: React.FC = () => {
             }
           }
         },
+      },
+      { resume },
+    );
+  };
+
+  // ── Partida guardada ──────────────────────────────────────────────────────
+  const handleResumeSaved = () => {
+    const saved = loadSavedGame();
+    if (!saved) {
+      setSavedGame(null);
+      return;
+    }
+    networkManager.cleanup();
+    setSelectedCardForPlay(null);
+    if (saved.kind === "online-host") {
+      startHosting(saved.roomCode, saved.state, true);
+    } else {
+      commitGameState(saved.state);
+      setLocalPlayerId("nico");
+      setActiveTab("nico");
+      setIsHost(true);
+      setRoomCode("");
+      setConnectionStatus("disconnected");
+    }
+  };
+
+  const handleDiscardSaved = () => {
+    clearSavedGame();
+    setSavedGame(null);
+  };
+
+  // ── Handle HomePage submission ────────────────────────────────────────────
+  const handleHomeStart = (config: HomePageConfig) => {
+    networkManager.cleanup();
+    setSelectedCardForPlay(null);
+
+    if (config.mode === "solo") {
+      const customNames: Record<string, string> = {
+        nico: config.playerName,
+        automa: "Automa (IA)",
+      };
+      const state = createInitialState({
+        mode: "solo",
+        automaDifficulty: config.automaDifficulty ?? "normal",
+        playerIds: ["nico", "automa"],
+        customPlayerNames: customNames,
       });
+      setGameState(state);
+      setLocalPlayerId("nico");
+      setActiveTab("nico");
+      setIsHost(true);
+      setRoomCode("");
+      setConnectionStatus("disconnected");
+
+    } else if (config.mode === "online-host") {
+      const code = config.roomCode!;
+      const customNames: Record<string, string> = {
+        [HOST_PLAYER_ID]: config.playerName,
+        [GUEST_PLAYER_ID]: config.opponentName || "Invitado",
+      };
+      const state = createInitialState({
+        mode: "online",
+        playerIds: [HOST_PLAYER_ID, GUEST_PLAYER_ID],
+        customPlayerNames: customNames,
+      });
+      startHosting(code, state, false);
 
     } else if (config.mode === "online-join") {
       const code = config.roomCode!;
@@ -245,6 +298,7 @@ export const App: React.FC = () => {
   const handleGoHome = () => {
     networkManager.cleanup();
     setGameState(null);
+    setSavedGame(loadSavedGame());
     setConnectionStatus("disconnected");
     setConnectionMessage("");
     setRoomCode("");
@@ -404,7 +458,13 @@ export const App: React.FC = () => {
         />
       );
     }
-    return <HomePage onStart={handleHomeStart} defaultJoinCode={urlJoinCode} />;
+    return <HomePage
+        onStart={handleHomeStart}
+        defaultJoinCode={urlJoinCode}
+        savedGame={savedGame ? summarizeSavedGame(savedGame) : null}
+        onResumeSaved={handleResumeSaved}
+        onDiscardSaved={handleDiscardSaved}
+      />;
   }
 
   const currentPlayer = gameState.players[gameState.currentPlayerId];
