@@ -1813,6 +1813,31 @@ describe("motor de reglas expandido de wingspread", () => {
       expect(next.players.nico.hand).toEqual(["meadowSparrow"]);
     });
 
+    it("el Chivirín Saltapared real permite jugar una segunda ave al jugarlo", () => {
+      const state = createTestState({ mode: "solo" });
+      state.players.nico.hand = ["houseWren", "meadowSparrow"];
+      state.players.nico.resources = { insect: 1, seed: 1 };
+
+      const next = applyMove(state, "nico", {
+        type: "playBird",
+        cardId: "houseWren",
+        habitat: "forest",
+        slotIndex: 0,
+        paidResources: ["insect"],
+        paidEggsFrom: [],
+        powerPlayBirdChoices: {
+          "houseWren.power1": { cardId: "meadowSparrow", habitat: "grassland", paidResources: ["seed"], paidEggsFrom: [] },
+        },
+      });
+
+      expect(next.players.nico.board.forest[0].cardId).toBe("houseWren");
+      expect(next.players.nico.board.grassland[0].cardId).toBe("meadowSparrow");
+      expect(next.players.nico.hand).toEqual([]);
+      expect(next.players.nico.resources).toEqual({ insect: 0, seed: 0 });
+      // Una sola acción gastada: la segunda ave es parte del poder, no otra acción.
+      expect(next.players.nico.actionCubesAvailable).toBe(state.players.nico.actionCubesAvailable - 1);
+    });
+
     it("isLegalMove rechaza (sin lanzar) huevos en un hábitat inexistente", () => {
       const state = createTestState({ mode: "solo" });
       const move = { type: "layEggs", eggPlacements: [{ habitat: "moon", slotIndex: 0 }] } as unknown as Move;

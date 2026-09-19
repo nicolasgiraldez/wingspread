@@ -64,13 +64,10 @@ describe("simulación de partidas completas con jugador aleatorio", () => {
 });
 
 describe("consistencia del catálogo con el motor", () => {
-  // BUG CONOCIDO: el motor solo resuelve "playSecondBird" cuando llega en un movimiento playBird
-  // (Move.powerPlayBirdChoices), es decir, con timing "onPlay". Las 10 cartas reales que lo
-  // tienen lo declaran "onActivate", y gainFood/layEggs/drawBirdCards no pueden llevar la
-  // elección de la segunda ave: hoy esos poderes nunca hacen nada. Cuando se resuelva (cambiando
-  // el dato o cableando el motor y la UI), este test empezará a pasar y `it.fails` avisará
-  // para que lo conviertas en un `it` normal.
-  it.fails("los poderes playSecondBird de las cartas reales son resolubles (timing onPlay)", () => {
+  // En Wingspan "jugar una segunda ave" es un poder blanco (al jugar). El motor solo lo resuelve
+  // dentro de un movimiento playBird (Move.powerPlayBirdChoices), así que con otro timing la carta
+  // parecería tener un poder que nunca se ejecuta.
+  it("los poderes playSecondBird de las cartas reales tienen timing onPlay (los únicos resolubles)", () => {
     const unresolvable = Object.values(speciesCards)
       .filter((card) => card.powers.some((power) => power.kind === "playSecondBird" && power.timing !== "onPlay"))
       .map((card) => card.id);

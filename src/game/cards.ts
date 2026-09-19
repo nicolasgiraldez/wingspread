@@ -1432,7 +1432,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "downyWoodpecker.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["forest"],
       },
@@ -1452,7 +1452,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "easternBluebird.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["grassland"],
       },
@@ -1683,7 +1683,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "greatBlueHeron.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["wetland"],
       },
@@ -1724,7 +1724,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "greatEgret.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["wetland"],
       },
@@ -1919,7 +1919,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "houseWren.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["grassland","forest"],
       },
@@ -2151,7 +2151,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "mountainBluebird.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["grassland"],
       },
@@ -2627,7 +2627,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "redEyedVireo.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["forest"],
       },
@@ -2798,7 +2798,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "rubyCrownedKinglet.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["forest"],
       },
@@ -2883,7 +2883,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "savannahSparrow.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["grassland"],
       },
@@ -3142,7 +3142,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "tuftedTitmouse.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "playSecondBird",
         habitats: ["forest"],
       },
