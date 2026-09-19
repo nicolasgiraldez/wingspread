@@ -49,6 +49,7 @@ import {
   resourceIcons,
   resourceLabels,
 } from "./labels";
+import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./network/hostGame";
 import {
   ConnectionStatus,
   networkManager,
@@ -99,6 +100,13 @@ export const App: React.FC = () => {
     gameStateRef.current = gameState;
   }, [gameState]);
 
+  // Cambia el estado y actualiza el ref al instante: el anfitrión procesa mensajes de red que
+  // pueden llegar antes de que React re-renderice, y cada uno debe partir del estado más nuevo.
+  const commitGameState = (next: GameState) => {
+    gameStateRef.current = next;
+    setGameState(next);
+  };
+
   // ── Handle HomePage submission ────────────────────────────────────────────
   const handleHomeStart = (config: HomePageConfig) => {
     networkManager.cleanup();
@@ -125,17 +133,17 @@ export const App: React.FC = () => {
     } else if (config.mode === "online-host") {
       const code = config.roomCode!;
       const customNames: Record<string, string> = {
-        nico: config.playerName,
-        santi: config.opponentName || "Invitado",
+        [HOST_PLAYER_ID]: config.playerName,
+        [GUEST_PLAYER_ID]: config.opponentName || "Invitado",
       };
       const state = createInitialState({
         mode: "online",
-        playerIds: ["nico", "santi"],
+        playerIds: [HOST_PLAYER_ID, GUEST_PLAYER_ID],
         customPlayerNames: customNames,
       });
       setGameState(state);
-      setLocalPlayerId("nico");
-      setActiveTab("nico");
+      setLocalPlayerId(HOST_PLAYER_ID);
+      setActiveTab(HOST_PLAYER_ID);
       setIsHost(true);
       setRoomCode(code);
       setConnectionStatus("connecting");
@@ -150,28 +158,30 @@ export const App: React.FC = () => {
           }
         },
         onMessage: (msg: NetworkMessage) => {
+          const cur = gameStateRef.current;
+          if (!cur) return;
+
           if (msg.type === "GUEST_JOIN") {
-            // Update guest's display name if provided
-            setGameState((prev) => {
-              if (!prev) return prev;
-              const updated = {
-                ...prev,
-                players: {
-                  ...prev.players,
-                  santi: { ...prev.players.santi, name: msg.guestName || prev.players.santi.name },
-                },
-              };
-              networkManager.sendMessage({ type: "SYNC_STATE", state: updated, roomCode: code });
-              return updated;
-            });
+            // Update guest's display name if provided (viene de la red: se sanea)
+            const guestName = typeof msg.guestName === "string" ? msg.guestName.trim().slice(0, 30) : "";
+            const guest = cur.players[GUEST_PLAYER_ID];
+            const updated: GameState = {
+              ...cur,
+              players: { ...cur.players, [GUEST_PLAYER_ID]: { ...guest, name: guestName || guest.name } },
+            };
+            commitGameState(updated);
+            networkManager.sendMessage({ type: "SYNC_STATE", state: updated, roomCode: code });
           }
           if (msg.type === "APPLY_MOVE") {
-            const cur = gameStateRef.current;
-            if (!cur) return;
-            if (isLegalMove(cur, msg.playerId, msg.move)) {
-              const next = applyMove(cur, msg.playerId, msg.move);
-              setGameState(next);
-              networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode: code });
+            // El jugador lo decide el anfitrión (siempre el invitado), no el mensaje.
+            const result = applyGuestMove(cur, msg.move);
+            if (result.ok) {
+              commitGameState(result.state);
+              networkManager.sendMessage({ type: "SYNC_STATE", state: result.state, roomCode: code });
+            } else {
+              console.warn("Movimiento del invitado rechazado:", result.reason);
+              // Reenvía el estado real para que el invitado corrija cualquier desfase.
+              networkManager.sendMessage({ type: "SYNC_STATE", state: cur, roomCode: code });
             }
           }
         },
@@ -179,8 +189,8 @@ export const App: React.FC = () => {
 
     } else if (config.mode === "online-join") {
       const code = config.roomCode!;
-      setLocalPlayerId("santi");
-      setActiveTab("santi");
+      setLocalPlayerId(GUEST_PLAYER_ID);
+      setActiveTab(GUEST_PLAYER_ID);
       setIsHost(false);
       setRoomCode(code);
       setConnectionStatus("connecting");
@@ -204,7 +214,7 @@ export const App: React.FC = () => {
               ...next,
               players: {
                 ...next.players,
-                santi: { ...next.players.santi, name: config.playerName },
+                [GUEST_PLAYER_ID]: { ...next.players[GUEST_PLAYER_ID], name: config.playerName },
               },
             });
             setPendingOnlineJoin(null);
@@ -255,7 +265,7 @@ export const App: React.FC = () => {
       if (isHost) {
         if (isLegalMove(gameState, localPlayerId, move)) {
           const next = applyMove(gameState, localPlayerId, move);
-          setGameState(next);
+          commitGameState(next);
           networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode });
         }
       } else {
@@ -277,7 +287,7 @@ export const App: React.FC = () => {
       if (isHost) {
         if (isLegalMove(gameState, localPlayerId, move)) {
           const next = applyMove(gameState, localPlayerId, move);
-          setGameState(next);
+          commitGameState(next);
           networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode });
         }
       } else {
