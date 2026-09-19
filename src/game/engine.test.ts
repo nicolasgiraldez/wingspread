@@ -7,6 +7,7 @@ import {
   createInitialState,
   evaluateRoundGoalMetric,
   isLegalMove,
+  resolvePower,
   resolveRoundEnd,
   rollInitialFeeder,
   scorePlayer,
@@ -669,36 +670,118 @@ describe("motor de reglas expandido de wingspread", () => {
   });
 
   describe("poder gainBonusCard", () => {
-    it("revela N cartas de bonificación y conserva la(s) primera(s) por defecto", () => {
-      const state = createTestState({ mode: "solo" });
+    /** Estado con una ave "al jugar" que revela 2 cartas de bonificación (conserva 1). */
+    const withBonusBird = (mode: "solo" | "online" = "solo") => {
+      const state =
+        mode === "solo"
+          ? createTestState({ mode: "solo" })
+          : createTestState({ mode: "online", playerIds: ["nico", "santi"] });
       state.players.nico.hand = ["acornJay"];
       state.players.nico.resources = { seed: 1, fruit: 1 };
+      state.players.nico.bonusCards = [];
       state.cards.acornJay = {
         ...state.cards.acornJay,
-        powers: [
-          { id: "test.bonus", timing: "onPlay", kind: "gainBonusCard", drawCount: 2, keepCount: 1 },
-        ],
+        powers: [{ id: "test.bonus", timing: "onPlay", kind: "gainBonusCard", drawCount: 2, keepCount: 1 }],
       };
       state.bonusDeck = ["forester", "wetlandScientist", "visionaryLeader"];
-      // El setup ya descartó 1 de las 2 cartas repartidas al crear la partida; lo limpiamos para
-      // que la aserción de abajo sobre bonusDiscard sea determinista.
       state.bonusDiscard = [];
-      const bonusCountBefore = state.players.nico.bonusCards.length;
+      return state;
+    };
+    const playBonusBird: Move = {
+      type: "playBird",
+      cardId: "acornJay",
+      habitat: "forest",
+      slotIndex: 0,
+      paidResources: ["seed", "fruit"],
+      paidEggsFrom: [],
+    };
 
-      const move: Move = {
-        type: "playBird",
-        cardId: "acornJay",
+    it("revela las cartas y deja la elección pendiente: el jugador ve cuáles salieron y elige", () => {
+      const state = withBonusBird("online");
+      const cubesBefore = state.players.nico.actionCubesAvailable;
+
+      const next = applyMove(state, "nico", playBonusBird);
+
+      expect(next.players.nico.pendingBonusChoice).toEqual(["forester", "wetlandScientist"]);
+      expect(next.players.nico.bonusCards).toEqual([]);
+      expect(next.bonusDeck).toEqual(["visionaryLeader"]);
+      expect(next.bonusDiscard).toEqual([]);
+      expect(next.players.nico.actionCubesAvailable).toBe(cubesBefore - 1);
+    });
+
+    it("elegir la carta pendiente no gasta acción ni exige ser tu turno, y descarta las demás", () => {
+      const played = applyMove(withBonusBird("online"), "nico", playBonusBird);
+      expect(played.currentPlayerId).toBe("santi");
+      const cubes = played.players.nico.actionCubesAvailable;
+
+      const choose: Move = { type: "chooseBonusCard", bonusCardId: "wetlandScientist" };
+      expect(isLegalMove(played, "nico", choose)).toBe(true);
+      const next = applyMove(played, "nico", choose);
+
+      expect(next.players.nico.bonusCards.map((b) => b.id)).toEqual(["wetlandScientist"]);
+      expect(next.players.nico.pendingBonusChoice).toBeUndefined();
+      expect(next.bonusDiscard).toEqual(["forester"]);
+      expect(next.players.nico.actionCubesAvailable).toBe(cubes);
+      expect(next.currentPlayerId).toBe("santi");
+      expect(next.phase).toBe("round");
+    });
+
+    it("no deja elegir una carta que no se ofreció, ni a quien no tiene nada pendiente", () => {
+      const played = applyMove(withBonusBird("online"), "nico", playBonusBird);
+      expect(isLegalMove(played, "nico", { type: "chooseBonusCard", bonusCardId: "visionaryLeader" })).toBe(false);
+      expect(isLegalMove(played, "santi", { type: "chooseBonusCard", bonusCardId: "forester" })).toBe(false);
+    });
+
+    it("con una carta de bonificación por elegir no se puede hacer otra acción", () => {
+      const state = withBonusBird();
+      const played = applyMove(state, "nico", playBonusBird);
+      expect(played.currentPlayerId).toBe("nico"); // el Automa ya jugó su turno
+
+      expect(isLegalMove(played, "nico", { type: "gainFood", dieIndexes: [0] })).toBe(false);
+      expect(isLegalMove(played, "nico", { type: "rerollFeeder" })).toBe(false);
+      expect(isLegalMove(played, "nico", { type: "chooseBonusCard", bonusCardId: "forester" })).toBe(true);
+    });
+
+    it("si ya hay una oferta pendiente, un segundo poder resuelve solo: se queda con la primera", () => {
+      const state = withBonusBird();
+      const player = state.players.nico;
+      player.pendingBonusChoice = ["forester", "wetlandScientist"];
+      state.bonusDeck = ["prairieManager", "anatomist", "historian"];
+
+      resolvePower(state, player, { id: "test.bonus2", timing: "onPlay", kind: "gainBonusCard", drawCount: 2, keepCount: 1 }, {
         habitat: "forest",
         slotIndex: 0,
-        paidResources: ["seed", "fruit"],
-        paidEggsFrom: [],
-      };
-      const next = applyMove(state, "nico", move);
+      });
 
-      expect(next.players.nico.bonusCards.length).toBe(bonusCountBefore + 1);
-      expect(next.players.nico.bonusCards.map((b) => b.id)).toContain("forester");
-      expect(next.bonusDeck).toEqual(["visionaryLeader"]);
-      expect(next.bonusDiscard).toEqual(["wetlandScientist"]);
+      expect(player.pendingBonusChoice).toEqual(["forester", "wetlandScientist"]);
+      expect(player.bonusCards.map((b) => b.id)).toEqual(["prairieManager"]);
+      expect(state.bonusDiscard).toEqual(["anatomist"]);
+    });
+
+    it("si solo queda 1 carta de bonificación no hay nada que elegir y se la queda", () => {
+      const state = withBonusBird();
+      state.bonusDeck = ["forester"];
+      const next = applyMove(state, "nico", playBonusBird);
+
+      expect(next.players.nico.pendingBonusChoice).toBeUndefined();
+      expect(next.players.nico.bonusCards.map((b) => b.id)).toEqual(["forester"]);
+    });
+
+    it("tras la última acción de la partida se puede elegir y el conteo final la incluye", () => {
+      const state = withBonusBird("online");
+      state.round = 4;
+      state.players.nico.actionCubesAvailable = 1;
+      state.players.santi.actionCubesAvailable = 0;
+
+      const ended = applyMove(state, "nico", playBonusBird);
+      expect(ended.phase).toBe("gameEnd");
+      expect(ended.players.nico.pendingBonusChoice).toEqual(["forester", "wetlandScientist"]);
+
+      const choose: Move = { type: "chooseBonusCard", bonusCardId: "forester" };
+      expect(isLegalMove(ended, "nico", choose)).toBe(true);
+      const final = applyMove(ended, "nico", choose);
+      expect(final.players.nico.bonusCards.map((b) => b.id)).toEqual(["forester"]);
+      expect(final.players.nico.pendingBonusChoice).toBeUndefined();
     });
 
     it("respeta la elección del jugador sobre cuál carta de bonificación conservar", () => {

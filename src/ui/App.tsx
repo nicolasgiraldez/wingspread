@@ -57,6 +57,11 @@ import {
   networkManager,
 } from "./network/peerManager";
 
+/** Jugadores con una carta de bonificación por elegir (al inicio o tras un poder de ave). */
+function playersChoosingBonus(state: GameState): PlayerId[] {
+  return state.playerOrder.filter((id) => (state.players[id]?.pendingBonusChoice?.length ?? 0) > 0);
+}
+
 // Helper: get display name from game state
 function getDisplayName(state: GameState, playerId: PlayerId): string {
   return state.players[playerId]?.name || playerId;
@@ -988,21 +993,41 @@ export const App: React.FC = () => {
         />
       )}
 
-      {gameState.phase === "setup" && gameState.players[localPlayerId] && (
-        <ChooseBonusCardModal
-          playerName={getDisplayName(gameState, localPlayerId)}
-          options={
-            (gameState.players[localPlayerId].pendingBonusChoice ?? [])
-              .map((id) => gameState.bonusCardsCatalog?.[id])
-              .filter((b): b is BonusCard => !!b)
-          }
-          onChoose={(bonusCardId) => executeSetupMove({ type: "chooseBonusCard", bonusCardId })}
-        />
-      )}
+      {/* Elección de bonificación: al inicio (fase setup) o tras un poder que revela cartas. */}
+      {gameState.players[localPlayerId] &&
+        (gameState.phase === "setup" || playersChoosingBonus(gameState).includes(localPlayerId)) && (
+          <ChooseBonusCardModal
+            playerName={getDisplayName(gameState, localPlayerId)}
+            options={
+              (gameState.players[localPlayerId].pendingBonusChoice ?? [])
+                .map((id) => gameState.bonusCardsCatalog?.[id])
+                .filter((b): b is BonusCard => !!b)
+            }
+            onChoose={(bonusCardId) => executeSetupMove({ type: "chooseBonusCard", bonusCardId })}
+            initial={gameState.phase === "setup"}
+          />
+        )}
 
-      {gameState.phase === "gameEnd" && (
-        <GameOverModal gameState={gameState} onRestart={handleGoHome} />
-      )}
+      {/* El resultado final espera a que se resuelvan las bonificaciones que quedaron por elegir. */}
+      {gameState.phase === "gameEnd" &&
+        (playersChoosingBonus(gameState).length === 0 ? (
+          <GameOverModal gameState={gameState} onRestart={handleGoHome} />
+        ) : (
+          !playersChoosingBonus(gameState).includes(localPlayerId) && (
+            <ChooseBonusCardModal
+              playerName=""
+              options={[]}
+              onChoose={() => {}}
+              initial={false}
+              waiting={{
+                title: "Conteo final en pausa",
+                text: `Esperando a que ${playersChoosingBonus(gameState)
+                  .map((id) => getDisplayName(gameState, id))
+                  .join(" y ")} elija su carta de bonificación...`,
+              }}
+            />
+          )
+        ))}
     </div>
   );
 };

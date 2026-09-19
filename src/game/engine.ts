@@ -179,17 +179,14 @@ export function isLegalMove(state: GameState, playerId: string, move: Move): boo
 
   if (move.type === "chooseBonusCard") {
     const player = state.players[playerId];
-    return (
-      state.phase === "setup" &&
-      !!player &&
-      !player.isAutoma &&
-      !!player.pendingBonusChoice?.includes(move.bonusCardId)
-    );
+    return !!player && !player.isAutoma && !!player.pendingBonusChoice?.includes(move.bonusCardId);
   }
 
   if (state.phase !== "round" || state.currentPlayerId !== playerId) return false;
   const player = state.players[playerId];
   if (!player || player.actionCubesAvailable <= 0 || player.isAutoma) return false;
+  // Con una carta de bonificación por elegir no se puede hacer otra cosa hasta resolverla.
+  if (player.pendingBonusChoice?.length) return false;
 
   if (move.type === "rerollFeeder") {
     return canRerollFeeder(state.feeder);
@@ -342,8 +339,9 @@ export function applyMove(state: GameState, playerId: string, move: Move): GameS
 }
 
 /**
- * Resuelve la elección de carta de bonificación inicial: conserva la elegida, descarta la otra
- * ofrecida, y arranca la Ronda 1 (fase "round") una vez que todos los jugadores humanos eligieron.
+ * Resuelve la elección de una carta de bonificación ofrecida: conserva la elegida y descarta las
+ * demás. Si era la elección inicial, arranca la Ronda 1 (fase "round") cuando todos los jugadores
+ * humanos ya eligieron.
  */
 function resolveBonusCardChoice(state: GameState, player: PlayerState, chosenId: string) {
   const offered = player.pendingBonusChoice ?? [];
@@ -355,7 +353,10 @@ function resolveBonusCardChoice(state: GameState, player: PlayerState, chosenId:
 
   state.log.push({
     playerId: player.id,
-    message: `Eligió su carta de bonificación inicial: [${chosen?.name ?? chosenId}].`,
+    message:
+      state.phase === "setup"
+        ? `Eligió su carta de bonificación inicial: [${chosen?.name ?? chosenId}].`
+        : `Conservó la carta de bonificación [${chosen?.name ?? chosenId}] y descartó ${discarded.length === 1 ? "la otra" : "las otras"}.`,
   });
 
   const stillPending = Object.values(state.players).some(
@@ -1121,11 +1122,23 @@ export function resolvePower(
       if (bonusId) drawn.push(bonusId);
     }
 
-    // El jugador elige cuál conservar vía cardChoices (misma clave power.id que en
-    // descartes/solapados); si no eligió (o el drawn ya no la contiene), se queda con
-    // la(s) primera(s) `keepCount` reveladas por defecto.
+    // Se ve qué cartas salieron y el jugador elige cuál conservar: quedan como oferta pendiente
+    // (ver PlayerState.pendingBonusChoice) y se resuelven con un movimiento chooseBonusCard.
+    // Solo se pregunta si hay algo que elegir y nada más pendiente; si no (o si de antemano se
+    // indicó una carta por cardChoices y salió), se resuelve sola con la elegida o las primeras.
     const chosenId = cardChoices?.[power.id];
-    const kept = chosenId && drawn.includes(chosenId) ? [chosenId] : drawn.slice(0, power.keepCount);
+    const preChosen = !!chosenId && drawn.includes(chosenId);
+    const canAsk =
+      !preChosen && !player.isAutoma && power.keepCount === 1 && drawn.length > 1 && !player.pendingBonusChoice?.length;
+    if (canAsk) {
+      player.pendingBonusChoice = drawn;
+      state.log.push({
+        playerId: player.id,
+        message: `Poder de [${birdName}]: reveló ${drawn.length} cartas de bonificación y debe elegir una.`,
+      });
+      return;
+    }
+    const kept = preChosen ? [chosenId] : drawn.slice(0, power.keepCount);
     const discarded = drawn.filter((id) => !kept.includes(id));
 
     for (const id of kept) {

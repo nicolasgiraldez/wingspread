@@ -296,8 +296,10 @@ export type PlayerState = {
   /** IDs de poderes "entre turnos" (rosa) ya activados desde el último turno propio de este jugador. */
   pinkPowersUsed?: string[];
   /**
-   * IDs de las 2 cartas de bonificación repartidas al inicio de la partida, entre las que el
-   * jugador debe elegir 1 para conservar (la otra se descarta). undefined una vez resuelto.
+   * Cartas de bonificación ofrecidas al jugador, de las que debe elegir 1 para conservar (las
+   * demás se descartan). Se ofrecen 2 al inicio de la partida y también cuando un poder de ave
+   * "roba 2 cartas de bonificación y conserva 1". Mientras haya una oferta pendiente el jugador
+   * no puede hacer otra cosa; elegir no gasta acción ni exige ser su turno. undefined si no hay.
    */
   pendingBonusChoice?: string[];
 };

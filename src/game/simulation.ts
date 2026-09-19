@@ -315,24 +315,23 @@ function randomDrawBirdCards(state: GameState, player: PlayerState): Move | null
   return { type: "drawBirdCards", draws, tradeEggFrom, ...buildPowerChoices(state, player, powers) };
 }
 
-/** Quién debe mover ahora: en "setup" el primer humano que aún no eligió su carta de bonificación. */
+/**
+ * Quién debe mover ahora: primero quien tenga una carta de bonificación por elegir (al inicio o
+ * tras un poder; no exige turno ni gasta acción) y si no, el jugador del turno.
+ */
 export function nextActor(state: GameState): PlayerId | null {
-  if (state.phase === "setup") {
-    return (
-      state.playerOrder.find((id) => (state.players[id].pendingBonusChoice?.length ?? 0) > 0 && !state.players[id].isAutoma) ??
-      null
-    );
-  }
+  const choosing = state.playerOrder.find(
+    (id) => (state.players[id].pendingBonusChoice?.length ?? 0) > 0 && !state.players[id].isAutoma,
+  );
+  if (choosing) return choosing;
   return state.phase === "round" ? state.currentPlayerId : null;
 }
 
 /** Un movimiento válido elegido al azar entre todas las acciones que el jugador puede hacer. */
 export function randomMove(state: GameState, playerId: PlayerId): Move | null {
   const player = state.players[playerId];
-  if (state.phase === "setup") {
-    const offered = player.pendingBonusChoice;
-    return offered && offered.length > 0 ? { type: "chooseBonusCard", bonusCardId: pick(offered) } : null;
-  }
+  if (player.pendingBonusChoice?.length) return { type: "chooseBonusCard", bonusCardId: pick(player.pendingBonusChoice) };
+  if (state.phase === "setup") return null;
 
   const candidates: Move[] = [randomGainFood(state, player)];
   const playBird = randomPlayBird(state, player);
@@ -577,7 +576,8 @@ export function playGame({ seed, mode, difficulty = "normal", deckSize }: Simula
     const report = (message: string) => problems.push(`[${mode} semilla ${seed}, paso ${steps}] ${message}`);
     checkInvariants(state).forEach(report);
 
-    while (state.phase !== "gameEnd" && problems.length === 0) {
+    // Tras la última acción puede quedar una carta de bonificación por elegir: se juega hasta resolverla.
+    while ((state.phase !== "gameEnd" || nextActor(state) !== null) && problems.length === 0) {
       steps += 1;
       if (steps > MAX_STEPS) {
         report(`la partida no termina tras ${MAX_STEPS} movimientos`);
