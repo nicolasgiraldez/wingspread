@@ -60,7 +60,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
       {/* Top Bar: Habitats & Points & Nest & Wingspan */}
       <div className="card-top-bar">
         {/* Habitats with Icons */}
-        <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap" }}>
           {card.habitats.map((hab) => (
             <span
               key={hab}
