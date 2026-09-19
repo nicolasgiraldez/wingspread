@@ -1358,6 +1358,24 @@ export function evaluateRoundGoalMetric(
     }
     return total;
   }
+  if (goal.type === "birdsWithEggsInNests" || goal.type === "eggsInNests") {
+    let birds = 0;
+    let eggs = 0;
+    for (const row of Object.values(player.board)) {
+      for (const slot of row) {
+        if (!slot.cardId) continue;
+        const card = state.cards[slot.cardId];
+        if (!card || !matchesNestType(card.nestType, goal.nestType)) continue;
+        eggs += slot.eggs;
+        if (slot.eggs > 0) birds += 1;
+      }
+    }
+    return goal.type === "birdsWithEggsInNests" ? birds : eggs;
+  }
+  if (goal.type === "eggSets") {
+    const eggsIn = (habitat: HabitatId) => player.board[habitat].reduce((sum, slot) => sum + slot.eggs, 0);
+    return Math.min(eggsIn("forest"), eggsIn("grassland"), eggsIn("wetland"));
+  }
   if (goal.type === "cachedFood") {
     let total = 0;
     for (const row of Object.values(player.board)) {

@@ -499,6 +499,11 @@ export function checkInvariants(state: GameState): string[] {
   if (state.feeder.some((face) => !validDieFaces.has(face))) errors.push(`comedero con caras inválidas: ${state.feeder.join(",")}`);
   if (state.market.length > 3) errors.push(`el mercado tiene ${state.market.length} cartas`);
 
+  // Objetivos de ronda: 4 distintos, uno por ronda.
+  if (state.roundGoals.length !== 4 || new Set(state.roundGoals.map((goal) => goal.id)).size !== 4) {
+    errors.push(`objetivos de ronda inválidos: ${state.roundGoals.map((goal) => goal.id).join(",")}`);
+  }
+
   // Turnos.
   if (state.phase === "round") {
     const current = state.players[state.currentPlayerId];

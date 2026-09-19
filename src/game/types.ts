@@ -272,6 +272,12 @@ export type RoundGoalType =
   | "totalEggs"
   | "totalBirds"
   | "birdsInNests"
+  /** Aves con nido `nestType` (o comodín) que tienen AL MENOS 1 huevo. */
+  | "birdsWithEggsInNests"
+  /** Total de huevos sobre aves con nido `nestType` (o comodín). */
+  | "eggsInNests"
+  /** Conjuntos de huevos: cada conjunto es 1 huevo en el bosque, 1 en la pradera y 1 en el río. */
+  | "eggSets"
   | "cachedFood";
 
 export type RoundGoal = {

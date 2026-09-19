@@ -31,7 +31,8 @@ Juego web interactivo de construcción de motor ecológico inspirado en **Wingsp
   - Regla de sustitución de recursos 2:1 y costes de alimento comodín (`wild`).
   - Filas de hábitat con beneficios progresivos por columna (Bosque, Pradera, Río) y costes en huevos.
   - Poderes de aves: almacenamiento de comida (*cache*), solapamiento (*tuck*), depredadores/caza (*predator*) y beneficios colectivos.
-  - Objetivos de fin de ronda con puntuación y cartas de bonificación personal (incluidas las de categoría por nombre, con marca en las aves que cuentan).
+  - Objetivos de fin de ronda: en cada partida se sortean 4 de los 16 del juego base (aves y huevos por hábitat, aves y huevos por tipo de nido, conjuntos de huevos, aves totales), con puntuación por posición.
+  - Cartas de bonificación personal (26 del juego base, incluidas las de categoría por nombre, con marca en las aves que cuentan); las que se roban con un poder se eligen viendo las cartas reveladas.
 - **Interfaz Web Interactiva**:
   - Tablero temático con fichas de huevos, comida almacenada y cartas solapadas.
   - Comedero interactivo de dados y mercado de aves con mazo.

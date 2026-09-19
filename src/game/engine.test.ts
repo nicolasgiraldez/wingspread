@@ -9,7 +9,9 @@ import {
   isLegalMove,
   resolvePower,
   resolveRoundEnd,
+  pickRoundGoals,
   rollInitialFeeder,
+  roundGoalPool,
   scorePlayer,
   scorePlayerDetails,
   shuffle,
@@ -318,6 +320,8 @@ describe("motor de reglas expandido de wingspread", () => {
 
   it("evalúa y puntúa los objetivos de fin de ronda y reinicia cubos de acción", () => {
     const state = createTestState(["nico", "santi"]);
+    // Los objetivos se sortean en cada partida: este test fija el de la ronda 1.
+    state.roundGoals[0] = roundGoalPool.find((goal) => goal.id === "eggsInGrassland")!;
     state.players.nico.board.grassland[0].cardId = "meadowSparrow";
     state.players.nico.board.grassland[0].eggs = 3;
     state.players.santi.board.grassland[0].cardId = "cliffSwallow";
@@ -2109,6 +2113,102 @@ describe("motor de reglas expandido de wingspread", () => {
         { costAnyOf: ["fruit", "seed"] },
       ]);
       expect(points(fruit, "viticulturalist")).toBe(7);
+    });
+  });
+
+  describe("objetivos de fin de ronda (los 16 del juego base, 4 por partida)", () => {
+    const goal = (id: string) => roundGoalPool.find((g) => g.id === id)!;
+    const boardWith = (slots: { habitat: "forest" | "grassland" | "wetland"; card: string; eggs: number }[]) => {
+      const state = createTestState({ mode: "solo" });
+      slots.forEach((slot) => {
+        const column = state.players.nico.board[slot.habitat].findIndex((s) => s.cardId === null);
+        state.players.nico.board[slot.habitat][column].cardId = slot.card;
+        state.players.nico.board[slot.habitat][column].eggs = slot.eggs;
+      });
+      return state;
+    };
+    const metric = (state: ReturnType<typeof createTestState>, id: string) =>
+      evaluateRoundGoalMetric(state.players.nico, state, goal(id));
+
+    it("el conjunto de objetivos tiene los 16 del juego base, todos distintos", () => {
+      expect(roundGoalPool).toHaveLength(16);
+      expect(new Set(roundGoalPool.map((g) => g.id)).size).toBe(16);
+      const byType = (type: string) => roundGoalPool.filter((g) => g.type === type).length;
+      expect(byType("birdsInHabitat")).toBe(3);
+      expect(byType("eggsInHabitat")).toBe(3);
+      expect(byType("birdsWithEggsInNests")).toBe(4);
+      expect(byType("eggsInNests")).toBe(4);
+      expect(byType("eggSets")).toBe(1);
+      expect(byType("totalBirds")).toBe(1);
+    });
+
+    it("cada partida sortea 4 objetivos distintos y distintas partidas no repiten siempre los mismos", () => {
+      const seen = new Set<string>();
+      for (let i = 0; i < 30; i += 1) {
+        const goals = createInitialState({ mode: "solo" }).roundGoals;
+        expect(goals).toHaveLength(4);
+        expect(new Set(goals.map((g) => g.id)).size).toBe(4);
+        seen.add(goals.map((g) => g.id).join());
+      }
+      expect(seen.size).toBeGreaterThan(5);
+      expect(pickRoundGoals(2)).toHaveLength(2);
+    });
+
+    it("se pueden fijar los objetivos al crear la partida", () => {
+      const fixed = [goal("eggSets"), goal("totalBirds"), goal("birdsInForest"), goal("eggsInWetland")];
+      expect(createInitialState({ mode: "solo", roundGoals: fixed }).roundGoals).toEqual(fixed);
+    });
+
+    it("aves con nido X y huevos: solo cuentan las que tienen al menos 1 huevo, y el nido comodín vale", () => {
+      const state = boardWith([
+        { habitat: "forest", card: "orchardFinch", eggs: 2 }, // nido de copa, con huevos
+        { habitat: "forest", card: "acornJay", eggs: 0 }, // sin huevos: no cuenta
+        { habitat: "grassland", card: "meadowSparrow", eggs: 1 }, // nido de copa, con huevo
+      ]);
+      state.cards.acornJay = { ...state.cards.acornJay, nestType: "bowl" };
+      expect(metric(state, "bowlNestsWithEggs")).toBe(2);
+      expect(metric(state, "cavityNestsWithEggs")).toBe(0);
+
+      state.cards.meadowSparrow = { ...state.cards.meadowSparrow, nestType: "wild" };
+      expect(metric(state, "cavityNestsWithEggs")).toBe(1); // el comodín cuenta como cavidad
+    });
+
+    it("huevos en nidos X: suma todos los huevos de las aves con ese nido", () => {
+      const state = boardWith([
+        { habitat: "forest", card: "orchardFinch", eggs: 3 },
+        { habitat: "grassland", card: "meadowSparrow", eggs: 2 },
+        { habitat: "wetland", card: "riverHeron", eggs: 2 }, // nido de plataforma
+      ]);
+      expect(metric(state, "eggsInBowlNests")).toBe(5);
+      expect(metric(state, "eggsInPlatformNests")).toBe(2);
+      expect(metric(state, "eggsInGroundNests")).toBe(0);
+    });
+
+    it("conjuntos de huevos: 1 huevo en cada hábitat por conjunto (mínimo de las tres filas)", () => {
+      const state = boardWith([
+        { habitat: "forest", card: "orchardFinch", eggs: 3 },
+        { habitat: "grassland", card: "meadowSparrow", eggs: 2 },
+      ]);
+      expect(metric(state, "eggSets")).toBe(0); // falta el río
+      const column = state.players.nico.board.wetland.findIndex((s) => s.cardId === null);
+      state.players.nico.board.wetland[column].cardId = "riverHeron";
+      state.players.nico.board.wetland[column].eggs = 1;
+      expect(metric(state, "eggSets")).toBe(1);
+      state.players.nico.board.wetland[column].eggs = 2;
+      expect(metric(state, "eggSets")).toBe(2);
+    });
+
+    it("aves por hábitat, huevos por hábitat y aves totales", () => {
+      const state = boardWith([
+        { habitat: "forest", card: "orchardFinch", eggs: 1 },
+        { habitat: "forest", card: "acornJay", eggs: 2 },
+        { habitat: "wetland", card: "riverHeron", eggs: 0 },
+      ]);
+      expect(metric(state, "birdsInForest")).toBe(2);
+      expect(metric(state, "birdsInWetland")).toBe(1);
+      expect(metric(state, "birdsInGrassland")).toBe(0);
+      expect(metric(state, "eggsInForest")).toBe(3);
+      expect(metric(state, "totalBirds")).toBe(3);
     });
   });
 });
