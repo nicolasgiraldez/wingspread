@@ -125,7 +125,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "americanGoldfinch.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainResource",
         resource: "seed",
         amount: 3,
@@ -164,11 +164,19 @@ export const speciesCards: Record<string, SpeciesCard> = {
     wingspanCm: 81,
     nameTags: ["geographic"],
     powers: [
+      // Oficial: "roba jugadores+1 cartas; cada jugador elige 1 y tú te quedas la sobrante".
+      // Equivale a que todos roben 1 y tú robes 1 más (no se modela la elección entre las reveladas).
       {
         id: "americanOystercatcher.power1",
-        timing: "onActivate",
+        timing: "onPlay",
+        kind: "allPlayersGain",
+        benefitType: "card",
+      },
+      {
+        id: "americanOystercatcher.power2",
+        timing: "onPlay",
         kind: "drawCard",
-        amount: 2,
+        amount: 1,
       },
     ],
   },
@@ -283,7 +291,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "ashThroatedFlycatcher.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "layEgg",
         amount: 1,
         target: "eachNestType",
@@ -305,7 +313,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "atlanticPuffin.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -346,7 +354,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "baldEagle.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainResource",
         resource: "fish",
         amount: 1,
@@ -471,7 +479,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "bellsVireo.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -664,7 +672,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "blackNeckedStilt.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "drawCard",
         amount: 2,
       },
@@ -758,7 +766,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "bobolink.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "layEgg",
         amount: 1,
         target: "eachNestType",
@@ -823,7 +831,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "brownPelican.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainResource",
         resource: "fish",
         amount: 3,
@@ -905,7 +913,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "californiaCondor.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -994,7 +1002,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "carolinaWren.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "drawCard",
         amount: 2,
       },
@@ -1014,7 +1022,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "cassinsFinch.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -1077,7 +1085,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "ceruleanWarbler.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -1098,7 +1106,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "chestnutCollaredLongspur.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -1763,7 +1771,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "greaterPrairieChicken.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -1939,7 +1947,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "incaDove.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "layEgg",
         amount: 1,
         target: "eachNestType",
@@ -2025,7 +2033,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "kingRail.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -2257,7 +2265,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "northernFlicker.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainResource",
         resource: "insect",
         amount: 1,
@@ -2358,7 +2366,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "paintedBunting.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -2606,7 +2614,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "redCockadedWoodpecker.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -2618,7 +2626,8 @@ export const speciesCards: Record<string, SpeciesCard> = {
     name: "Vireo Ojirrojo",
     scientificName: "Vireo olivaceus",
     habitats: ["forest"],
-    cost: { insect: 1, fruit: 1 },
+    cost: {},
+    costAnyOf: ["insect", "fruit"],
     points: 3,
     eggCapacity: 2,
     nestType: "wild",
@@ -2776,7 +2785,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "roseateSpoonbill.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -2903,7 +2912,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "saysPhoebe.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "layEgg",
         amount: 1,
         target: "eachNestType",
@@ -2985,7 +2994,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "spottedOwl.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -3046,7 +3055,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "spraguesPipit.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -3312,7 +3321,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "whoopingCrane.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -3404,7 +3413,7 @@ export const speciesCards: Record<string, SpeciesCard> = {
     powers: [
       {
         id: "woodStork.power1",
-        timing: "onActivate",
+        timing: "onPlay",
         kind: "gainBonusCard",
         drawCount: 2,
         keepCount: 1,
@@ -3686,5 +3695,57 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
     description: "Cartas de ave que quedan en tu mano al final de la partida.",
     conditionType: "cardsInHand",
     tiers: [{ threshold: 5, points: 4 }, { threshold: 8, points: 7 }],
+  },
+  birdFeeder: {
+    id: "birdFeeder",
+    name: "Comedero de Aves",
+    description: "Aves que comen semillas.",
+    conditionType: "birdsWithFoodCost",
+    resourceCost: "seed",
+    tiers: [{ threshold: 5, points: 3 }, { threshold: 8, points: 7 }],
+  },
+  fisheryManager: {
+    id: "fisheryManager",
+    name: "Gestor de Pesquerías",
+    description: "Aves que comen peces.",
+    conditionType: "birdsWithFoodCost",
+    resourceCost: "fish",
+    tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 8 }],
+  },
+  foodWebExpert: {
+    id: "foodWebExpert",
+    name: "Experto en Cadenas Alimentarias",
+    description: "Aves que comen únicamente invertebrados.",
+    conditionType: "birdsWithFoodCost",
+    resourceCost: "insect",
+    onlyResourceCost: true,
+    scoringMode: "perBird",
+    pointsPerBird: 2,
+  },
+  omnivoreSpecialist: {
+    id: "omnivoreSpecialist",
+    name: "Especialista en Omnívoros",
+    description: "Aves que comen cualquier alimento (costo comodín).",
+    conditionType: "birdsWithFoodCost",
+    resourceCost: "wild",
+    scoringMode: "perBird",
+    pointsPerBird: 2,
+  },
+  rodentologist: {
+    id: "rodentologist",
+    name: "Rodentólogo",
+    description: "Aves que comen roedores.",
+    conditionType: "birdsWithFoodCost",
+    resourceCost: "rodent",
+    scoringMode: "perBird",
+    pointsPerBird: 2,
+  },
+  viticulturalist: {
+    id: "viticulturalist",
+    name: "Viticultor",
+    description: "Aves que comen frutas.",
+    conditionType: "birdsWithFoodCost",
+    resourceCost: "fruit",
+    tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],
   },
 };

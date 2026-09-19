@@ -7,6 +7,23 @@ export const anyFoodOptions: { id: string; name: string }[] = (
   ["insect", "seed", "fruit", "fish", "rodent"] as const
 ).map((food) => ({ id: food, name: `${resourceIcons[food]} ${resourceLabels[food]}` }));
 
+/** Opciones "pagado>recibido" para el poder que cambia 1 alimento por otro (costo comodín). */
+export function tradeOptions(player: PlayerState): { id: string; name: string }[] {
+  const foods = ["insect", "seed", "fruit", "fish", "rodent"] as const;
+  const options: { id: string; name: string }[] = [];
+  for (const pay of foods) {
+    if ((player.resources[pay] ?? 0) < 1) continue;
+    for (const gain of foods) {
+      if (gain === pay) continue;
+      options.push({
+        id: `${pay}>${gain}`,
+        name: `${resourceIcons[pay]} → ${resourceIcons[gain]} (${resourceLabels[pay]} por ${resourceLabels[gain]})`,
+      });
+    }
+  }
+  return options;
+}
+
 /** Codifica un SlotRef como string para usarlo de value en un <select>. */
 export function encodeSlotKey(ref: SlotRef): string {
   return `${ref.habitat}:${ref.slotIndex}`;

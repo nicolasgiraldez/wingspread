@@ -8,6 +8,7 @@ import {
   anyFoodOptions,
   buildRepeatPowerOptions,
   decodeSlotKey,
+  tradeOptions,
 } from "./powerOptions";
 import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 import { habitatLabels } from "../labels";
@@ -104,6 +105,20 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
             return next;
           }),
         defaultOptionLabel: "Insecto (por defecto)",
+      };
+    } else if (power.kind === "tradeResource" && power.costResource === "wild") {
+      cardChoice = {
+        label: "¿Qué alimento cambias y por cuál? (opcional)",
+        options: tradeOptions(player),
+        selected: choices[power.id] ?? null,
+        onSelect: (id) =>
+          setChoices((prev) => {
+            const next = { ...prev };
+            if (id) next[power.id] = id;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Automático (cambia el que más tengas)",
       };
     }
 

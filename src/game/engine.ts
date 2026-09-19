@@ -1102,12 +1102,13 @@ export function resolvePower(
   }
 
   if (power.kind === "tradeResource") {
-    if ((player.resources[power.costResource] ?? 0) >= 1) {
-      player.resources[power.costResource] = (player.resources[power.costResource] ?? 1) - 1;
-      player.resources[power.gainResource] = (player.resources[power.gainResource] ?? 0) + (power.amount ?? 1);
+    const trade = resolveTrade(player, power, cardChoices?.[power.id]);
+    if (trade) {
+      player.resources[trade.pay] = (player.resources[trade.pay] ?? 1) - 1;
+      player.resources[trade.gain] = (player.resources[trade.gain] ?? 0) + (power.amount ?? 1);
       state.log.push({
         playerId: player.id,
-        message: `Poder de [${birdName}]: cambió 1 ${power.costResource} por ${power.amount ?? 1} ${power.gainResource}.`,
+        message: `Poder de [${birdName}]: cambió 1 ${trade.pay} por ${power.amount ?? 1} ${trade.gain}.`,
       });
     }
     return;
@@ -1447,6 +1448,16 @@ function advanceTurn(state: GameState) {
   }
 }
 
+/**
+ * ¿El ave "come" este alimento? Cuenta los alimentos del costo fijo, los del costo "o"
+ * (costAnyOf) y el comodín. Con `only`, además no puede comer ningún otro alimento.
+ */
+function eatsResource(card: SpeciesCard, resource: ResourceFace, only = false): boolean {
+  const eaten = new Set<ResourceFace>(card.costAnyOf ?? []);
+  for (const [res, amount] of Object.entries(card.cost)) if ((amount ?? 0) > 0) eaten.add(res as ResourceFace);
+  return eaten.has(resource) && (!only || eaten.size === 1);
+}
+
 /** Rango numérico inclusivo; un extremo ausente no restringe ese lado. */
 function withinRange(value: number | undefined, min: number | undefined, max: number | undefined): boolean {
   if (value === undefined) return false;
@@ -1493,7 +1504,7 @@ function countBonusQualifyingUnits(player: PlayerState, state: GameState, bonus:
           }
           break;
         case "birdsWithFoodCost":
-          if (bonus.resourceCost && (card.cost[bonus.resourceCost] ?? 0) > 0) count += 1;
+          if (bonus.resourceCost && eatsResource(card, bonus.resourceCost, bonus.onlyResourceCost)) count += 1;
           break;
         case "birdsWithNest":
           if (bonus.nestType && (card.nestType === bonus.nestType || card.nestType === "wild")) count += 1;
@@ -1643,6 +1654,32 @@ function takeCardFromHand(player: PlayerState, preferredId?: CardId): CardId | u
     }
   }
   return player.hand.pop();
+}
+
+/**
+ * Decide qué alimento se paga y cuál se recibe en un poder "cambia 1 alimento por otro".
+ * Con costo comodín ("cualquier alimento") el jugador elige "pagado>recibido" (p. ej. "seed>fish"),
+ * que debe ser válido: dos alimentos distintos y con al menos 1 del que paga. Si no elige (o
+ * manda algo inválido), se paga el alimento que más tenga y se recibe el del poder.
+ */
+function resolveTrade(
+  player: PlayerState,
+  power: Extract<Power, { kind: "tradeResource" }>,
+  choice: string | undefined,
+): { pay: ResourceFace; gain: ResourceFace } | null {
+  const has = (res: ResourceFace) => (player.resources[res] ?? 0) >= 1;
+  if (power.costResource !== "wild") {
+    return has(power.costResource) ? { pay: power.costResource, gain: power.gainResource } : null;
+  }
+
+  const [pay, gain] = (choice ?? "").split(">");
+  if (isFoodFace(pay) && isFoodFace(gain) && pay !== gain && has(pay)) return { pay, gain };
+
+  const defaultGain: ResourceFace = isFoodFace(power.gainResource) ? power.gainResource : "insect";
+  const richest = (FOOD_FACES as ResourceFace[])
+    .filter((res) => res !== defaultGain && has(res))
+    .sort((a, b) => (player.resources[b] ?? 0) - (player.resources[a] ?? 0))[0];
+  return richest ? { pay: richest, gain: defaultGain } : null;
 }
 
 function spendResources(player: PlayerState, paidResources: ResourceFace[]) {

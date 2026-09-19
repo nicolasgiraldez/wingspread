@@ -25,6 +25,7 @@ import {
   buildEggTargetOptions,
   buildRepeatPowerOptions,
   decodeSlotKey,
+  tradeOptions,
 } from "./powerOptions";
 import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
@@ -162,6 +163,20 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
             return next;
           }),
         defaultOptionLabel: "Insecto (por defecto)",
+      };
+    } else if (power.kind === "tradeResource" && power.costResource === "wild") {
+      cardChoice = {
+        label: "¿Qué alimento cambias y por cuál? (opcional)",
+        options: tradeOptions(player),
+        selected: powerCardChoices[power.id] ?? null,
+        onSelect: (id) =>
+          setPowerCardChoices((prev) => {
+            const next = { ...prev };
+            if (id) next[power.id] = id;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Automático (cambia el que más tengas)",
       };
     }
 

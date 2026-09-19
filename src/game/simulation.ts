@@ -212,7 +212,14 @@ function buildPowerChoices(state: GameState, player: PlayerState, powers: Power[
       fields.skipPowerIds.push(power.id);
       continue;
     }
-    if (power.kind === "gainResource" && power.resource === "wild") {
+    if (power.kind === "tradeResource" && power.costResource === "wild") {
+      // "pagado>recibido": un alimento que tenga y otro distinto.
+      const owned = availableFoods(player);
+      if (owned.length > 0 && chance(0.7)) {
+        const pay = pick(owned);
+        fields.powerCardChoices[power.id] = `${pay}>${pick(FOODS.filter((food) => food !== pay))}`;
+      }
+    } else if (power.kind === "gainResource" && power.resource === "wild") {
       // "1 alimento a elección": la elección viaja en powerCardChoices, como las de cartas.
       if (chance(0.7)) fields.powerCardChoices[power.id] = pick(FOODS);
     } else if (power.kind === "gainBonusCard") {

@@ -1895,11 +1895,137 @@ describe("motor de reglas expandido de wingspread", () => {
       for (const move of bad) expect(isLegalMove(state, "nico", move), JSON.stringify(move)).toBe(false);
     });
 
+    it("el Ostrero Americano da 2 cartas a quien lo juega y 1 al rival (roba jugadores+1 y cada uno elige)", () => {
+      const state = createTestState({ mode: "online", playerIds: ["nico", "santi"] });
+      state.players.nico.hand = ["americanOystercatcher"];
+      state.players.nico.resources = { insect: 5, seed: 5, fish: 5 };
+      state.players.santi.hand = [];
+      const oystercatcher = state.cards.americanOystercatcher;
+      const paid = Object.entries(oystercatcher.cost).flatMap(([res, n]) => Array(n).fill(res));
+
+      const next = applyMove(state, "nico", {
+        type: "playBird",
+        cardId: "americanOystercatcher",
+        habitat: oystercatcher.habitats[0],
+        slotIndex: 0,
+        paidResources: paid,
+        paidEggsFrom: [],
+      });
+
+      expect(next.players.nico.hand).toHaveLength(2);
+      expect(next.players.santi.hand).toHaveLength(1);
+    });
+
+    describe("Garcita Verde: cambia 1 alimento por cualquier otro", () => {
+      const setup = (resources: Record<string, number>) => {
+        const state = createTestState({ mode: "solo" });
+        state.players.nico.board.wetland[0].cardId = "greenHeron";
+        state.players.nico.resources = resources;
+        return state;
+      };
+      const draw = (choice?: string): Move => ({
+        type: "drawBirdCards",
+        draws: [{ source: "deck" }],
+        ...(choice ? { powerCardChoices: { "greenHeron.power1": choice } } : {}),
+      });
+
+      it("respeta el par pagado>recibido que elige el jugador", () => {
+        const next = applyMove(setup({ seed: 2, rodent: 1 }), "nico", draw("seed>fruit"));
+        expect(next.players.nico.resources).toEqual({ seed: 1, rodent: 1, fruit: 1 });
+      });
+
+      it("sin elección paga el alimento que más tiene y recibe pescado", () => {
+        const next = applyMove(setup({ seed: 3, rodent: 1 }), "nico", draw());
+        expect(next.players.nico.resources).toEqual({ seed: 2, rodent: 1, fish: 1 });
+      });
+
+      it.each(["fish>fish", "fruit>seed", "seed>wild", "seed>", "basura"])(
+        "con la elección inválida %j cae al automático",
+        (choice) => {
+          const next = applyMove(setup({ seed: 3 }), "nico", draw(choice));
+          expect(next.players.nico.resources).toEqual({ seed: 2, fish: 1 });
+        },
+      );
+
+      it("no hace nada si no tiene alimento para cambiar", () => {
+        const next = applyMove(setup({}), "nico", draw("seed>fish"));
+        expect(next.players.nico.resources).toEqual({});
+      });
+    });
+
     it("isLegalMove rechaza (sin lanzar) huevos en un hábitat inexistente", () => {
       const state = createTestState({ mode: "solo" });
       const move = { type: "layEggs", eggPlacements: [{ habitat: "moon", slotIndex: 0 }] } as unknown as Move;
 
       expect(isLegalMove(state, "nico", move)).toBe(false);
+    });
+  });
+
+  describe("bonificaciones de alimento (aves que comen X)", () => {
+    const withBirds = (cards: Partial<SpeciesCard>[]) => {
+      const state = createInitialState({ mode: "solo" });
+      cards.forEach((card, i) => {
+        state.cards[`bonusTest${i}`] = {
+          ...state.cards.acornWoodpecker,
+          id: `bonusTest${i}`,
+          cost: {},
+          costAnyOf: undefined,
+          ...card,
+        };
+        state.players.nico.board.forest[i].cardId = `bonusTest${i}`;
+      });
+      return state;
+    };
+    const points = (state: ReturnType<typeof createInitialState>, id: string) =>
+      calculateBonusPoints(state.players.nico, state, state.bonusCardsCatalog![id]);
+
+    it("cuentan el costo fijo y el costo \"o\" (costAnyOf), pero no el comodín ni otros alimentos", () => {
+      const state = withBirds([
+        { cost: { seed: 1 } },
+        { costAnyOf: ["insect", "seed"] },
+        { cost: { seed: 2, fruit: 1 } },
+        { cost: { wild: 1 } },
+        { cost: { fish: 1 } },
+      ]);
+      expect(points(state, "birdFeeder")).toBe(0); // 3 aves comen semilla: no alcanza el mínimo de 5
+      state.cards.bonusTest3.cost = { seed: 1 };
+      state.cards.bonusTest4.cost = { seed: 1 };
+      expect(points(state, "birdFeeder")).toBe(3); // 5 aves
+    });
+
+    it("\"solo invertebrados\" excluye a las aves que comen algo más o tienen costo \"o\"", () => {
+      const state = withBirds([
+        { cost: { insect: 2 } },
+        { cost: { insect: 1 } },
+        { cost: { insect: 1, seed: 1 } },
+        { costAnyOf: ["insect", "seed"] },
+        { cost: {} },
+      ]);
+      expect(points(state, "foodWebExpert")).toBe(4); // 2 aves x 2 puntos
+    });
+
+    it("el Omnívoro cuenta el costo comodín y el Rodentólogo los roedores", () => {
+      const state = withBirds([
+        { cost: { wild: 1 } },
+        { cost: { wild: 2 } },
+        { cost: { rodent: 1 } },
+        { cost: { rodent: 2 } },
+        { cost: { seed: 1 } },
+      ]);
+      expect(points(state, "omnivoreSpecialist")).toBe(4);
+      expect(points(state, "rodentologist")).toBe(4);
+    });
+
+    it("Gestor de Pesquerías y Viticultor puntúan por tramos", () => {
+      const fish = withBirds([{ cost: { fish: 1 } }, { cost: { fish: 1 } }]);
+      expect(points(fish, "fisheryManager")).toBe(3);
+      const fruit = withBirds([
+        { cost: { fruit: 1 } },
+        { cost: { fruit: 1 } },
+        { cost: { fruit: 1 } },
+        { costAnyOf: ["fruit", "seed"] },
+      ]);
+      expect(points(fruit, "viticulturalist")).toBe(7);
     });
   });
 });

@@ -248,6 +248,8 @@ export type BonusCard = {
   onlyHabitat?: boolean;
   nestType?: NestType;
   resourceCost?: ResourceFace;
+  /** Solo con "birdsWithFoodCost": el ave debe comer ÚNICAMENTE ese alimento (ej. "solo invertebrados"). */
+  onlyResourceCost?: boolean;
   minWingspanCm?: number;
   maxWingspanCm?: number;
   minPoints?: number;
