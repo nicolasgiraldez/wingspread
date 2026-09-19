@@ -460,6 +460,32 @@ textarea {
   gap: 2px;
 }
 
+.card-art {
+  height: 76px;
+  margin: 6px 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: radial-gradient(ellipse at 50% 65%, rgba(255, 255, 255, 0.07), transparent 70%);
+}
+
+.card-art.compact {
+  height: 52px;
+}
+
+.card-art img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+
+.card-art-placeholder {
+  color: var(--color-text-dim);
+  opacity: 0.3;
+}
+
 .card-title {
   margin: 4px 0 2px 0;
   font-size: 0.95rem;

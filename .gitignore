@@ -5,3 +5,6 @@ dist
 .npm-cache
 *.local
 .vercel
+
+# Ilustraciones fuente: se convierten a .webp con `npm run images`
+src/ui/assets/birds/*.png

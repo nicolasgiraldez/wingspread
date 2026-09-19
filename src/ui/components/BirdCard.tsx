@@ -1,6 +1,7 @@
 import React from "react";
 import { Egg, Feather, Layers } from "lucide-react";
 import type { NameTag, ResourceFace, SpeciesCard } from "../../game";
+import { getBirdImage } from "../birdImages";
 import {
   costIcon,
   costLabel,
@@ -40,6 +41,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
   highlightNameTags = [],
 }) => {
   const nameTags = card.nameTags ?? [];
+  const image = getBirdImage(card.id);
   const highlighted = nameTags.filter((tag) => highlightNameTags.includes(tag));
   const countsForTitle =
     nameTags.length > 0
@@ -114,6 +116,15 @@ export const BirdCard: React.FC<BirdCardProps> = ({
             <Feather size={12} /> {card.points}
           </div>
         </div>
+      </div>
+
+      {/* Ilustración (o marcador si todavía no hay arte) */}
+      <div className={`card-art ${compact ? "compact" : ""}`}>
+        {image ? (
+          <img src={image} alt="" loading="lazy" decoding="async" draggable={false} />
+        ) : (
+          <Feather className="card-art-placeholder" size={compact ? 22 : 30} />
+        )}
       </div>
 
       {/* Card Names */}
