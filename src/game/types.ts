@@ -18,8 +18,6 @@ export type AutomaDifficulty = "easy" | "normal" | "hard";
 export type PowerTiming =
   | "onPlay"
   | "onActivate"
-  | "roundEnd"
-  | "gameEnd"
   | "onceBetweenTurns";
 
 export type Power =
@@ -269,16 +267,13 @@ export type BonusCard = {
 export type RoundGoalType =
   | "eggsInHabitat"
   | "birdsInHabitat"
-  | "totalEggs"
   | "totalBirds"
-  | "birdsInNests"
   /** Aves con nido `nestType` (o comodín) que tienen AL MENOS 1 huevo. */
   | "birdsWithEggsInNests"
   /** Total de huevos sobre aves con nido `nestType` (o comodín). */
   | "eggsInNests"
   /** Conjuntos de huevos: cada conjunto es 1 huevo en el bosque, 1 en la pradera y 1 en el río. */
-  | "eggSets"
-  | "cachedFood";
+  | "eggSets";
 
 export type RoundGoal = {
   id: string;
@@ -351,7 +346,7 @@ export type AutomaState = {
 
 export type GameState = {
   gameMode: GameMode;
-  phase: "setup" | "round" | "roundEnd" | "gameEnd";
+  phase: "setup" | "round" | "gameEnd";
   round: 1 | 2 | 3 | 4;
   currentPlayerId: PlayerId;
   firstPlayerId: PlayerId;
@@ -471,7 +466,5 @@ export type NetworkMessage =
   | { type: "SYNC_STATE"; state: GameState; roomCode?: string }
   | { type: "GUEST_JOIN"; guestName: string }
   | { type: "APPLY_MOVE"; move: Move; playerId: PlayerId }
-  | { type: "RESTART_GAME" }
   /** El anfitrión rechaza a quien intenta sentarse en un asiento ya ocupado por otro invitado. */
-  | { type: "ROOM_FULL" }
-  | { type: "PING" };
+  | { type: "ROOM_FULL" };

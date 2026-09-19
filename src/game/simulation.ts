@@ -46,7 +46,7 @@ const MAX_STEPS = 400;
 // ── Aleatoriedad reproducible ────────────────────────────────────────────────
 
 /** mulberry32: generador pequeño y rápido, suficiente para tests. */
-export function createRng(seed: number): () => number {
+function createRng(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
@@ -347,13 +347,13 @@ export function randomMove(state: GameState, playerId: PlayerId): Move | null {
 
 // ── Movimientos inválidos ────────────────────────────────────────────────────
 
-export type CorruptMove = { label: string; playerId: PlayerId; move: Move };
+type CorruptMove = { label: string; playerId: PlayerId; move: Move };
 
 /**
  * Variantes de `move` que el motor JAMÁS debería aceptar. Sirven para comprobar que
  * `isLegalMove` rechaza (sin lanzar) lo que enviaría un cliente con errores o malicioso.
  */
-export function corruptMoves(state: GameState, playerId: PlayerId, move: Move): CorruptMove[] {
+function corruptMoves(state: GameState, playerId: PlayerId, move: Move): CorruptMove[] {
   const bad: CorruptMove[] = [];
   const add = (label: string, corrupted: Move, actor: PlayerId = playerId) =>
     bad.push({ label, playerId: actor, move: corrupted });
@@ -536,7 +536,7 @@ export function checkInvariants(state: GameState): string[] {
  * (reciclando el descarte si hace falta) salvo que ya no quede ninguna carta en el juego.
  * Durante la ronda puede quedar corto legítimamente: solo se repone al sacarle una carta.
  */
-export function checkRoundTransition(state: GameState): string[] {
+function checkRoundTransition(state: GameState): string[] {
   if (state.market.length < 3 && state.deck.length + state.discard.length > 0) {
     return [
       `mercado con ${state.market.length} cartas tras cerrar la ronda, habiendo mazo (${state.deck.length}) y descarte (${state.discard.length})`,

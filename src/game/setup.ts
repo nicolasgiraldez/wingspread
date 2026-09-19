@@ -24,7 +24,7 @@ export const standardDieFaces: ResourceFace[] = [
   "wild",
 ];
 
-export const makeSlots = (): BoardSlot[] =>
+const makeSlots = (): BoardSlot[] =>
   Array.from({ length: 5 }, () => ({
     cardId: null,
     eggs: 0,

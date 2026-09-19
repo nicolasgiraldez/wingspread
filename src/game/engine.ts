@@ -624,7 +624,7 @@ function layEggs(state: GameState, player: PlayerState, move: Extract<Move, { ty
   triggerPinkPowers(state, player.id, { type: "layEggs" });
 }
 
-export function drawCardFromDeck(state: GameState): string | undefined {
+function drawCardFromDeck(state: GameState): string | undefined {
   if (state.deck.length === 0 && state.discard.length > 0) {
     state.deck = shuffle([...state.discard]);
     state.discard = [];
@@ -646,7 +646,7 @@ function takeDieFromFeeder(state: GameState): ResourceFace | undefined {
   return die === "wild" ? "insect" : die;
 }
 
-export function drawBonusCardFromDeck(state: GameState): string | undefined {
+function drawBonusCardFromDeck(state: GameState): string | undefined {
   if (state.bonusDeck.length === 0 && state.bonusDiscard.length > 0) {
     state.bonusDeck = shuffle([...state.bonusDiscard]);
     state.bonusDiscard = [];
@@ -705,7 +705,7 @@ function activateHabitat(
   }
 }
 
-export function triggerPinkPowers(
+function triggerPinkPowers(
   state: GameState,
   actingPlayerId: PlayerId,
   event:
@@ -1331,30 +1331,10 @@ export function evaluateRoundGoalMetric(
   if (goal.type === "birdsInHabitat" && goal.habitat) {
     return player.board[goal.habitat].filter((slot) => slot.cardId !== null).length;
   }
-  if (goal.type === "totalEggs") {
-    let total = 0;
-    for (const row of Object.values(player.board)) {
-      total += row.reduce((sum, slot) => sum + slot.eggs, 0);
-    }
-    return total;
-  }
   if (goal.type === "totalBirds") {
     let total = 0;
     for (const row of Object.values(player.board)) {
       total += row.filter((slot) => slot.cardId !== null).length;
-    }
-    return total;
-  }
-  if (goal.type === "birdsInNests" && goal.nestType) {
-    let total = 0;
-    for (const row of Object.values(player.board)) {
-      for (const slot of row) {
-        if (!slot.cardId) continue;
-        const card = state.cards[slot.cardId];
-        if (card && (card.nestType === goal.nestType || card.nestType === "wild")) {
-          total += 1;
-        }
-      }
     }
     return total;
   }
@@ -1375,13 +1355,6 @@ export function evaluateRoundGoalMetric(
   if (goal.type === "eggSets") {
     const eggsIn = (habitat: HabitatId) => player.board[habitat].reduce((sum, slot) => sum + slot.eggs, 0);
     return Math.min(eggsIn("forest"), eggsIn("grassland"), eggsIn("wetland"));
-  }
-  if (goal.type === "cachedFood") {
-    let total = 0;
-    for (const row of Object.values(player.board)) {
-      total += row.reduce((sum, slot) => sum + slot.cached.length, 0);
-    }
-    return total;
   }
   return 0;
 }

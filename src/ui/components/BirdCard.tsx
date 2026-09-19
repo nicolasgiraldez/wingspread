@@ -171,8 +171,6 @@ export const BirdCard: React.FC<BirdCardProps> = ({
                 {p.timing === "onActivate" && "Al activar"}
                 {p.timing === "onPlay" && "Al jugar"}
                 {p.timing === "onceBetweenTurns" && "Entre turnos"}
-                {p.timing === "roundEnd" && "Fin de ronda"}
-                {p.timing === "gameEnd" && "Fin de partida"}
               </span>
               <span className="power-description-text">{describePower(p)}</span>
             </div>

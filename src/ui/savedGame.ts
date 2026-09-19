@@ -71,7 +71,7 @@ export function restoreGame(value: unknown): SavedGame | null {
     !isRecord(players) ||
     !isArray(raw.playerOrder) ||
     !raw.playerOrder.every((id) => typeof id === "string" && isRecord(players[id])) ||
-    !["setup", "round", "roundEnd"].includes(raw.phase as string) ||
+    !["setup", "round"].includes(raw.phase as string) ||
     ![1, 2, 3, 4].includes(raw.round as number) ||
     raw.gameMode !== (kind === "solo" ? "solo" : "online") ||
     typeof raw.currentPlayerId !== "string" ||

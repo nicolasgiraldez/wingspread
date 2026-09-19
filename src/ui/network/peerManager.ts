@@ -164,8 +164,8 @@ function tokenOf(metadata: unknown): string | null {
 }
 
 /** Cada lado solo acepta los mensajes que le corresponde recibir. */
-const HOST_ACCEPTS = new Set<NetworkMessage["type"]>(["GUEST_JOIN", "APPLY_MOVE", "PING"]);
-const GUEST_ACCEPTS = new Set<NetworkMessage["type"]>(["SYNC_STATE", "RESTART_GAME", "ROOM_FULL", "PING"]);
+const HOST_ACCEPTS = new Set<NetworkMessage["type"]>(["GUEST_JOIN", "APPLY_MOVE"]);
+const GUEST_ACCEPTS = new Set<NetworkMessage["type"]>(["SYNC_STATE", "ROOM_FULL"]);
 
 // ── Reintentos ───────────────────────────────────────────────────────────────
 

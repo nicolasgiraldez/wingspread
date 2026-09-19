@@ -168,7 +168,9 @@ async function advance(ms = 0) {
 }
 
 const HOST_ID = "wingspread-sala-1-host";
-const ping: NetworkMessage = { type: "PING" };
+// Un mensaje válido para cada dirección: el anfitrión solo recibe GUEST_JOIN/APPLY_MOVE y el invitado SYNC_STATE.
+const toHost: NetworkMessage = { type: "GUEST_JOIN", guestName: "Ana" };
+const toGuest: NetworkMessage = { type: "SYNC_STATE", state: { round: 1 } as unknown as GameState };
 
 describe("NetworkManager", () => {
   let net: FakeNetwork;
@@ -232,7 +234,7 @@ describe("NetworkManager", () => {
       const host = manager();
       host.initHost("sala-1", recorder().callbacks);
       await advance();
-      expect(host.sendMessage(ping)).toBe(false);
+      expect(host.sendMessage(toGuest)).toBe(false);
       expect(host.isConnected()).toBe(false);
     });
 
@@ -244,12 +246,12 @@ describe("NetworkManager", () => {
       guest.sendMessage({ type: "BOGUS" } as unknown as NetworkMessage);
       guest.sendMessage(null as unknown as NetworkMessage);
       guest.sendMessage("hola" as unknown as NetworkMessage);
-      guest.sendMessage(ping);
-      host.sendMessage(ping);
+      guest.sendMessage(toHost);
+      host.sendMessage(toGuest);
       await advance();
 
-      expect(hostLog.messages).toEqual([ping]);
-      expect(guestLog.messages).toEqual([ping]);
+      expect(hostLog.messages).toEqual([toHost]);
+      expect(guestLog.messages).toEqual([toGuest]);
     });
   });
 
@@ -270,10 +272,10 @@ describe("NetworkManager", () => {
       expect(hostLog.last()).toBe("connected");
 
       reloaded.sendMessage({ type: "GUEST_JOIN", guestName: "Ana" });
-      host.sendMessage(ping);
+      host.sendMessage(toGuest);
       await advance();
       expect(hostLog.messages).toContainEqual({ type: "GUEST_JOIN", guestName: "Ana" });
-      expect(reloadedLog.messages).toContainEqual(ping);
+      expect(reloadedLog.messages).toContainEqual(toGuest);
       guest.cleanup(); // la página vieja ya no existe
     });
 
@@ -286,9 +288,9 @@ describe("NetworkManager", () => {
       intruder.initGuest("sala-1", intruderLog.callbacks);
       await advance();
 
-      host.sendMessage(ping);
+      host.sendMessage(toGuest);
       await advance();
-      expect(guestLog.messages).toEqual([ping]); // el invitado original sigue conectado
+      expect(guestLog.messages).toEqual([toGuest]); // el invitado original sigue conectado
       expect(intruderLog.messages).toEqual([]);
 
       // Al intruso se le avisa (no queda colgado) y no insiste en reintentar por su cuenta.
@@ -333,11 +335,11 @@ describe("NetworkManager", () => {
       expect(hostLog.last()).toBe("connected");
       expect(guestLog.last()).toBe("connected");
 
-      host.sendMessage(ping);
-      guest.sendMessage(ping);
+      host.sendMessage(toGuest);
+      guest.sendMessage(toHost);
       await advance();
-      expect(guestLog.messages).toEqual([ping]);
-      expect(hostLog.messages).toEqual([ping]);
+      expect(guestLog.messages).toEqual([toGuest]);
+      expect(hostLog.messages).toEqual([toHost]);
     });
 
     it("si nunca llegó a conectar (sala inexistente) se rinde tras pocos intentos", async () => {

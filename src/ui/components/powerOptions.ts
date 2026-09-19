@@ -25,7 +25,7 @@ export function tradeOptions(player: PlayerState): { id: string; name: string }[
 }
 
 /** Codifica un SlotRef como string para usarlo de value en un <select>. */
-export function encodeSlotKey(ref: SlotRef): string {
+function encodeSlotKey(ref: SlotRef): string {
   return `${ref.habitat}:${ref.slotIndex}`;
 }
 

@@ -1,4 +1,4 @@
-import type { AutomaDifficulty, BonusCard, HabitatId, NameTag, NestType, Power, PowerTiming, ResourceFace } from "../game";
+import type { AutomaDifficulty, BonusCard, HabitatId, NameTag, NestType, Power, ResourceFace } from "../game";
 
 export const playerNames: Record<string, string> = {
   nico: "Nico",
@@ -37,21 +37,6 @@ export function bonusNameTags(bonusCards: BonusCard[] | undefined): NameTag[] {
   return (bonusCards ?? []).flatMap((b) => (b.conditionType === "birdsWithNameTag" && b.nameTag ? [b.nameTag] : []));
 }
 
-export const actionLabels = {
-  playBird: "Jugá un ave",
-  gainFood: "Obtené alimento",
-  layEggs: "Poné huevos",
-  drawBirdCards: "Robá cartas de ave",
-};
-
-export const moveLogLabels: Record<keyof typeof actionLabels | "rerollFeeder", string> = {
-  playBird: "jugó un ave",
-  gainFood: "obtuvo alimento del comedero",
-  layEggs: "puso huevos",
-  drawBirdCards: "robó cartas de ave",
-  rerollFeeder: "relanzó los dados del comedero",
-};
-
 export const resourceLabels: Record<ResourceFace, string> = {
   seed: "semilla",
   fruit: "fruta",
@@ -75,8 +60,8 @@ export const resourceIcons: Record<ResourceFace, string> = {
  * tipo de alimento, no solo insecto/semilla). Distinto de resourceIcons.wild, que representa
  * específicamente la cara "comodín" del dado del comedero (ahí sí es insecto o semilla).
  */
-export const wildCostIcon = "🃏";
-export const wildCostLabel = "comodín (cualquier alimento)";
+const wildCostIcon = "🃏";
+const wildCostLabel = "comodín (cualquier alimento)";
 
 export function costIcon(res: ResourceFace): string {
   return res === "wild" ? wildCostIcon : resourceIcons[res];
@@ -102,13 +87,7 @@ export const nestIcons: Record<NestType, string> = {
   wild: "⭐",
 };
 
-export const powerTimingLabels: Record<PowerTiming, string> = {
-  onPlay: "Al jugar",
-  onActivate: "Al activar",
-  roundEnd: "Fin de ronda",
-  gameEnd: "Fin de partida",
-  onceBetweenTurns: "Entre turnos",
-};
+
 
 /** Descripción legible de un poder, usada tanto en BirdCard como en los checklists de activación. */
 export function describePower(power: Power): string {
