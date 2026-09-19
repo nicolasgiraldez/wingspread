@@ -232,6 +232,12 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
         }
       : undefined;
 
+  // Los pasos 3 a 5 solo aparecen si aplican; se numeran según los que se muestran.
+  const showEggStep = eggCost > 0;
+  const eggStepNumber = 3;
+  const powersStepNumber = eggStepNumber + (showEggStep ? 1 : 0);
+  const secondBirdStepNumber = powersStepNumber + (onPlayPowers.length > 0 ? 1 : 0);
+
   const powerChecklistEntries: PowerChecklistEntry[] = onPlayPowers.map((power) => {
     let cardChoice: PowerChecklistEntry["cardChoice"];
     if (
@@ -418,9 +424,9 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
             </div>
 
             {/* Step 3: Egg cost check */}
-            {eggCost > 0 && (
+            {showEggStep && (
               <div>
-                <strong style={{ fontSize: "0.9rem" }}>3. Coste en Huevos ({eggCost} 🥚)</strong>
+                <strong style={{ fontSize: "0.9rem" }}>{eggStepNumber}. Coste en Huevos ({eggCost} 🥚)</strong>
                 <p style={{ margin: "2px 0 0 0", fontSize: "0.8rem", color: isEggCostValid ? "#3fae72" : "#f0645f" }}>
                   {isEggCostValid
                     ? `✓ Se descontarán ${eggCost} huevo(s) de tu tablero.`
@@ -431,13 +437,13 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
 
             {/* Step 4: Optional "when played" powers */}
             {powerChecklistEntries.length > 0 && (
-              <PowerChecklist title="4. Poderes al jugar (opcionales)" entries={powerChecklistEntries} />
+              <PowerChecklist title={`${powersStepNumber}. Poderes al jugar (opcionales)`} entries={powerChecklistEntries} />
             )}
 
             {/* Step 5: Optional "playSecondBird" power */}
             {secondBirdPower && (
               <div>
-                <strong style={{ fontSize: "0.9rem" }}>5. Jugar una segunda ave (opcional)</strong>
+                <strong style={{ fontSize: "0.9rem" }}>{secondBirdStepNumber}. Jugar una segunda ave (opcional)</strong>
                 <p className="power-checklist-hint">
                   {describePower(secondBirdPower)}. Si no elegís ninguna carta, este poder no se activa.
                 </p>
