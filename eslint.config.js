@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(["dist", "node_modules"]),
+  globalIgnores(["dist", "node_modules", "e2e/out"]),
   {
     files: ["src/**/*.{ts,tsx}"],
     extends: [
@@ -26,6 +26,15 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 2022,
       globals: globals.node,
+    },
+  },
+  {
+    // La prueba e2e corre en Node, pero las funciones que pasa a page.evaluate() corren en el navegador.
+    files: ["e2e/**/*.mjs"],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: { ...globals.node, ...globals.browser },
     },
   },
 ]);

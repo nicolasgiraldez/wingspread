@@ -56,9 +56,12 @@ npm test
 # (en PowerShell: $env:VITE_SIM_GAMES=1000; npx vitest run simulation)
 # Si una partida falla, el mensaje incluye la semilla para reproducirla con playGame({ seed, mode }).
 
-# Análisis estático (ESLint) y chequeo de tipos
+# Análisis estático (ESLint) y chequeo de tipos (tsc -b)
 npm run lint
 npm run typecheck
+
+# Prueba e2e del multijugador con dos navegadores reales (ver más abajo)
+npm run e2e
 
 # Compilar para producción (TypeScript + Vite)
 npm run build
@@ -79,6 +82,15 @@ VITE_ICE_SERVERS='[{"urls":"turn:turn.midominio.com:3478","username":"usuario","
 ```
 
 En Vercel: *Project Settings → Environment Variables*. Ojo: al ir en el bundle del navegador, las credenciales son visibles; usa credenciales temporales o de bajo privilegio.
+
+## Prueba e2e del multijugador
+
+`npm run e2e` compila la app y abre **dos navegadores reales** (anfitrión e invitado) que se conectan por WebRTC a través del servidor de señalización de PeerJS. Juega una partida completa comprobando que ambos ven siempre el mismo estado, mientras provoca los problemas típicos: recarga del invitado, recarga del anfitrión (reanuda la sala guardada), caída de la conexión desde cada lado y un intruso que intenta sentarse en la sala.
+
+- Requiere un Chrome, Edge o Chromium instalado (se busca solo; o indica uno con `E2E_BROWSER=<ruta>`) y conexión a internet.
+- `E2E_URL=https://tu-app.vercel.app/ npm run e2e` prueba una versión ya desplegada en vez de la build local. `E2E_BAIL=1` para en el primer fallo y `E2E_HEADED=1` muestra los navegadores.
+- Si un escenario falla, las capturas de ambas pantallas quedan en `e2e/out/` (ignorada por git).
+- No forma parte de `npm test`: depende de la red y de un navegador, así que se ejecuta a mano (dura ~30 s).
 
 ## Ilustraciones de aves
 

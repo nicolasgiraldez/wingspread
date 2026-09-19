@@ -8,3 +8,6 @@ dist
 
 # Ilustraciones fuente: se convierten a .webp con `npm run images`
 src/ui/assets/birds/*.png
+
+# Capturas de las pruebas e2e
+e2e/out/
