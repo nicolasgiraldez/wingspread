@@ -15,7 +15,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
 }) => {
   const playerScores = gameState.playerOrder.map((pId) => ({
     id: pId,
-    name: playerNames[pId] ?? pId,
+    name: gameState.players[pId]?.name || playerNames[pId] || pId,
     isAutoma: gameState.players[pId]?.isAutoma,
     details: scorePlayerDetails(gameState, pId),
   }));

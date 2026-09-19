@@ -9,6 +9,8 @@ interface RoundGoalsMatProps {
 }
 
 export const RoundGoalsMat: React.FC<RoundGoalsMatProps> = ({ gameState }) => {
+  const nameOf = (id: string) => gameState.players[id]?.name || playerNames[id] || id;
+
   return (
     <div className="goals-mat">
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 160 }}>
@@ -50,7 +52,7 @@ export const RoundGoalsMat: React.FC<RoundGoalsMatProps> = ({ gameState }) => {
                   <div style={{ display: "flex", gap: 8 }}>
                     {Object.entries(roundResults).map(([pId, pts]) => (
                       <span key={pId}>
-                        {playerNames[pId]}: <strong>+{pts}p</strong>
+                        {nameOf(pId)}: <strong>+{pts}p</strong>
                       </span>
                     ))}
                   </div>
@@ -60,7 +62,7 @@ export const RoundGoalsMat: React.FC<RoundGoalsMatProps> = ({ gameState }) => {
                       const metric = evaluateRoundGoalMetric(gameState.players[pId], gameState, goal);
                       return (
                         <span key={pId}>
-                          {playerNames[pId]}: {metric}
+                          {nameOf(pId)}: {metric}
                         </span>
                       );
                     })}
