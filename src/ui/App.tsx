@@ -269,9 +269,16 @@ export const App: React.FC = () => {
           networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode });
         }
       } else {
-        networkManager.sendMessage({ type: "APPLY_MOVE", move, playerId: localPlayerId });
+        sendGuestMove(move);
       }
     }
+  };
+
+  // El invitado no juega por sí mismo: pide la jugada al anfitrión. Si no hay conexión abierta
+  // (p. ej. mientras reconecta) la jugada no llega, y se avisa en vez de perderla en silencio.
+  const sendGuestMove = (move: Move) => {
+    const sent = networkManager.sendMessage({ type: "APPLY_MOVE", move, playerId: localPlayerId });
+    if (!sent) setConnectionMessage("Sin conexión con el anfitrión: tu jugada no se envió. Reintentá cuando vuelva.");
   };
 
   // Como executeLocalMove, pero sin exigir que sea el turno del jugador local: la elección de
@@ -291,7 +298,7 @@ export const App: React.FC = () => {
           networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode });
         }
       } else {
-        networkManager.sendMessage({ type: "APPLY_MOVE", move, playerId: localPlayerId });
+        sendGuestMove(move);
       }
     }
   };

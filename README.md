@@ -66,6 +66,18 @@ npm run build
 npm run preview
 ```
 
+## Multijugador: conexión y reconexión
+
+- El anfitrión (`nico`) es la única fuente de verdad: valida cada jugada del invitado (`santi`) y le reenvía el estado.
+- Si el invitado recarga la página o pierde la conexión, se reconecta solo (reintenta ~47 s) y recupera su asiento; el anfitrión lo reconoce por un token de sesión.
+- PeerJS ya incluye un STUN de Google y TURN públicos de peerjs.com. Son compartidos y "best effort": si tus jugadores están tras redes muy restrictivas puedes añadir un TURN propio con la variable `VITE_ICE_SERVERS` (JSON), que se **suma** a los anteriores:
+
+```bash
+VITE_ICE_SERVERS=[urls:turn:turn.midominio.com:3478]
+```
+
+En Vercel: *Project Settings → Environment Variables*. Ojo: al ir en el bundle del navegador, las credenciales son visibles; usa credenciales temporales o de bajo privilegio.
+
 ## Ilustraciones de aves
 
 Cada carta busca su imagen en `src/ui/assets/birds/<id>.webp`, donde `<id>` es la clave de la especie en `src/game/cards.ts` (por ejemplo `baldEagle`).
