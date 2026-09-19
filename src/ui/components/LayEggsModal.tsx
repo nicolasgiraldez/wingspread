@@ -20,6 +20,7 @@ import {
   resourceLabels,
 } from "../labels";
 import {
+  anyFoodOptions,
   buildEggSourceOptions,
   buildEggTargetOptions,
   buildRepeatPowerOptions,
@@ -147,6 +148,20 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
           }),
         defaultOptionLabel:
           power.kind === "tuckCard" ? "Automático (la última de tu mano)" : "Automático (la carta recién robada)",
+      };
+    } else if (power.kind === "gainResource" && power.resource === "wild") {
+      cardChoice = {
+        label: "¿Qué alimento tomás? (opcional)",
+        options: anyFoodOptions,
+        selected: powerCardChoices[power.id] ?? null,
+        onSelect: (id) =>
+          setPowerCardChoices((prev) => {
+            const next = { ...prev };
+            if (id) next[power.id] = id;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Insecto (por defecto)",
       };
     }
 

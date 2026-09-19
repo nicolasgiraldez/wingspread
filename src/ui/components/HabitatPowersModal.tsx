@@ -5,6 +5,7 @@ import type { GameState, HabitatId, PlayerState, PowerEggChoices, PowerMoveChoic
 import {
   buildEggSourceOptions,
   buildEggTargetOptions,
+  anyFoodOptions,
   buildRepeatPowerOptions,
   decodeSlotKey,
 } from "./powerOptions";
@@ -89,6 +90,20 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
             return next;
           }),
         defaultOptionLabel: "Automático (la carta recién robada)",
+      };
+    } else if (power.kind === "gainResource" && power.resource === "wild") {
+      cardChoice = {
+        label: "¿Qué alimento tomás? (opcional)",
+        options: anyFoodOptions,
+        selected: choices[power.id] ?? null,
+        onSelect: (id) =>
+          setChoices((prev) => {
+            const next = { ...prev };
+            if (id) next[power.id] = id;
+            else delete next[power.id];
+            return next;
+          }),
+        defaultOptionLabel: "Insecto (por defecto)",
       };
     }
 

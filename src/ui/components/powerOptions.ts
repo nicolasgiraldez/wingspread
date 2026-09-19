@@ -1,6 +1,11 @@
 import { getActivatablePowers } from "../../game";
 import type { GameState, HabitatId, PlayerState, SlotRef } from "../../game";
-import { describePower, habitatLabels } from "../labels";
+import { describePower, habitatLabels, resourceIcons, resourceLabels } from "../labels";
+
+/** Alimentos entre los que se elige en los poderes "ganá 1 alimento a elección" (resource "wild"). */
+export const anyFoodOptions: { id: string; name: string }[] = (
+  ["insect", "seed", "fruit", "fish", "rodent"] as const
+).map((food) => ({ id: food, name: `${resourceIcons[food]} ${resourceLabels[food]}` }));
 
 /** Codifica un SlotRef como string para usarlo de value en un <select>. */
 export function encodeSlotKey(ref: SlotRef): string {

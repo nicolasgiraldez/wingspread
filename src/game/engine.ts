@@ -94,7 +94,89 @@ export function getActivatablePowers(
   return results;
 }
 
+const HABITAT_IDS: readonly unknown[] = ["forest", "grassland", "wetland"];
+const RESOURCE_IDS: readonly unknown[] = ["seed", "fruit", "insect", "fish", "rodent", "wild"];
+
+const FOOD_FACES: readonly unknown[] = ["seed", "fruit", "insect", "fish", "rodent"];
+const isFoodFace = (value: unknown): value is ResourceFace => FOOD_FACES.includes(value);
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const isAbsent = (value: unknown) => value === undefined || value === null;
+const isSlotRef = (value: unknown) =>
+  isRecord(value) && HABITAT_IDS.includes(value.habitat) && Number.isInteger(value.slotIndex);
+const isArrayOf = (value: unknown, check: (item: unknown) => boolean) =>
+  Array.isArray(value) && value.every(check);
+const isOptionalRecordOf = (value: unknown, check: (item: unknown) => boolean) =>
+  isAbsent(value) || (isRecord(value) && Object.values(value).every(check));
+
+/**
+ * Comprueba que un movimiento tiene la FORMA correcta (tipos de cada campo) antes de mirar las
+ * reglas del juego. Los movimientos del invitado online llegan por la red y no son de fiar:
+ * sin esto, un campo con basura (p. ej. wildChoices: { 0: "fish" }) llegaría hasta el motor.
+ */
+function isWellFormedMove(move: unknown): move is Move {
+  if (!isRecord(move) || typeof move.type !== "string") return false;
+
+  const commonChoicesOk =
+    (isAbsent(move.skipPowerIds) || isArrayOf(move.skipPowerIds, (id) => typeof id === "string")) &&
+    isOptionalRecordOf(move.powerCardChoices, (id) => typeof id === "string") &&
+    isOptionalRecordOf(move.powerEggChoices, isSlotRef) &&
+    isOptionalRecordOf(move.powerMoveChoices, (habitat) => HABITAT_IDS.includes(habitat)) &&
+    isOptionalRecordOf(
+      move.powerPlayBirdChoices,
+      (choice) =>
+        isRecord(choice) &&
+        typeof choice.cardId === "string" &&
+        HABITAT_IDS.includes(choice.habitat) &&
+        isArrayOf(choice.paidResources, (res) => RESOURCE_IDS.includes(res)) &&
+        isArrayOf(choice.paidEggsFrom, isSlotRef) &&
+        (isAbsent(choice.skipPowerIds) || isArrayOf(choice.skipPowerIds, (id) => typeof id === "string")),
+    );
+  if (!commonChoicesOk) return false;
+
+  switch (move.type) {
+    case "rerollFeeder":
+      return true;
+    case "chooseBonusCard":
+      return typeof move.bonusCardId === "string";
+    case "playBird":
+      return (
+        typeof move.cardId === "string" &&
+        HABITAT_IDS.includes(move.habitat) &&
+        Number.isInteger(move.slotIndex) &&
+        isArrayOf(move.paidResources, (res) => RESOURCE_IDS.includes(res)) &&
+        isArrayOf(move.paidEggsFrom, isSlotRef)
+      );
+    case "gainFood":
+      return (
+        isArrayOf(move.dieIndexes, Number.isInteger) &&
+        isOptionalRecordOf(move.wildChoices, (choice) => choice === "insect" || choice === "seed") &&
+        (isAbsent(move.rerollBefore) || typeof move.rerollBefore === "boolean") &&
+        (isAbsent(move.tradeCardId) || typeof move.tradeCardId === "string")
+      );
+    case "layEggs":
+      return (
+        isArrayOf(move.eggPlacements, isSlotRef) &&
+        (isAbsent(move.tradeResource) || RESOURCE_IDS.includes(move.tradeResource))
+      );
+    case "drawBirdCards":
+      return (
+        isArrayOf(
+          move.draws,
+          (draw) =>
+            isRecord(draw) &&
+            (draw.source === "deck" || (draw.source === "market" && typeof draw.marketCardId === "string")),
+        ) &&
+        (isAbsent(move.tradeEggFrom) || isSlotRef(move.tradeEggFrom))
+      );
+    default:
+      return false;
+  }
+}
+
 export function isLegalMove(state: GameState, playerId: string, move: Move): boolean {
+  if (!isWellFormedMove(move)) return false;
+
   if (move.type === "chooseBonusCard") {
     const player = state.players[playerId];
     return (
@@ -550,12 +632,17 @@ export function drawCardFromDeck(state: GameState): string | undefined {
   return state.deck.shift();
 }
 
-/** Saca 1 dado del comedero; si queda vacío, se relanzan los 5 dados de inmediato (regla oficial). */
+/**
+ * Saca 1 dado del comedero y devuelve el recurso que da; si queda vacío, se relanzan los 5 dados
+ * de inmediato (regla oficial). El dado comodín (insecto/semilla) se toma como insecto, igual que
+ * en gainFood cuando el jugador no elige: estos poderes no ofrecen elección, y una cara "wild"
+ * nunca debe llegar al inventario como si fuera un recurso.
+ */
 function takeDieFromFeeder(state: GameState): ResourceFace | undefined {
   if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
   const die = state.feeder.shift();
   if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
-  return die;
+  return die === "wild" ? "insect" : die;
 }
 
 export function drawBonusCardFromDeck(state: GameState): string | undefined {
@@ -767,7 +854,11 @@ export function resolvePower(
         }
       }
     } else {
-      const res = power.resource ?? "seed";
+      // "wild" acá significa "1 alimento a elección" (no un recurso): el jugador lo elige vía
+      // cardChoices y, si no lo hace (o manda algo inválido), se toma insecto.
+      const chosen = cardChoices?.[power.id];
+      const res: ResourceFace =
+        power.resource === "wild" ? (isFoodFace(chosen) ? chosen : "insect") : (power.resource ?? "seed");
       player.resources[res] = (player.resources[res] ?? 0) + power.amount;
       state.log.push({
         playerId: player.id,

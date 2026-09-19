@@ -212,7 +212,10 @@ function buildPowerChoices(state: GameState, player: PlayerState, powers: Power[
       fields.skipPowerIds.push(power.id);
       continue;
     }
-    if (power.kind === "gainBonusCard") {
+    if (power.kind === "gainResource" && power.resource === "wild") {
+      // "1 alimento a elección": la elección viaja en powerCardChoices, como las de cartas.
+      if (chance(0.7)) fields.powerCardChoices[power.id] = pick(FOODS);
+    } else if (power.kind === "gainBonusCard") {
       // Las cartas reveladas salen del frente del mazo de bonificación.
       const revealed = state.bonusDeck.slice(0, power.drawCount);
       if (revealed.length > 0 && chance(0.7)) fields.powerCardChoices[power.id] = pick(revealed);
@@ -446,6 +449,7 @@ export function checkInvariants(state: GameState): string[] {
     player.pendingBonusChoice?.forEach((id) => trackBonus(id, `oferta inicial de ${playerId}`));
 
     for (const [food, amount] of Object.entries(player.resources)) {
+      if (!FOODS.includes(food as ResourceFace)) errors.push(`${playerId} tiene un recurso inválido "${food}"`);
       if (!Number.isInteger(amount) || amount < 0) errors.push(`${playerId} tiene ${amount} de ${food}`);
     }
     const cubes = player.actionCubesAvailable;

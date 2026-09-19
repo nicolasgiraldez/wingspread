@@ -1838,6 +1838,63 @@ describe("motor de reglas expandido de wingspread", () => {
       expect(next.players.nico.actionCubesAvailable).toBe(state.players.nico.actionCubesAvailable - 1);
     });
 
+    it.each([
+      ["fish", "fish"],
+      ["seed", "seed"],
+      ["wild", "insect"],
+      ["no-es-comida", "insect"],
+      [undefined, "insect"],
+    ])("un poder de \"1 alimento a elección\" con la elección %j da %s (nunca un recurso wild)", (choice, expected) => {
+      const state = createTestState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.anyFood", timing: "onActivate", kind: "gainResource", resource: "wild", amount: 1 }],
+      };
+      state.players.nico.resources = {};
+      state.feeder = ["seed", "seed", "seed", "seed", "seed"];
+
+      const next = applyMove(state, "nico", {
+        type: "gainFood",
+        dieIndexes: [0],
+        ...(choice ? { powerCardChoices: { "test.anyFood": choice } } : {}),
+      });
+
+      expect(next.players.nico.resources).toEqual({ seed: 1, [expected]: expect.any(Number) });
+      expect(next.players.nico.resources[expected as "fish"]).toBe(expected === "seed" ? 2 : 1);
+      expect(Object.keys(next.players.nico.resources)).not.toContain("wild");
+    });
+
+    it("un poder que toma cualquier dado y saca uno comodín lo convierte en insecto", () => {
+      const state = createTestState({ mode: "solo" });
+      state.players.nico.board.forest[0].cardId = "acornJay";
+      state.cards.acornJay = {
+        ...state.cards.acornJay,
+        powers: [{ id: "test.anyDie", timing: "onActivate", kind: "gainResource", from: "feeder", anyDie: true, amount: 1 }],
+      };
+      state.players.nico.resources = {};
+      state.feeder = ["wild", "seed", "seed", "seed", "seed"];
+
+      const next = applyMove(state, "nico", { type: "gainFood", dieIndexes: [1] });
+
+      expect(next.players.nico.resources).toEqual({ seed: 1, insect: 1 });
+    });
+
+    it("isLegalMove rechaza campos con basura en un movimiento (p. ej. un comodín convertido en pescado)", () => {
+      const state = createTestState({ mode: "solo" });
+      state.feeder = ["wild", "seed", "seed", "seed", "seed"];
+      const bad = [
+        { type: "gainFood", dieIndexes: [0], wildChoices: { 0: "fish" } },
+        { type: "gainFood", dieIndexes: [1.5] },
+        { type: "gainFood", dieIndexes: "0" },
+        { type: "layEggs", eggPlacements: [{ habitat: "forest", slotIndex: "0" }] },
+        { type: "drawBirdCards", draws: [{ source: "sky" }] },
+        { type: "gainFood", dieIndexes: [0], powerEggChoices: { x: { habitat: "moon", slotIndex: 0 } } },
+      ] as unknown as Move[];
+
+      for (const move of bad) expect(isLegalMove(state, "nico", move), JSON.stringify(move)).toBe(false);
+    });
+
     it("isLegalMove rechaza (sin lanzar) huevos en un hábitat inexistente", () => {
       const state = createTestState({ mode: "solo" });
       const move = { type: "layEggs", eggPlacements: [{ habitat: "moon", slotIndex: 0 }] } as unknown as Move;
