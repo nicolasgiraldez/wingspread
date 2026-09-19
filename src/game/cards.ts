@@ -3551,7 +3551,7 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
   anatomist: {
     id: "anatomist",
     name: "Anatomista",
-    description: "Aves con una parte del cuerpo en su nombre (pico, cola, cabeza, ala…). Cuenta según el ave, no según el nombre en español: las que califican se marcan con 🫀.",
+    description: "Cuentan las aves con el ícono 🫀.",
     conditionType: "birdsWithNameTag",
     nameTag: "bodyPart",
     tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],
@@ -3559,7 +3559,7 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
   cartographer: {
     id: "cartographer",
     name: "Cartógrafo",
-    description: "Aves con un término geográfico en su nombre (Americano, Norteño, Carolina…). Cuenta según el ave, no según el nombre en español: las que califican se marcan con 🗺️.",
+    description: "Cuentan las aves con el ícono 🗺️.",
     conditionType: "birdsWithNameTag",
     nameTag: "geographic",
     tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],
@@ -3567,7 +3567,7 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
   historian: {
     id: "historian",
     name: "Historiador",
-    description: "Aves nombradas en honor a una persona (Anna, Cooper, Wilson…). Cuenta según el ave, no según la forma del nombre en español: las que califican se marcan con 👤.",
+    description: "Cuentan las aves con el ícono 👤.",
     conditionType: "birdsWithNameTag",
     nameTag: "possessive",
     scoringMode: "perBird",
@@ -3576,7 +3576,7 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
   photographer: {
     id: "photographer",
     name: "Fotógrafo",
-    description: "Aves con un color en su nombre. Cuenta según el ave, no según el nombre en español (ej. el Tordo Sargento cuenta aunque no diga ningún color): las que califican se marcan con 📷.",
+    description: "Cuentan las aves con el ícono 📷.",
     conditionType: "birdsWithNameTag",
     nameTag: "color",
     tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],
