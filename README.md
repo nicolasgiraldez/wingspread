@@ -50,6 +50,11 @@ npm run dev
 # Ejecutar suite de pruebas
 npm test
 
+# Simulación de partidas completas con un jugador aleatorio (40 por modo por defecto).
+# Para una pasada exhaustiva: VITE_SIM_GAMES=1000 npx vitest run simulation
+# (en PowerShell: $env:VITE_SIM_GAMES=1000; npx vitest run simulation)
+# Si una partida falla, el mensaje incluye la semilla para reproducirla con playGame({ seed, mode }).
+
 # Análisis estático (ESLint) y chequeo de tipos
 npm run lint
 npm run typecheck
