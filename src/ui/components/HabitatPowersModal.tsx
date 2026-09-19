@@ -7,9 +7,8 @@ import {
   buildEggTargetOptions,
   buildRepeatPowerOptions,
   decodeSlotKey,
-  PowerChecklist,
-  PowerChecklistEntry,
-} from "./PowerChecklist";
+} from "./powerOptions";
+import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 import { habitatLabels } from "../labels";
 
 interface HabitatPowersModalProps {

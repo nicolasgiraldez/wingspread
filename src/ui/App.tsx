@@ -5,7 +5,6 @@ import {
   Eye,
   EyeOff,
   Feather,
-  Globe,
   Lock,
   RefreshCw,
   Sparkles,
@@ -19,7 +18,6 @@ import {
   scorePlayerDetails,
 } from "../game";
 import type {
-  AutomaDifficulty,
   BonusCard,
   DrawCardSelection,
   GameState,
@@ -69,7 +67,10 @@ export const App: React.FC = () => {
   const [isHost, setIsHost] = useState<boolean>(true);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
   const [connectionMessage, setConnectionMessage] = useState<string>("");
-  const [urlJoinCode, setUrlJoinCode] = useState<string>("");
+  const [urlJoinCode] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return (params.get("room") || params.get("join") || "").trim().toLowerCase();
+  });
   // Mientras el invitado espera el primer SYNC_STATE del anfitrión (todavía no hay gameState),
   // esto mantiene los datos necesarios para mostrar una pantalla de "conectando" en vez de
   // dejar la pantalla de inicio sin ningún indicio de que hay una conexión en curso.
@@ -94,16 +95,9 @@ export const App: React.FC = () => {
   const [pendingDraw, setPendingDraw] = useState<DrawCardSelection[] | null>(null);
 
   const gameStateRef = useRef<GameState | null>(null);
-  gameStateRef.current = gameState;
-
-  // Check URL for ?room= on mount
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roomParam = params.get("room") || params.get("join");
-    if (roomParam) {
-      setUrlJoinCode(roomParam.trim().toLowerCase());
-    }
-  }, []);
+    gameStateRef.current = gameState;
+  }, [gameState]);
 
   // ── Handle HomePage submission ────────────────────────────────────────────
   const handleHomeStart = (config: HomePageConfig) => {
@@ -204,16 +198,14 @@ export const App: React.FC = () => {
         onMessage: (msg: NetworkMessage) => {
           if (msg.type === "SYNC_STATE") {
             // Patch our local name in the state we receive
-            setGameState((prev) => {
-              const next = msg.state;
-              // Keep our entered name in santi slot
-              return {
-                ...next,
-                players: {
-                  ...next.players,
-                  santi: { ...next.players.santi, name: config.playerName },
-                },
-              };
+            const next = msg.state;
+            // Keep our entered name in santi slot
+            setGameState({
+              ...next,
+              players: {
+                ...next.players,
+                santi: { ...next.players.santi, name: config.playerName },
+              },
             });
             setPendingOnlineJoin(null);
           }

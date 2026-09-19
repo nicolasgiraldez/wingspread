@@ -1,5 +1,9 @@
 import Peer, { DataConnection } from "peerjs";
-import type { GameState, Move, NetworkMessage, PlayerId } from "../../game";
+import type { NetworkMessage } from "../../game";
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "";
+}
 
 const birdWords = [
   "halcon",
@@ -106,8 +110,8 @@ export class NetworkManager {
       this.peer.on("disconnected", () => {
         this.callbacks?.onStatusChange("disconnected", "Desconectado del servidor.");
       });
-    } catch (err: any) {
-      this.callbacks?.onStatusChange("error", err?.message || "Error al inicializar Host");
+    } catch (err: unknown) {
+      this.callbacks?.onStatusChange("error", errorMessage(err) || "Error al inicializar Host");
     }
   }
 
@@ -143,8 +147,8 @@ export class NetworkManager {
       this.peer.on("disconnected", () => {
         this.callbacks?.onStatusChange("disconnected", "Desconectado del servidor.");
       });
-    } catch (err: any) {
-      this.callbacks?.onStatusChange("error", err?.message || "Error al inicializar Invitado");
+    } catch (err: unknown) {
+      this.callbacks?.onStatusChange("error", errorMessage(err) || "Error al inicializar Invitado");
     }
   }
 
@@ -153,7 +157,7 @@ export class NetworkManager {
       this.callbacks?.onStatusChange("connected", "¡Conectado con el oponente!");
     });
 
-    conn.on("data", (data: any) => {
+    conn.on("data", (data: unknown) => {
       if (this.callbacks && data && typeof data === "object" && "type" in data) {
         this.callbacks.onMessage(data as NetworkMessage);
       }

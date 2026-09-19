@@ -1,5 +1,5 @@
 import React from "react";
-import { Award, Bot, RefreshCw, Trophy } from "lucide-react";
+import { Bot, RefreshCw, Trophy } from "lucide-react";
 import { scorePlayerDetails } from "../../game";
 import type { GameState } from "../../game";
 import { playerNames } from "../labels";

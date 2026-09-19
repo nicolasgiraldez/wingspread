@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Bird,
   Bot,
@@ -30,20 +30,12 @@ interface HomePageProps {
 type Section = "welcome" | "solo" | "online";
 
 export const HomePage: React.FC<HomePageProps> = ({ onStart, defaultJoinCode = "" }) => {
-  const [section, setSection] = useState<Section>("welcome");
+  const [section, setSection] = useState<Section>(defaultJoinCode ? "online" : "welcome");
   const [playerName, setPlayerName] = useState("");
   const [opponentName, setOpponentName] = useState("");
   const [difficulty, setDifficulty] = useState<AutomaDifficulty>("normal");
   const [joinCode, setJoinCode] = useState(defaultJoinCode);
   const [joinError, setJoinError] = useState("");
-
-  // If we have a join code from URL, jump straight to online join screen
-  useEffect(() => {
-    if (defaultJoinCode) {
-      setSection("online");
-      setJoinCode(defaultJoinCode);
-    }
-  }, [defaultJoinCode]);
 
   const validName = playerName.trim().length >= 1;
 

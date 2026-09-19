@@ -1,5 +1,5 @@
 import React from "react";
-import { Bot, Cpu, Egg, Layers, Sparkles, Target } from "lucide-react";
+import { Bot, Egg, Layers, Target } from "lucide-react";
 import type { AutomaState, GameState, PlayerState } from "../../game";
 import { difficultyLabels } from "../labels";
 

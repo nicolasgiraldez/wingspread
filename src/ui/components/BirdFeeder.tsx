@@ -14,10 +14,9 @@ interface BirdFeederProps {
 
 /** Popup flotante para elegir entre insecto 🐛 o semilla 🌾 al tomar un dado "wild" */
 const WildChoicePopup: React.FC<{
-  dieIndex: number;
   onChoose: (choice: "insect" | "seed") => void;
   onCancel: () => void;
-}> = ({ dieIndex, onChoose, onCancel }) => (
+}> = ({ onChoose, onCancel }) => (
   <div
     style={{
       position: "fixed",
@@ -131,7 +130,6 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
     <>
       {wildPending !== null && (
         <WildChoicePopup
-          dieIndex={wildPending}
           onChoose={handleWildChoice}
           onCancel={() => setWildPending(null)}
         />

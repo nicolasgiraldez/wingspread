@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Copy, Globe, Link, Share2, Wifi, WifiOff } from "lucide-react";
+import { Check, Copy, Globe, Share2, Wifi, WifiOff } from "lucide-react";
 import type { ConnectionStatus } from "../network/peerManager";
 
 interface ConnectionStatusBarProps {

@@ -1,5 +1,5 @@
 import React from "react";
-import { Egg, Feather, Layers, Sparkles } from "lucide-react";
+import { Egg, Feather, Layers } from "lucide-react";
 import type { NameTag, ResourceFace, SpeciesCard } from "../../game";
 import {
   costIcon,

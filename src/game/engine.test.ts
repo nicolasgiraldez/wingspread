@@ -6,7 +6,6 @@ import {
   canRerollFeeder,
   createInitialState,
   evaluateRoundGoalMetric,
-  executeAutomaTurn,
   isLegalMove,
   resolveRoundEnd,
   rollInitialFeeder,

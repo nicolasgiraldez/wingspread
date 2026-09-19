@@ -1,7 +1,7 @@
 import React from "react";
-import { Target, Trophy } from "lucide-react";
+import { Target } from "lucide-react";
 import { evaluateRoundGoalMetric } from "../../game";
-import type { GameState, RoundGoal } from "../../game";
+import type { GameState } from "../../game";
 import { playerNames } from "../labels";
 
 interface RoundGoalsMatProps {

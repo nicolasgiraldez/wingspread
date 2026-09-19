@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Egg, Minus, Plus, TreePine, Waves, Wind, X } from "lucide-react";
+import { Check, Minus, Plus, TreePine, Waves, Wind, X } from "lucide-react";
 import { getActivatablePowers, getHabitatActionAllowance } from "../../game";
 import type {
   CardId,
@@ -24,9 +24,8 @@ import {
   buildEggTargetOptions,
   buildRepeatPowerOptions,
   decodeSlotKey,
-  PowerChecklist,
-  PowerChecklistEntry,
-} from "./PowerChecklist";
+} from "./powerOptions";
+import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
 interface LayEggsModalProps {
   player: PlayerState;

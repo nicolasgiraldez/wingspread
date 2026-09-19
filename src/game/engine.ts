@@ -1,10 +1,8 @@
 import { automaCardsCatalog } from "./automaCards";
 import { rollInitialFeeder, rollRandomDie, shuffle } from "./setup";
 import type {
-  BoardSlot,
   BonusCard,
   CardId,
-  DrawCardSelection,
   GameState,
   HabitatId,
   Move,
@@ -322,7 +320,7 @@ export function executeAutomaTurn(state: GameState): GameState {
       const count = act.count ?? 1;
       for (let i = 0; i < count; i += 1) {
         if (next.market.length > 0) {
-          const cardDrawn = next.market.shift();
+          next.market.shift();
           actionDescriptions.push(`robó 1 carta del mercado`);
           const rep = next.deck.shift();
           if (rep) next.market.push(rep);

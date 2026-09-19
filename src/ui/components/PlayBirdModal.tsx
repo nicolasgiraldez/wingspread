@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bird, Egg, X } from "lucide-react";
+import { Bird, X } from "lucide-react";
 import { canPayResources, getOnPlayPowers, isLegalMove } from "../../game";
 import type {
   CardId,
@@ -20,7 +20,8 @@ import {
   resourceLabels,
 } from "../labels";
 import { BirdCard } from "./BirdCard";
-import { buildEggTargetOptions, decodeSlotKey, PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
+import { buildEggTargetOptions, decodeSlotKey } from "./powerOptions";
+import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
 function eggCostForColumn(slotIndex: number): number {
   return slotIndex === 0 ? 0 : slotIndex <= 2 ? 1 : 2;
@@ -135,7 +136,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
   );
 
   // Egg payments from board
-  const [paidEggsFrom, setPaidEggsFrom] = useState<SlotRef[]>(() =>
+  const [paidEggsFrom] = useState<SlotRef[]>(() =>
     autoSelectEggPayment(player, eggCost),
   );
 
@@ -395,7 +396,6 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                 {Object.entries(player.resources).map(([res, total]) => {
                   const r = res as ResourceFace;
                   const selectedCount = selectedPaidResources.filter((item) => item === r).length;
-                  const available = (total ?? 0) - selectedCount;
 
                   return (
                     <button
