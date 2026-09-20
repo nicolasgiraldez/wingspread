@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Check, Minus, Plus, TreePine, Waves, Wind, X } from "lucide-react";
 import { getActivatablePowers, getHabitatActionAllowance } from "../../game";
+import { Icon } from "./ui/Icon";
 import type {
   CardId,
   GameState,
@@ -47,9 +47,9 @@ interface BirdSlotInfo {
 }
 
 const habitatIcons: Record<HabitatId, React.ReactNode> = {
-  forest: <TreePine size={16} color="#3fae72" />,
-  grassland: <Wind size={16} color="#d9a83b" />,
-  wetland: <Waves size={16} color="#4fa8e0" />,
+  forest: <Icon name="forest" size={20} />,
+  grassland: <Icon name="grass" size={20} />,
+  wetland: <Icon name="river" size={20} />,
 };
 
 export const LayEggsModal: React.FC<LayEggsModalProps> = ({
@@ -363,7 +363,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                 fontSize: "1.3rem",
               }}
             >
-              🥚
+              <Icon name="egg" size={30} />
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: "1.25rem", color: "#3fae72" }}>
@@ -384,7 +384,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               color: "#93a397",
             }}
           >
-            <X size={22} />
+            <Icon name="close" size={24} />
           </button>
         </div>
 
@@ -423,7 +423,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                       transition: "all 0.15s ease",
                     }}
                   >
-                    🥚
+                    <Icon name="egg" size={24} />
                   </span>
                 ))}
               </div>
@@ -441,7 +441,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               }}
             >
               {remainingEggs === 0
-                ? "✓ Todos los huevos asignados"
+                ? "Todos los huevos asignados"
                 : `${remainingEggs} por asignar`}
             </div>
           </div>
@@ -461,7 +461,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               }}
             >
               <span style={{ color: "#c3ccc5", fontWeight: 600 }}>
-                Opcional (+1 🥚 extra): Descartar 1 alimento
+                Opcional (+1 <Icon name="egg" size={16} /> extra): Descartar 1 alimento
               </span>
               <div style={{ display: "flex", gap: 6 }}>
                 {(["seed", "fruit", "insect", "fish", "rodent"] as ResourceFace[]).map((res) => {
@@ -487,7 +487,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                       }}
                       title={`Descartar 1 ${resourceLabels[res]}`}
                     >
-                      {resourceIcons[res]} {resourceLabels[res]} ({count})
+                      <Icon name={resourceIcons[res]} size={18} /> {resourceLabels[res]} ({count})
                     </button>
                   );
                 })}
@@ -560,7 +560,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                         </span>
                         <span>•</span>
                         <span>
-                          {nestIcons[b.card.nestType ?? "wild"]} {nestLabels[b.card.nestType ?? "wild"]}
+                          <Icon name={nestIcons[b.card.nestType ?? "wild"]} size={18} /> {nestLabels[b.card.nestType ?? "wild"]}
                         </span>
                       </div>
                     </div>
@@ -571,7 +571,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                     {/* Visualización de huevos */}
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#eef1ec" }}>
-                        {b.currentEggs + assigned} / {b.eggCapacity} 🥚
+                        {b.currentEggs + assigned} / {b.eggCapacity} <Icon name="egg" size={16} />
                         {assigned > 0 && (
                           <span style={{ color: "#3fae72", marginLeft: 4 }}>
                             (+{assigned})
@@ -604,7 +604,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                         }}
                         title="Quitar 1 huevo asignado"
                       >
-                        <Minus size={16} />
+                        <Icon name="minus" size={18} />
                       </button>
 
                       <span
@@ -644,7 +644,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                             : "Poner 1 huevo en esta ave"
                         }
                       >
-                        <Plus size={16} />
+                        <Icon name="plus2" size={18} />
                       </button>
                     </div>
                   </div>
@@ -709,7 +709,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
               transition: "all 0.15s ease",
             }}
           >
-            <Check size={18} />
+            <Icon name="check" size={20} />
             Confirmar y poner {totalAssigned} huevo{totalAssigned !== 1 ? "s" : ""}
           </button>
         </div>

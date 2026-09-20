@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Check, Sparkles } from "lucide-react";
 import type { BonusCard, CardId, GameState, Move, PlayerState, ResourceFace } from "../../game";
 import { resourceIcons, resourceLabels } from "../labels";
 import { BirdCard } from "./BirdCard";
+import { Icon } from "./ui/Icon";
 
 type StartMove = Extract<Move, { type: "chooseStart" }>;
 
@@ -65,7 +65,9 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
     <div className="modal-backdrop">
       <div className="modal-content" style={{ maxWidth: 960, maxHeight: "94vh", overflowY: "auto" }}>
         <div style={{ textAlign: "center", padding: "6px 0 12px 0" }}>
-          <Sparkles size={34} color="#3fae72" style={{ margin: "0 auto 8px auto" }} />
+          <span style={{ display: "inline-flex", margin: "0 auto 8px auto" }}>
+            <Icon name="star" size={40} />
+          </span>
           <h2 style={{ margin: "0 0 6px 0", fontSize: "1.3rem" }}>{player.name}, prepara tu mano inicial</h2>
           <p style={{ margin: 0, color: "#93a397", fontSize: "0.88rem" }}>
             Te tocaron 5 aves y 5 fichas de alimento. Quédate con las aves que quieras, pero por cada una descarta 1 ficha de alimento.
@@ -78,7 +80,13 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
             <div key={id} title={kept.includes(id) ? "Se conserva (pulsa para descartarla)" : "Se descarta (pulsa para conservarla)"}>
               <BirdCard card={gameState.cards[id]} isSelected={kept.includes(id)} onClick={() => toggleBird(id)} />
               <div style={{ textAlign: "center", fontSize: "0.75rem", marginTop: 3, color: kept.includes(id) ? "#3fae72" : "#75897b" }}>
-                {kept.includes(id) ? "✓ Se conserva" : "Se descarta"}
+                {kept.includes(id) ? (
+                  <>
+                    <Icon name="check" size={16} ink="var(--c-petroleo)" /> Se conserva
+                  </>
+                ) : (
+                  "Se descarta"
+                )}
               </div>
             </div>
           ))}
@@ -102,7 +110,7 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
                   textDecoration: isDiscarded ? "line-through" : "none",
                 }}
               >
-                {resourceIcons[food]} {resourceLabels[food]}
+                <Icon name={resourceIcons[food]} size={20} /> {resourceLabels[food]}
               </button>
             );
           })}
@@ -130,7 +138,7 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
               <button type="button" onClick={() => setBonusId(bonus.id)} style={{ justifyContent: "center" }}>
                 {bonusId === bonus.id ? (
                   <>
-                    <Check size={14} /> Elegida
+                    <Icon name="check" size={16} /> Elegida
                   </>
                 ) : (
                   "Elegir esta"

@@ -1,13 +1,21 @@
 import React from "react";
-import { Bot, RefreshCw, Trophy } from "lucide-react";
 import { rankPlayers, scorePlayerDetails } from "../../game";
 import type { GameState } from "../../game";
 import { playerNames } from "../labels";
+import { Icon } from "./ui/Icon";
+import type { IconName } from "./ui/iconNames";
 
 interface GameOverModalProps {
   gameState: GameState;
   onRestart: () => void;
 }
+
+const categoryLabel = (icon: IconName, text: string) => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+    <Icon name={icon} size={20} />
+    {text}
+  </span>
+);
 
 export const GameOverModal: React.FC<GameOverModalProps> = ({
   gameState,
@@ -29,9 +37,13 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
       <div className="modal-content" style={{ maxWidth: 640 }}>
         <div style={{ textAlign: "center", padding: "10px 0" }}>
           {winner.isBot && !isTie ? (
-            <Bot size={48} color="#93a397" style={{ margin: "0 auto 10px auto" }} />
+            <span style={{ display: "inline-flex", margin: "0 auto 10px auto" }}>
+              <Icon name="bot" size={56} />
+            </span>
           ) : (
-            <Trophy size={48} color="#f0bf5c" style={{ margin: "0 auto 10px auto" }} />
+            <span style={{ display: "inline-flex", margin: "0 auto 10px auto" }}>
+              <Icon name="trophy" size={56} />
+            </span>
           )}
           <h2 style={{ margin: "0 0 6px 0", fontSize: "1.7rem" }}>
             {isTie
@@ -67,7 +79,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </thead>
           <tbody>
             <tr style={{ borderBottom: "1px solid #2b332e" }}>
-              <td style={{ padding: "8px 12px" }}>🪶 Puntos de Aves</td>
+              <td style={{ padding: "8px 12px" }}>{categoryLabel("bird", "Puntos de Aves")}</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.birds}
@@ -75,7 +87,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               ))}
             </tr>
             <tr style={{ borderBottom: "1px solid #2b332e" }}>
-              <td style={{ padding: "8px 12px" }}>🥚 Huevos (1 pt c/u)</td>
+              <td style={{ padding: "8px 12px" }}>{categoryLabel("egg", "Huevos (1 pt c/u)")}</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.eggs}
@@ -83,7 +95,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               ))}
             </tr>
             <tr style={{ borderBottom: "1px solid #2b332e" }}>
-              <td style={{ padding: "8px 12px" }}>🌾 Alimentos Almacenados</td>
+              <td style={{ padding: "8px 12px" }}>{categoryLabel("seed", "Alimentos Almacenados")}</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.cachedFood}
@@ -91,7 +103,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               ))}
             </tr>
             <tr style={{ borderBottom: "1px solid #2b332e" }}>
-              <td style={{ padding: "8px 12px" }}>📑 Cartas Solapadas</td>
+              <td style={{ padding: "8px 12px" }}>{categoryLabel("stack", "Cartas Solapadas")}</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.tuckedCards}
@@ -99,7 +111,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               ))}
             </tr>
             <tr style={{ borderBottom: "1px solid #2b332e" }}>
-              <td style={{ padding: "8px 12px" }}>🎯 Objetivos de Ronda</td>
+              <td style={{ padding: "8px 12px" }}>{categoryLabel("target", "Objetivos de Ronda")}</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.roundGoals}
@@ -107,7 +119,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               ))}
             </tr>
             <tr style={{ borderBottom: "2px solid #2b332e" }}>
-              <td style={{ padding: "8px 12px" }}>⭐ Cartas de Bonificación / Dificultad</td>
+              <td style={{ padding: "8px 12px" }}>{categoryLabel("star", "Cartas de Bonificación / Dificultad")}</td>
               {playerScores.map((p) => (
                 <td key={p.id} style={{ padding: "8px 12px", textAlign: "center" }}>
                   {p.details.bonusCards}
@@ -134,7 +146,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               fontSize: "1rem",
             }}
           >
-            <RefreshCw size={18} /> Jugar Otra Partida
+            <Icon name="refresh" size={18} /> Jugar Otra Partida
           </button>
         </div>
       </div>

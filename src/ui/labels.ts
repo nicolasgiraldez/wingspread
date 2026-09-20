@@ -1,4 +1,6 @@
 import type { BonusCard, BotDifficulty, HabitatId, NameTag, NestType, Power, ResourceFace } from "../game";
+import type { IconName } from "./components/ui/iconNames";
+import { plainText } from "./components/ui/richTextParts";
 
 export const playerNames: Record<string, string> = {
   nico: "Nico",
@@ -18,18 +20,21 @@ export const habitatLabels: Record<HabitatId, string> = {
   wetland: "Río",
 };
 
-export const habitatIcons: Record<HabitatId, string> = {
-  forest: "🌲",
-  grassland: "🌾",
-  wetland: "🌊",
+export const habitatIcons: Record<HabitatId, IconName> = {
+  forest: "forest",
+  grassland: "grass",
+  wetland: "river",
 };
 
-/** Carta de bonificación asociada a cada categoría de nombre curada en SpeciesCard.nameTags. */
-export const nameTagBonus: Record<NameTag, { label: string; icon: string }> = {
-  color: { label: "Fotógrafo", icon: "📷" },
-  bodyPart: { label: "Anatomista", icon: "🫀" },
-  geographic: { label: "Cartógrafo", icon: "🗺️" },
-  possessive: { label: "Historiador", icon: "👤" },
+/**
+ * Carta de bonificación asociada a cada categoría de nombre curada en SpeciesCard.nameTags.
+ * El diseño no define íconos para estas categorías: se identifican con la palabra (chip de texto).
+ */
+export const nameTagBonus: Record<NameTag, { label: string }> = {
+  color: { label: "Fotógrafo" },
+  bodyPart: { label: "Anatomista" },
+  geographic: { label: "Cartógrafo" },
+  possessive: { label: "Historiador" },
 };
 
 /** Categorías de nombre que puntúan alguna de las cartas de bonificación dadas. */
@@ -46,25 +51,25 @@ export const resourceLabels: Record<ResourceFace, string> = {
   wild: "comodín (gusano/trigo)",
 };
 
-export const resourceIcons: Record<ResourceFace, string> = {
-  seed: "🌾",
-  fruit: "🍒",
-  insect: "🐛",
-  fish: "🐟",
-  rodent: "🐁",
-  wild: "🐛/🌾",
+/** Ícono de cada alimento. "wild" es el comodín de coste (cualquier alimento); la cara comodín del dado se dibuja aparte. */
+export const resourceIcons: Record<ResourceFace, IconName> = {
+  seed: "seed",
+  fruit: "fruit",
+  insect: "insect",
+  fish: "fish",
+  rodent: "rodent",
+  wild: "wild",
 };
 
 /**
- * Ícono/etiqueta para "wild" cuando aparece como costo de comida de una carta (acepta CUALQUIER
- * tipo de alimento, no solo insecto/semilla). Distinto de resourceIcons.wild, que representa
+ * Etiqueta para "wild" cuando aparece como costo de comida de una carta (acepta CUALQUIER
+ * tipo de alimento, no solo insecto/semilla). Distinto de resourceLabels.wild, que representa
  * específicamente la cara "comodín" del dado del comedero (ahí sí es insecto o semilla).
  */
-const wildCostIcon = "🃏";
 const wildCostLabel = "comodín (cualquier alimento)";
 
-export function costIcon(res: ResourceFace): string {
-  return res === "wild" ? wildCostIcon : resourceIcons[res];
+export function costIcon(res: ResourceFace): IconName {
+  return resourceIcons[res];
 }
 
 export function costLabel(res: ResourceFace): string {
@@ -79,28 +84,33 @@ export const nestLabels: Record<NestType, string> = {
   wild: "Nido comodín",
 };
 
-export const nestIcons: Record<NestType, string> = {
-  bowl: "🥣",
-  cavity: "🕳️",
-  platform: "🪵",
-  ground: "🌿",
-  wild: "⭐",
+export const nestIcons: Record<NestType, IconName> = {
+  bowl: "bowl",
+  cavity: "cavity",
+  platform: "platform",
+  ground: "ground",
+  wild: "nestwild",
 };
 
+/** Marcador de ícono para incrustar un alimento dentro de un texto (se dibuja con <RichText>). */
+const ico = (res: ResourceFace) => `{${resourceIcons[res]}}`;
 
-
-/** Descripción legible de un poder, usada tanto en BirdCard como en los checklists de activación. */
+/**
+ * Descripción legible de un poder, usada tanto en BirdCard como en los checklists de activación.
+ * Los alimentos van como marcadores ({seed}, {fruit}…): mostralos con <RichText>, o usá describePowerText
+ * para el texto plano (title / aria-label).
+ */
 export function describePower(power: Power): string {
   switch (power.kind) {
     case "gainResource": {
       if (power.gainAllMatching) {
-        return `Obtén TODOS los ${power.resource ? resourceIcons[power.resource] : "dados"} que haya en el comedero`;
+        return `Obtén TODOS los ${power.resource ? ico(power.resource) : "dados"} que haya en el comedero`;
       }
       if (power.anyDie) {
         return "Obtén 1 dado cualquiera del comedero";
       }
-      const altText = power.resourceAlt ? ` o ${resourceIcons[power.resourceAlt]}` : "";
-      return `Obtén ${power.amount} ${power.resource ? resourceIcons[power.resource] : "alimento"}${altText}${power.from === "feeder" ? " del comedero" : ""}`;
+      const altText = power.resourceAlt ? ` o ${ico(power.resourceAlt)}` : "";
+      return `Obtén ${power.amount} ${power.resource ? ico(power.resource) : "alimento"}${altText}${power.from === "feeder" ? " del comedero" : ""}`;
     }
     case "layEgg": {
       if (power.target === "self") return `Pon ${power.amount} huevo(s) en este nido`;
@@ -119,30 +129,30 @@ export function describePower(power: Power): string {
       return `Roba ${power.amount} carta(s)${power.thenDiscard ? " y descarta 1" : ""}`;
     case "tuckCard": {
       const costPrefix = power.costResource
-        ? `Descartá ${power.costAmount ?? 1} ${resourceIcons[power.costResource]} para `
+        ? `Descartá ${power.costAmount ?? 1} ${ico(power.costResource)} para `
         : "";
       const verb = costPrefix ? "solapar" : "Solapa";
       return (
         `${costPrefix}${verb} ${power.amount} carta(s)${power.source === "deck" ? " del mazo" : " de tu mano"}` +
         `${power.thenDraw ? " y roba 1" : ""}` +
         `${power.thenGainEgg ? " y pon 1 huevo" : ""}` +
-        `${power.thenGainResource ? ` y ganá 1 ${resourceIcons[power.thenGainResource]}${power.thenGainResourceAlt ? ` o 1 ${resourceIcons[power.thenGainResourceAlt]}` : ""}` : ""}`
+        `${power.thenGainResource ? ` y ganá 1 ${ico(power.thenGainResource)}${power.thenGainResourceAlt ? ` o 1 ${ico(power.thenGainResourceAlt)}` : ""}` : ""}`
       );
     }
     case "cacheFood":
-      return `Almacena 1 ${power.resource ? resourceIcons[power.resource] : "semilla"} en esta carta`;
+      return `Almacena 1 ${power.resource ? ico(power.resource) : "semilla"} en esta carta`;
     case "huntPredator":
       return `Caza: si envergadura del mazo ≤ ${power.maxWingspanCm}cm, solapa como presa`;
     case "diceHuntPredator":
-      return `Caza: relanza los dados fuera del comedero; si alguno muestra ${resourceIcons[power.resource]}, gana 1 y lo cachea en esta carta`;
+      return `Caza: relanza los dados fuera del comedero; si alguno muestra ${ico(power.resource)}, gana 1 y lo cachea en esta carta`;
     case "playSecondBird":
       return `Jugá una segunda ave en ${power.habitats.map((h) => habitatLabels[h]).join(" o ")}, pagando su costo normal`;
     case "allPlayersGain":
       return power.benefitType === "card"
         ? "Todos los jugadores roban 1 carta del mazo"
-        : `Todos obtienen 1 ${power.resource ? resourceIcons[power.resource] : "recurso"}`;
+        : `Todos obtienen 1 ${power.resource ? ico(power.resource) : "recurso"}`;
     case "tradeResource":
-      return `Cambia 1 ${resourceIcons[power.costResource]} por ${power.amount ?? 1} ${resourceIcons[power.gainResource]}`;
+      return `Cambia 1 ${ico(power.costResource)} por ${power.amount ?? 1} ${ico(power.gainResource)}`;
     case "gainBonusCard":
       return `Revela ${power.drawCount} carta(s) de bonificación y conservá ${power.keepCount}`;
     case "repeatPower":
@@ -156,4 +166,19 @@ export function describePower(power: Power): string {
     default:
       return "";
   }
+}
+
+/** Nombre en palabras de cada ícono que puede aparecer como marcador en el texto de un poder. */
+const markerNames: Partial<Record<IconName, string>> = {
+  seed: "semilla",
+  fruit: "fruta",
+  insect: "insecto",
+  fish: "pez",
+  rodent: "roedor",
+  wild: "comodín",
+};
+
+/** Texto plano de un poder (los marcadores pasan a palabras): para title, aria-label y comparaciones. */
+export function describePowerText(power: Power): string {
+  return plainText(describePower(power), markerNames);
 }

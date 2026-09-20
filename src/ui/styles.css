@@ -308,7 +308,7 @@ textarea {
   white-space: nowrap;
 }
 
-/* La cara comodín muestra 2 íconos + "/" ("🐛/🌾"): el dado se ensancha un poco para que
+/* La cara comodín muestra 2 íconos + "/" (insecto y semilla): el dado se ensancha un poco para que
    entren con una fuente legible en vez de apretarse en el ancho estándar. */
 .die-token.die-wild {
   width: 68px;

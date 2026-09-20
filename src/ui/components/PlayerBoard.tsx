@@ -1,8 +1,8 @@
 import React from "react";
-import { TreePine, Waves, Wind } from "lucide-react";
 import { getHabitatActionAllowance, getHabitatActiveColumn } from "../../game";
 import type { GameState, HabitatId, NameTag, PlayerState } from "../../game";
-import { habitatLabels, playerNames } from "../labels";
+import { habitatIcons, habitatLabels, playerNames } from "../labels";
+import { Icon } from "./ui/Icon";
 import { BirdCard } from "./BirdCard";
 
 interface PlayerBoardProps {
@@ -16,12 +16,6 @@ interface PlayerBoardProps {
   selectedSlotIndex?: number;
   isCurrentPlayerTurn: boolean;
 }
-
-const habitatIcons: Record<HabitatId, React.ReactNode> = {
-  forest: <TreePine size={20} color="#3fae72" />,
-  grassland: <Wind size={20} color="#d9a83b" />,
-  wetland: <Waves size={20} color="#4fa8e0" />,
-};
 
 const columnEggCosts = [0, 1, 1, 2, 2];
 
@@ -76,7 +70,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                 border: "1px solid #2b332e",
               }}
             >
-              👁️ Tablero del Oponente (Solo lectura)
+              Tablero del Oponente (Solo lectura)
             </span>
           )}
         </div>
@@ -96,7 +90,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
             <div className="habitat-info">
               <div>
                 <h3>
-                  {habitatIcons[hab]} {habitatLabels[hab]}
+                  <Icon name={habitatIcons[hab]} size={24} /> {habitatLabels[hab]}
                 </h3>
                 <p style={{ margin: "4px 0 0 0", fontSize: "0.75rem", color: "#c3ccc5" }}>
                   {hab === "forest" && "Obtén alimento del comedero"}
@@ -137,7 +131,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                       : `Poner hasta ${grasslandAllowance.baseAmount} huevos en tus aves`
                   }
                 >
-                  <span>🥚</span>
+                  <Icon name="egg" size={20} />
                   <span>Poner {grasslandAllowance.baseAmount} Huevos</span>
                 </button>
               )}
@@ -176,7 +170,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                           compact
                           actionLabel={
                             isOwner && slot.eggs < card.eggCapacity && isCurrentPlayerTurn && onOpenLayEggsModal
-                              ? "+ 🥚 Poner"
+                              ? "+ Poner huevos"
                               : undefined
                           }
                           onAction={() => {
@@ -207,7 +201,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                             fontWeight: 600,
                           }}
                         >
-                          Coste: {eggCost === 0 ? "0 🥚" : `${eggCost} 🥚`}
+                          Coste: {eggCost} <Icon name="egg" size={14} />
                         </div>
                       </div>
                     )}

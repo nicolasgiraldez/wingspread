@@ -1,6 +1,7 @@
 import React from "react";
 import type { CardId, HabitatId, Power } from "../../game";
 import { describePower } from "../labels";
+import { RichText } from "./ui/RichText";
 
 export interface PowerCardChoiceConfig {
   /** Texto explicando qué carta hay que elegir (p. ej. "¿Qué carta descartás?"). */
@@ -68,7 +69,7 @@ export const PowerChecklist: React.FC<PowerChecklistProps> = ({ title, entries }
             <label className="power-checklist-label">
               <input type="checkbox" checked={entry.checked} onChange={entry.onToggle} />
               <span>
-                <strong>{entry.birdName}</strong>: {describePower(entry.power)}
+                <strong>{entry.birdName}</strong>: <RichText text={describePower(entry.power)} size={18} />
               </span>
             </label>
 

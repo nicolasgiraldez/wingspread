@@ -3560,7 +3560,7 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
   anatomist: {
     id: "anatomist",
     name: "Anatomista",
-    description: "Cuentan las aves con el ícono 🫀.",
+    description: "Cuentan las aves con el ícono de anatomía.",
     conditionType: "birdsWithNameTag",
     nameTag: "bodyPart",
     tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],
@@ -3568,7 +3568,7 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
   cartographer: {
     id: "cartographer",
     name: "Cartógrafo",
-    description: "Cuentan las aves con el ícono 🗺️.",
+    description: "Cuentan las aves con el ícono de mapa.",
     conditionType: "birdsWithNameTag",
     nameTag: "geographic",
     tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],
@@ -3576,7 +3576,7 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
   historian: {
     id: "historian",
     name: "Historiador",
-    description: "Cuentan las aves con el ícono 👤.",
+    description: "Cuentan las aves con el ícono de persona.",
     conditionType: "birdsWithNameTag",
     nameTag: "possessive",
     scoringMode: "perBird",
@@ -3585,7 +3585,7 @@ export const bonusCardsCatalog: Record<string, BonusCard> = {
   photographer: {
     id: "photographer",
     name: "Fotógrafo",
-    description: "Cuentan las aves con el ícono 📷.",
+    description: "Cuentan las aves con el ícono de cámara.",
     conditionType: "birdsWithNameTag",
     nameTag: "color",
     tiers: [{ threshold: 2, points: 3 }, { threshold: 4, points: 7 }],

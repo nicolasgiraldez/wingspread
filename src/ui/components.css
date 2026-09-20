@@ -135,3 +135,8 @@
 /* ---- Carta seleccionada ------------------------------------------------ */
 .is-selected { box-shadow: var(--focus-ring); }
 .is-lifted   { transform: translateY(-12px); box-shadow: var(--focus-ring), var(--shadow-lift); }
+
+/* ---- Línea de validación (ícono + texto) --------------------------------- */
+.status-line { display: inline-flex; align-items: flex-start; gap: 6px; font-weight: 600; }
+.status-line--ok { color: var(--c-petroleo-d); }
+.status-line--bad { color: var(--c-tomate-d); }

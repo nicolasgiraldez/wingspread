@@ -1,18 +1,6 @@
 import React, { useState } from "react";
-import {
-  Bird,
-  Bot,
-  ChevronRight,
-  Feather,
-  Globe,
-  History,
-  LogIn,
-  PlusCircle,
-  Trash2,
-  User,
-  Users,
-} from "lucide-react";
 import type { BotDifficulty } from "../../game";
+import { Icon } from "./ui/Icon";
 import { difficultyLabels } from "../labels";
 import { extractRoomCode, generateRoomCode } from "../network/peerManager";
 import { formatSavedAgo } from "../savedGame";
@@ -116,7 +104,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Branding */}
           <div style={styles.logoRow}>
             <div style={styles.logoIcon}>
-              <Bird size={44} color="#ffffff" />
+              <Icon name="bird" size={44} />
             </div>
             <div>
               <h1 style={styles.title}>Wingspread</h1>
@@ -131,7 +119,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div style={styles.savedCard}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={styles.savedTitle}>
-                  <History size={16} style={{ marginRight: 6 }} />
+                  <Icon name="clock" size={16} />
                   Partida en curso
                 </div>
                 <div style={styles.savedInfo}>
@@ -150,7 +138,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </button>
                 {onDiscardSaved && (
                   <button onClick={onDiscardSaved} style={styles.savedDiscard} title="Borrar la partida guardada">
-                    <Trash2 size={16} />
+                    <Icon name="trash" size={16} />
                   </button>
                 )}
               </div>
@@ -160,7 +148,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Player name always first */}
           <div style={styles.nameSection}>
             <label style={styles.label}>
-              <User size={14} style={{ marginRight: 6 }} />
+              <Icon name="user" size={16} />
               ¿Cómo te llamas?
             </label>
             <input
@@ -187,10 +175,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 ...(validName ? styles.modeButtonSolo : styles.modeButtonDisabled),
               }}
             >
-              <Bot size={28} />
+              <Icon name="bot" size={28} />
               <span style={styles.modeLabel}>Modo Solitario</span>
               <span style={styles.modeDesc}>Una partida 1 contra 1 contra la IA</span>
-              <ChevronRight size={16} style={styles.modeArrow} />
+              <Icon name="chev" size={16} />
             </button>
 
             <button
@@ -201,16 +189,16 @@ export const HomePage: React.FC<HomePageProps> = ({
                 ...(validName ? styles.modeButtonOnline : styles.modeButtonDisabled),
               }}
             >
-              <Globe size={28} />
+              <Icon name="globe" size={28} />
               <span style={styles.modeLabel}>Multijugador Online</span>
               <span style={styles.modeDesc}>Crea o únete a una sala en tiempo real</span>
-              <ChevronRight size={16} style={styles.modeArrow} />
+              <Icon name="chev" size={16} />
             </button>
           </div>
 
           {!validName && (
             <p style={styles.hint}>
-              ✏️ Introduce tu nombre para comenzar
+              Introduce tu nombre para comenzar
             </p>
           )}
         </div>
@@ -223,11 +211,13 @@ export const HomePage: React.FC<HomePageProps> = ({
     return (
       <div style={styles.fullPage}>
         <div style={{ ...styles.heroCard, maxWidth: 480 }}>
-          <button onClick={() => setSection("welcome")} style={styles.backBtn}>← Volver</button>
+          <button onClick={() => setSection("welcome")} style={styles.backBtn}>
+            <Icon name="back" size={18} /> Volver
+          </button>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
             <div style={{ ...styles.logoIcon, background: "#1f7a4f" }}>
-              <Bot size={28} color="#fff" />
+              <Icon name="bot" size={28} />
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: "1.4rem" }}>Modo Solitario</h2>
@@ -237,7 +227,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Player name */}
           <div style={styles.fieldGroup}>
-            <label style={styles.label}><User size={13} /> Tu nombre</label>
+            <label style={styles.label}><Icon name="user" size={16} /> Tu nombre</label>
             <input
               type="text"
               value={playerName}
@@ -284,7 +274,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               cursor: validName ? "pointer" : "not-allowed",
             }}
           >
-            <Feather size={18} /> Comenzar Partida Solitaria
+            <Icon name="bird" size={18} /> Comenzar Partida Solitaria
           </button>
         </div>
       </div>
@@ -295,11 +285,13 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div style={styles.fullPage}>
       <div style={{ ...styles.heroCard, maxWidth: 500 }}>
-        <button onClick={() => setSection("welcome")} style={styles.backBtn}>← Volver</button>
+        <button onClick={() => setSection("welcome")} style={styles.backBtn}>
+            <Icon name="back" size={18} /> Volver
+          </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
           <div style={{ ...styles.logoIcon, background: "#20699a" }}>
-            <Globe size={28} color="#fff" />
+            <Icon name="globe" size={28} />
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: "1.4rem" }}>Multijugador Online</h2>
@@ -309,7 +301,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {/* Your name */}
         <div style={styles.fieldGroup}>
-          <label style={styles.label}><User size={13} /> Tu nombre</label>
+          <label style={styles.label}><Icon name="user" size={16} /> Tu nombre</label>
           <input
             type="text"
             value={playerName}
@@ -323,12 +315,12 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Create Room block */}
         <div style={{ background: "rgba(79, 168, 224, 0.1)", border: "1.5px solid rgba(79, 168, 224, 0.35)", borderRadius: 12, padding: 16, marginBottom: 14 }}>
           <p style={{ margin: "0 0 10px 0", fontWeight: 600, fontSize: "0.95rem", color: "#4fa8e0" }}>
-            <PlusCircle size={15} style={{ marginRight: 6, verticalAlign: "middle" }} />
+            <Icon name="plus" size={16} />
             Crear nueva sala
           </p>
 
           <div style={styles.fieldGroup}>
-            <label style={styles.label}><Users size={13} /> Nombre de tu oponente (opcional)</label>
+            <label style={styles.label}><Icon name="user" size={16} /> Nombre de tu oponente (opcional)</label>
             <input
               type="text"
               value={opponentName}
@@ -348,7 +340,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               cursor: validName ? "pointer" : "not-allowed",
             }}
           >
-            <PlusCircle size={16} /> Crear Sala y Compartir Enlace
+            <Icon name="plus" size={16} /> Crear Sala y Compartir Enlace
           </button>
         </div>
 
@@ -362,7 +354,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Join Room block */}
         <form onSubmit={handleJoinRoom} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={styles.fieldGroup}>
-            <label style={styles.label}><LogIn size={13} /> Código de sala</label>
+            <label style={styles.label}><Icon name="login" size={16} /> Código de sala</label>
             <div style={{ display: "flex", gap: 8 }}>
               <input
                 type="text"
@@ -384,13 +376,13 @@ export const HomePage: React.FC<HomePageProps> = ({
                   cursor: validName ? "pointer" : "not-allowed",
                 }}
               >
-                <LogIn size={15} /> Unirse
+                <Icon name="login" size={16} /> Unirse
               </button>
             </div>
             {joinCode.trim() && !joinError && (
               parsedJoinCode ? (
                 <span style={{ fontSize: "0.78rem", color: "#3fae72" }}>
-                  ✓ Te unirás a la sala: <strong>{parsedJoinCode}</strong>
+                  <Icon name="check" size={18} ink="var(--c-petroleo)" /> Te unirás a la sala: <strong>{parsedJoinCode}</strong>
                 </span>
               ) : (
                 <span style={{ fontSize: "0.78rem", color: "#d9a83b" }}>

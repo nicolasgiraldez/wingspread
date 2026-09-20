@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Check, Copy, Globe, Share2, Wifi, WifiOff } from "lucide-react";
 import type { ConnectionStatus } from "../network/peerManager";
+import { Icon } from "./ui/Icon";
 
 interface ConnectionStatusBarProps {
   roomCode: string;
@@ -38,7 +38,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
           bg: "rgba(63, 174, 114, 0.12)",
           color: "#3fae72",
           border: "rgba(63, 174, 114, 0.35)",
-          icon: <Wifi size={14} />,
+          icon: <Icon name="wifi" size={16} />,
           text: "Conectado en Vivo",
         };
       case "waiting_for_opponent":
@@ -46,7 +46,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
           bg: "rgba(217, 168, 59, 0.12)",
           color: "#d9a83b",
           border: "rgba(217, 168, 59, 0.35)",
-          icon: <Share2 size={14} />,
+          icon: <Icon name="send" size={16} />,
           text: "Esperando Oponente...",
         };
       case "connecting":
@@ -54,7 +54,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
           bg: "rgba(79, 168, 224, 0.12)",
           color: "#4fa8e0",
           border: "rgba(79, 168, 224, 0.35)",
-          icon: <Wifi size={14} />,
+          icon: <Icon name="wifi" size={16} />,
           text: "Conectando...",
         };
       default:
@@ -62,7 +62,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
           bg: "rgba(240, 100, 95, 0.12)",
           color: "#f0645f",
           border: "rgba(240, 100, 95, 0.35)",
-          icon: <WifiOff size={14} />,
+          icon: <Icon name="wifioff" size={16} />,
           text: "Desconectado",
         };
     }
@@ -86,7 +86,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ background: "rgba(63, 174, 114, 0.12)", color: "#3fae72", padding: 6, borderRadius: 8 }}>
-          <Globe size={18} />
+          <Icon name="globe" size={20} />
         </div>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -134,7 +134,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
             fontSize: "0.8rem",
           }}
         >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
+          <Icon name={copied ? "check" : "copy"} size={16} />
           <span>{copied ? "¡Enlace Copiado!" : "Copiar Enlace de Sala"}</span>
         </button>
       </div>

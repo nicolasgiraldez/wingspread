@@ -1,8 +1,8 @@
 import React from "react";
-import { Target } from "lucide-react";
 import { evaluateRoundGoalMetric } from "../../game";
 import type { GameState } from "../../game";
 import { playerNames } from "../labels";
+import { Icon } from "./ui/Icon";
 
 interface RoundGoalsMatProps {
   gameState: GameState;
@@ -14,7 +14,7 @@ export const RoundGoalsMat: React.FC<RoundGoalsMatProps> = ({ gameState }) => {
   return (
     <div className="goals-mat">
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 160 }}>
-        <Target size={20} color="#3fae72" />
+        <Icon name="target" size={24} />
         <div>
           <strong style={{ fontSize: "0.95rem" }}>Objetivos de Ronda</strong>
           <div style={{ fontSize: "0.75rem", color: "#93a397" }}>

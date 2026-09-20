@@ -1,6 +1,6 @@
 import React from "react";
-import { Hourglass, Sparkles } from "lucide-react";
 import type { BonusCard } from "../../game";
+import { Icon } from "./ui/Icon";
 
 interface ChooseBonusCardModalProps {
   playerName: string;
@@ -26,7 +26,9 @@ export const ChooseBonusCardModal: React.FC<ChooseBonusCardModalProps> = ({
     return (
       <div className="modal-backdrop">
         <div className="modal-content" style={{ maxWidth: 420, textAlign: "center" }}>
-          <Hourglass size={32} color="#3fae72" style={{ margin: "0 auto 10px auto" }} />
+          <span style={{ display: "inline-flex", margin: "0 auto 10px auto" }}>
+            <Icon name="hourglass" size={40} />
+          </span>
           <h2 style={{ margin: "0 0 6px 0", fontSize: "1.15rem" }}>{waiting?.title ?? "Esperando"}</h2>
           <p style={{ margin: 0, color: "#93a397", fontSize: "0.9rem" }}>
             {waiting?.text ?? "Esperando al resto de los jugadores..."}
@@ -40,7 +42,9 @@ export const ChooseBonusCardModal: React.FC<ChooseBonusCardModalProps> = ({
     <div className="modal-backdrop">
       <div className="modal-content" style={{ maxWidth: 580 }}>
         <div style={{ textAlign: "center", padding: "6px 0 14px 0" }}>
-          <Sparkles size={36} color="#3fae72" style={{ margin: "0 auto 8px auto" }} />
+          <span style={{ display: "inline-flex", margin: "0 auto 8px auto" }}>
+            <Icon name="star" size={40} />
+          </span>
           <h2 style={{ margin: "0 0 6px 0", fontSize: "1.25rem" }}>
             {playerName}, elegí tu carta de bonificación
           </h2>

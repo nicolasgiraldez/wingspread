@@ -1,16 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Bird,
-  Bot,
-  Eye,
-  EyeOff,
-  Feather,
-  Lock,
-  RefreshCw,
-  Sparkles,
-  Trophy,
-} from "lucide-react";
-import {
   applyMove,
   createInitialState,
   getActivatablePowers,
@@ -31,6 +20,7 @@ import type {
   SpeciesCard,
 } from "../game";
 import { BirdCard } from "./components/BirdCard";
+import { Icon } from "./components/ui/Icon";
 import { BirdFeeder } from "./components/BirdFeeder";
 import { BirdMarket } from "./components/BirdMarket";
 import { ChooseBonusCardModal } from "./components/ChooseBonusCardModal";
@@ -490,7 +480,7 @@ export const App: React.FC = () => {
       <aside className="side-panel">
         <div className="brand">
           <div className="brand-icon">
-            <Bird size={28} />
+            <Icon name="bird" size={28} />
           </div>
           <div>
             <h1>Wingspread</h1>
@@ -506,7 +496,7 @@ export const App: React.FC = () => {
         <div className={`status-card ${isMyTurn ? "active-turn" : ""}`}>
           <h4>Turno Actual</h4>
           <div className="player-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {currentPlayer?.botLevel ? <Bot size={20} /> : null}
+            {currentPlayer?.botLevel ? <Icon name="bot" size={20} /> : null}
             {getDisplayName(gameState, gameState.currentPlayerId)}
             {gameState.currentPlayerId === localPlayerId && (
               <span style={{ fontSize: "0.75rem", color: "var(--color-forest)", fontWeight: 700 }}>(Tú)</span>
@@ -534,7 +524,7 @@ export const App: React.FC = () => {
         {/* Scoreboard */}
         <div className="status-card">
           <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Trophy size={14} color="var(--color-grassland)" /> Puntuación en Vivo
+            <Icon name="trophy" size={16} /> Puntuación en Vivo
           </h4>
           {gameState.playerOrder.map((pId) => {
             const scoreDetails = scorePlayerDetails(gameState, pId);
@@ -596,7 +586,7 @@ export const App: React.FC = () => {
               {Object.entries(viewedPlayer.resources ?? {}).map(([res, count]) => (
                 <div key={res} className="resource-badge">
                   <span>
-                    {resourceIcons[res as ResourceFace]} {resourceLabels[res as ResourceFace]}
+                    <Icon name={resourceIcons[res as ResourceFace]} size={20} /> {resourceLabels[res as ResourceFace]}
                   </span>
                   <strong>{count ?? 0}</strong>
                 </div>
@@ -609,7 +599,7 @@ export const App: React.FC = () => {
         {viewedPlayer && (
           <div className="status-card">
             <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Sparkles size={14} color="var(--color-forest)" /> Cartas de Bonificación
+              <Icon name="star" size={16} /> Cartas de Bonificación
             </h4>
             {activeTab === localPlayerId || gameState.phase === "gameEnd" ? (
               viewedPlayer.bonusCards?.length > 0 ? (
@@ -646,8 +636,7 @@ export const App: React.FC = () => {
                   gap: 8,
                 }}
               >
-                <Lock size={15} color="var(--color-text-dim)" />
-                <div>
+                                <div>
                   <strong>{viewedPlayer.bonusCards?.length ?? 0} carta(s) secreta(s)</strong>
                   <div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", marginTop: 2 }}>
                     Se revelan al finalizar la partida.
@@ -677,7 +666,7 @@ export const App: React.FC = () => {
           onClick={handleGoHome}
           style={{ backgroundColor: "var(--color-forest-strong)", marginTop: "auto", justifyContent: "center" }}
         >
-          <RefreshCw size={14} /> Nueva Partida / Inicio
+          <Icon name="refresh" size={16} /> Nueva Partida / Inicio
         </button>
       </aside>
 
@@ -707,7 +696,7 @@ export const App: React.FC = () => {
               fontSize: "0.9rem",
             }}
           >
-            ⏳ Turno de {getDisplayName(gameState, gameState.currentPlayerId)}... Esperando su
+            <Icon name="hourglass" size={20} /> Turno de {getDisplayName(gameState, gameState.currentPlayerId)}... Esperando su
             jugada en tiempo real.
           </div>
         )}
@@ -761,7 +750,7 @@ export const App: React.FC = () => {
                   transition: "all 0.15s ease",
                 }}
               >
-                {isMe ? <Feather size={14} /> : isAut ? <Bot size={14} /> : <Eye size={14} />}
+                {isMe ? <Icon name="bird" size={16} /> : isAut ? <Icon name="bot" size={16} /> : null}
                 {isMe ? `Mi Tablero (${pName})` : `Tablero de ${pName}`}
                 {!isMe && !isAut && (
                   <span
@@ -822,13 +811,12 @@ export const App: React.FC = () => {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <EyeOff size={18} color="var(--color-text-muted)" />
-                <h4 style={{ margin: 0, fontSize: "1rem", color: "var(--color-text)" }}>
+                                <h4 style={{ margin: 0, fontSize: "1rem", color: "var(--color-text)" }}>
                   Mano de {getDisplayName(gameState, viewedPlayer.id)} ({viewedPlayer.hand.length} carta{viewedPlayer.hand.length !== 1 ? "s" : ""} oculta{viewedPlayer.hand.length !== 1 ? "s" : ""})
                 </h4>
               </div>
               <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
-                🔒 Las cartas de la mano del rival permanecen en secreto
+                Las cartas de la mano del rival permanecen en secreto
               </span>
             </div>
 
@@ -857,7 +845,7 @@ export const App: React.FC = () => {
                     }}
                     title="Carta oculta en la mano del oponente"
                   >
-                    <Bird size={24} style={{ marginBottom: 6, opacity: 0.85, color: "#7fce9c" }} />
+                    <Icon name="bird" size={24} />
                     <span style={{ letterSpacing: "0.5px" }}>Wingspread</span>
                     <span style={{ fontSize: "0.62rem", opacity: 0.7, marginTop: 4, background: "rgba(255,255,255,0.12)", padding: "1px 6px", borderRadius: 6 }}>
                       Oculta #{i + 1}
@@ -894,7 +882,7 @@ export const App: React.FC = () => {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Feather size={20} color="var(--color-forest)" />
+                <Icon name="bird" size={20} />
                 <h3 style={{ margin: 0, fontSize: "1.15rem" }}>
                   Tu Mano ({getDisplayName(gameState, localPlayerId)}) — {gameState.players[localPlayerId].hand.length} carta
                   {gameState.players[localPlayerId].hand.length !== 1 ? "s" : ""}

@@ -1,6 +1,6 @@
 import React from "react";
-import { AlertTriangle, ArrowLeft, Bird, Loader2, RefreshCw } from "lucide-react";
 import type { ConnectionStatus } from "../network/peerManager";
+import { Icon } from "./ui/Icon";
 
 interface ConnectingScreenProps {
   roomCode: string;
@@ -39,7 +39,7 @@ export const ConnectingScreen: React.FC<ConnectingScreenProps> = ({
       <div style={styles.heroCard}>
         <div style={styles.logoRow}>
           <div style={{ ...styles.logoIcon, background: isError ? "#b8433f" : "#20699a" }}>
-            <Bird size={28} color="#fff" />
+            <Icon name="bird" size={32} />
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: "1.3rem" }}>Uniéndote a la sala</h2>
@@ -62,9 +62,9 @@ export const ConnectingScreen: React.FC<ConnectingScreenProps> = ({
           }}
         >
           {isError ? (
-            <AlertTriangle size={22} color="#f0645f" />
+            <Icon name="alert" size={24} />
           ) : (
-            <Loader2 size={22} color="#4fa8e0" className="spin-icon" />
+            <Icon name="spinner" size={24} className="spin" />
           )}
           <div>
             <div style={{ fontWeight: 700, fontSize: "0.9rem", color: isError ? "#f0645f" : "#4fa8e0" }}>
@@ -88,11 +88,11 @@ export const ConnectingScreen: React.FC<ConnectingScreenProps> = ({
             onClick={onCancel}
             style={{ ...styles.secondaryBtn, flex: isError ? 1 : "0 0 auto" }}
           >
-            <ArrowLeft size={16} /> Volver al inicio
+            <Icon name="back" size={18} /> Volver al inicio
           </button>
           {isError && (
             <button onClick={onRetry} style={{ ...styles.primaryBtn, flex: 1 }}>
-              <RefreshCw size={16} /> Reintentar
+              <Icon name="refresh" size={18} /> Reintentar
             </button>
           )}
         </div>

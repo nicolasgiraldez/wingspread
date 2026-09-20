@@ -1,11 +1,13 @@
 import React from "react";
-import { Egg, Feather, Layers } from "lucide-react";
 import type { NameTag, ResourceFace, SpeciesCard } from "../../game";
 import { getBirdImage } from "../birdImages";
+import { Icon } from "./ui/Icon";
+import { RichText } from "./ui/RichText";
 import {
   costIcon,
   costLabel,
   describePower,
+  describePowerText,
   habitatIcons,
   habitatLabels,
   nameTagBonus,
@@ -45,7 +47,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
   const highlighted = nameTags.filter((tag) => highlightNameTags.includes(tag));
   const countsForTitle =
     nameTags.length > 0
-      ? ["Esta ave cuenta para:", ...nameTags.map((tag) => `✓ ${nameTagBonus[tag].label}`)].join("\n")
+      ? ["Esta ave cuenta para:", ...nameTags.map((tag) => nameTagBonus[tag].label)].join("\n")
       : undefined;
 
   return (
@@ -94,7 +96,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
                 }`,
               }}
             >
-              <span>{habitatIcons[hab]}</span>
+              <Icon name={habitatIcons[hab]} size={16} />
               {!compact && <span style={{ fontSize: "0.68rem" }}>{habitatLabels[hab]}</span>}
             </span>
           ))}
@@ -104,7 +106,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {card.nestType && (
             <span title={nestLabels[card.nestType] ?? card.nestType} style={{ fontSize: "0.85rem" }}>
-              {nestIcons[card.nestType] ?? "🪺"}
+              <Icon name={nestIcons[card.nestType]} size={20} />
             </span>
           )}
           {card.wingspanCm && (
@@ -113,7 +115,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
             </span>
           )}
           <div className="points-badge" title="Puntos de victoria">
-            <Feather size={12} /> {card.points}
+            <Icon name="bird" size={16} /> {card.points}
           </div>
         </div>
       </div>
@@ -123,7 +125,9 @@ export const BirdCard: React.FC<BirdCardProps> = ({
         {image ? (
           <img src={image} alt="" loading="lazy" decoding="async" draggable={false} />
         ) : (
-          <Feather className="card-art-placeholder" size={compact ? 22 : 30} />
+          <span className="card-art-placeholder">
+            <Icon name="bird" size={compact ? 24 : 32} />
+          </span>
         )}
       </div>
 
@@ -133,7 +137,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
           {card.name}
           {highlighted.map((tag) => (
             <span key={tag} className="card-bonus-mark" title={`Cuenta para tu bonificación: ${nameTagBonus[tag].label}`}>
-              {nameTagBonus[tag].icon}
+              {nameTagBonus[tag].label}
             </span>
           ))}
         </h4>
@@ -148,12 +152,17 @@ export const BirdCard: React.FC<BirdCardProps> = ({
           <>
             {Object.entries(card.cost).map(([res, count]) => (
               <span key={res} className="cost-pill" title={costLabel(res as ResourceFace)}>
-                {count} {costIcon(res as ResourceFace) ?? res}
+                {count} <Icon name={costIcon(res as ResourceFace)} size={16} />
               </span>
             ))}
             {card.costAnyOf && card.costAnyOf.length > 0 && (
               <span className="cost-pill" title="Pagá 1 usando cualquiera de estos tipos">
-                1 {card.costAnyOf.map((res) => resourceIcons[res]).join("/")}
+                1 {card.costAnyOf.map((res, i) => (
+                  <React.Fragment key={res}>
+                    {i > 0 && "/"}
+                    <Icon name={resourceIcons[res]} size={16} />
+                  </React.Fragment>
+                ))}
               </span>
             )}
           </>
@@ -172,7 +181,9 @@ export const BirdCard: React.FC<BirdCardProps> = ({
                 {p.timing === "onPlay" && "Al jugar"}
                 {p.timing === "onceBetweenTurns" && "Entre turnos"}
               </span>
-              <span className="power-description-text">{describePower(p)}</span>
+              <span className="power-description-text" title={describePowerText(p)}>
+                <RichText text={describePower(p)} size={16} />
+              </span>
             </div>
           ))}
         </div>
@@ -182,16 +193,16 @@ export const BirdCard: React.FC<BirdCardProps> = ({
       {(eggs > 0 || cached.length > 0 || tucked.length > 0 || card.eggCapacity > 0) && (
         <div className="card-tokens-bar">
           <span title={`Capacidad de nido: ${card.eggCapacity}`}>
-            <Egg size={12} style={{ verticalAlign: "middle" }} /> {eggs}/{card.eggCapacity}
+            <Icon name="egg" size={16} /> {eggs}/{card.eggCapacity}
           </span>
           {cached.length > 0 && (
             <span title="Alimento almacenado">
-              🌾 {cached.length}
+              <Icon name="seed" size={14} /> {cached.length}
             </span>
           )}
           {tucked.length > 0 && (
             <span title="Cartas solapadas">
-              <Layers size={12} style={{ verticalAlign: "middle" }} /> {tucked.length}
+              <Icon name="stack" size={16} /> {tucked.length}
             </span>
           )}
         </div>

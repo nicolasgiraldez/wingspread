@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Check, X } from "lucide-react";
 import { getActivatablePowers } from "../../game";
 import type { GameState, HabitatId, PlayerState, PowerEggChoices, PowerMoveChoices } from "../../game";
 import {
@@ -12,6 +11,7 @@ import {
 } from "./powerOptions";
 import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 import { habitatLabels } from "../labels";
+import { Icon } from "./ui/Icon";
 
 interface HabitatPowersModalProps {
   title: string;
@@ -214,7 +214,7 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
         <div className="modal-header">
           <h2>{title}</h2>
           <button onClick={onClose} style={{ background: "transparent", color: "#93a397", padding: 4 }}>
-            <X size={20} />
+            <Icon name="close" size={22} />
           </button>
         </div>
 
@@ -227,7 +227,7 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
             Cancelar
           </button>
           <button onClick={handleConfirm} style={{ backgroundColor: "#1f7a4f" }}>
-            <Check size={16} /> Confirmar
+            <Icon name="check" size={18} /> Confirmar
           </button>
         </div>
       </div>

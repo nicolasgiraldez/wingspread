@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Bird, X } from "lucide-react";
 import { canPayResources, getOnPlayPowers, isLegalMove } from "../../game";
 import type {
   CardId,
@@ -20,6 +19,9 @@ import {
   resourceLabels,
 } from "../labels";
 import { BirdCard } from "./BirdCard";
+import { Icon } from "./ui/Icon";
+import { RichText } from "./ui/RichText";
+import { StatusLine } from "./ui/StatusLine";
 import { buildEggTargetOptions, decodeSlotKey } from "./powerOptions";
 import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
@@ -347,7 +349,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
             onClick={onClose}
             style={{ background: "transparent", color: "#93a397", padding: 4 }}
           >
-            <X size={20} />
+            <Icon name="close" size={22} />
           </button>
         </div>
 
@@ -376,7 +378,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                 ))}
               </div>
               <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#93a397" }}>
-                Se colocará en la Columna {slotIndex + 1} de {habitatLabels[selectedHabitat]} (Coste: {eggCost} 🥚).
+                Se colocará en la Columna {slotIndex + 1} de {habitatLabels[selectedHabitat]} (Coste: {eggCost} <Icon name="egg" size={16} />).
               </p>
             </div>
 
@@ -385,7 +387,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <strong style={{ fontSize: "0.9rem" }}>2. Pago de Alimentos</strong>
                 <span style={{ fontSize: "0.75rem", color: isPaymentValid ? "#3fae72" : "#f0645f", fontWeight: 700 }}>
-                  {isPaymentValid ? "✓ Pago Válido" : "✗ Faltan Alimentos / Inválido"}
+                  <StatusLine ok={isPaymentValid}>{isPaymentValid ? "Pago Válido" : "Faltan Alimentos / Inválido"}</StatusLine>
                 </span>
               </div>
               <p style={{ margin: "2px 0 6px 0", fontSize: "0.75rem", color: "#93a397" }}>
@@ -393,7 +395,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                 {card.costAnyOf && card.costAnyOf.length > 0 && (
                   <>
                     {" "}Esta ave acepta 1{" "}
-                    {card.costAnyOf.map((res) => resourceIcons[res]).join(" o ")} indistintamente.
+                    <RichText text={`${card.costAnyOf.map((res) => `{${resourceIcons[res]}}`).join(" o ")} indistintamente.`} size={18} />
                   </>
                 )}
               </p>
@@ -416,7 +418,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                         fontSize: "0.85rem",
                       }}
                     >
-                      {resourceIcons[r]} {resourceLabels[r]}: {selectedCount}/{total ?? 0}
+                      <Icon name={resourceIcons[r]} size={18} /> {resourceLabels[r]}: {selectedCount}/{total ?? 0}
                     </button>
                   );
                 })}
@@ -426,11 +428,13 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
             {/* Step 3: Egg cost check */}
             {showEggStep && (
               <div>
-                <strong style={{ fontSize: "0.9rem" }}>{eggStepNumber}. Coste en Huevos ({eggCost} 🥚)</strong>
+                <strong style={{ fontSize: "0.9rem" }}>{eggStepNumber}. Coste en Huevos ({eggCost} <Icon name="egg" size={16} />)</strong>
                 <p style={{ margin: "2px 0 0 0", fontSize: "0.8rem", color: isEggCostValid ? "#3fae72" : "#f0645f" }}>
-                  {isEggCostValid
-                    ? `✓ Se descontarán ${eggCost} huevo(s) de tu tablero.`
-                    : `✗ Necesitas al menos ${eggCost} huevo(s) en tu tablero para jugar en esta columna.`}
+                  <StatusLine ok={isEggCostValid}>
+                    {isEggCostValid
+                      ? `Se descontarán ${eggCost} huevo(s) de tu tablero.`
+                      : `Necesitas al menos ${eggCost} huevo(s) en tu tablero para jugar en esta columna.`}
+                  </StatusLine>
                 </p>
               </div>
             )}
@@ -445,7 +449,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
               <div>
                 <strong style={{ fontSize: "0.9rem" }}>{secondBirdStepNumber}. Jugar una segunda ave (opcional)</strong>
                 <p className="power-checklist-hint">
-                  {describePower(secondBirdPower)}. Si no elegís ninguna carta, este poder no se activa.
+                  <RichText text={describePower(secondBirdPower)} size={18} />. Si no elegís ninguna carta, este poder no se activa.
                 </p>
 
                 {secondBirdCandidates.length === 0 ? (
@@ -490,11 +494,11 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                             ))}
                           </div>
                         )}
-                        <span style={{ fontSize: "0.78rem", color: secondBirdPaymentValid ? "#3fae72" : "#f0645f" }}>
+                        <StatusLine ok={secondBirdPaymentValid}>
                           {secondBirdPaymentValid
-                            ? `✓ Se jugará en ${effectiveSecondBirdHabitat ? habitatLabels[effectiveSecondBirdHabitat] : ""} pagando su costo normal${secondBirdEggCost > 0 ? ` + ${secondBirdEggCost} 🥚` : ""}.`
-                            : "✗ No se puede pagar esta segunda ave con lo que queda disponible tras la primera."}
-                        </span>
+                            ? `Se jugará en ${effectiveSecondBirdHabitat ? habitatLabels[effectiveSecondBirdHabitat] : ""} pagando su costo normal${secondBirdEggCost > 0 ? ` + ${secondBirdEggCost} huevo(s)` : ""}.`
+                            : "No se puede pagar esta segunda ave con lo que queda disponible tras la primera."}
+                        </StatusLine>
                       </>
                     )}
                   </div>
@@ -514,7 +518,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
             disabled={!isMoveValid}
             style={{ backgroundColor: "#1f7a4f" }}
           >
-            <Bird size={16} /> Confirmar y Jugar Ave
+            <Icon name="bird" size={18} /> Confirmar y Jugar Ave
           </button>
         </div>
       </div>

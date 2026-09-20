@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { RefreshCw, Utensils } from "lucide-react";
 import { canRerollFeeder } from "../../game";
 import type { ResourceFace } from "../../game";
 import { resourceIcons, resourceLabels } from "../labels";
+import { Icon } from "./ui/Icon";
+import { RichText } from "./ui/RichText";
 
 interface BirdFeederProps {
   feeder: ResourceFace[];
@@ -12,7 +13,7 @@ interface BirdFeederProps {
   disabled?: boolean;
 }
 
-/** Popup flotante para elegir entre insecto 🐛 o semilla 🌾 al tomar un dado "wild" */
+/** Popup flotante para elegir entre insecto o semilla al tomar un dado "wild" */
 const WildChoicePopup: React.FC<{
   onChoose: (choice: "insect" | "seed") => void;
   onCancel: () => void;
@@ -48,7 +49,7 @@ const WildChoicePopup: React.FC<{
         Cara comodín — ¿Qué alimento elegís?
       </div>
       <p style={{ margin: 0, fontSize: "0.85rem", color: "#93a397", textAlign: "center" }}>
-        Este dado muestra insecto&nbsp;🐛 y semilla&nbsp;🌾. Elegí uno.
+        <RichText text="Este dado muestra insecto {insect} y semilla {seed}. Elegí uno." size={18} />
       </p>
       <div style={{ display: "flex", gap: 16 }}>
         <button
@@ -67,7 +68,7 @@ const WildChoicePopup: React.FC<{
           onClick={() => onChoose("insect")}
           title="Tomar 1 insecto/gusano"
         >
-          🐛
+          <Icon name="insect" size={32} />
           <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Gusano</span>
         </button>
         <button
@@ -86,7 +87,7 @@ const WildChoicePopup: React.FC<{
           onClick={() => onChoose("seed")}
           title="Tomar 1 semilla/trigo"
         >
-          🌾
+          <Icon name="seed" size={32} />
           <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Trigo</span>
         </button>
       </div>
@@ -138,7 +139,6 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
       <div className="birdfeeder-box">
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <Utensils size={18} color="#a68968" />
             <strong style={{ fontSize: "1.05rem" }}>Comedero de Aves</strong>
             <span style={{ fontSize: "0.85rem", color: "#93a397" }}>
               ({feeder.length} dado{feeder.length !== 1 ? "s" : ""} disponible{feeder.length !== 1 ? "s" : ""})
@@ -148,7 +148,8 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
             Haz clic en un dado para obtener ese alimento y activar tu bosque.
             {feeder.includes("wild") && (
               <span style={{ color: "#3fae72", fontWeight: 600 }}>
-                {" "}La cara 🐛/🌾 te pedirá que elijas.
+                {" "}
+                <RichText text="La cara {insect}/{seed} te pedirá que elijas." size={16} />
               </span>
             )}
           </p>
@@ -164,11 +165,20 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
                 disabled={disabled}
                 title={
                   face === "wild"
-                    ? "Dado comodín: elegí entre gusano 🐛 o trigo 🌾"
+                    ? "Dado comodín: elegí entre gusano o trigo"
                     : `Tomar 1 ${resourceLabels[face]}`
                 }
               >
-                <span className="die-icon">{resourceIcons[face]}</span>
+                <span className="die-icon">
+                  {face === "wild" ? (
+                    <>
+                      <Icon name="insect" size={22} />
+                      <Icon name="seed" size={22} />
+                    </>
+                  ) : (
+                    <Icon name={resourceIcons[face]} size={30} />
+                  )}
+                </span>
                 <span className="die-label">
                   {face === "wild" ? "elegir" : resourceLabels[face]}
                 </span>
@@ -187,7 +197,7 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
               }}
               title="Relanzar todos los dados (permitido cuando todos son iguales o está vacío)"
             >
-              <RefreshCw size={16} /> Relanzar
+              <Icon name="refresh" size={18} /> Relanzar
             </button>
           )}
         </div>
