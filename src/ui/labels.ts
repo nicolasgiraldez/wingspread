@@ -1,4 +1,4 @@
-import type { BonusCard, BotDifficulty, HabitatId, NameTag, NestType, Power, ResourceFace } from "../game";
+import type { BonusCard, BotDifficulty, HabitatId, NameTag, NestType, Power, PowerTiming, ResourceFace, SpeciesCard } from "../game";
 import type { IconName } from "./components/ui/iconNames";
 import { plainText } from "./components/ui/richTextParts";
 
@@ -181,4 +181,31 @@ const markerNames: Partial<Record<IconName, string>> = {
 /** Texto plano de un poder (los marcadores pasan a palabras): para title, aria-label y comparaciones. */
 export function describePowerText(power: Power): string {
   return plainText(describePower(power), markerNames);
+}
+
+/** Etiqueta del momento en que actúa un poder (siempre en texto: el color de la banda no es el único portador). */
+export const powerTimingLabels: Record<PowerTiming, string> = {
+  onActivate: "Al activar",
+  onceBetweenTurns: "Entre turnos",
+  onPlay: "Al jugar",
+};
+
+/** Coste de una carta en palabras: "2 insecto + 1 de semilla o pez" o "Gratis". */
+export function costText(card: SpeciesCard): string {
+  const parts = Object.entries(card.cost)
+    .filter(([, count]) => (count ?? 0) > 0)
+    .map(([res, count]) => `${count} ${costLabel(res as ResourceFace)}`);
+  if (card.costAnyOf && card.costAnyOf.length > 0) {
+    parts.push(`1 de ${card.costAnyOf.map((res) => resourceLabels[res]).join(" o ")}`);
+  }
+  return parts.length > 0 ? parts.join(" + ") : "Gratis";
+}
+
+/** Nombre accesible de una carta: nombre, puntos, coste y poderes (para title y aria-label). */
+export function birdCardLabel(card: SpeciesCard): string {
+  const powers =
+    card.powers.length > 0
+      ? card.powers.map((p) => `${powerTimingLabels[p.timing]}: ${describePowerText(p)}`).join(". ")
+      : "Sin poder";
+  return `${card.name}. ${card.points} puntos. Coste: ${costText(card)}. ${powers}.`;
 }

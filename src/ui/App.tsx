@@ -897,7 +897,7 @@ export const App: React.FC = () => {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(192px, 1fr))",
                   gap: 12,
                 }}
               >
@@ -908,6 +908,7 @@ export const App: React.FC = () => {
                     <BirdCard
                       key={cardId}
                       card={card}
+                      mode="hand"
                       highlightNameTags={myNameTags}
                       actionLabel={isControlsActive ? "Jugar esta ave" : undefined}
                       onAction={() => setSelectedCardForPlay(card)}

@@ -41,7 +41,7 @@ export const BirdMarket: React.FC<BirdMarketProps> = ({
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(264px, 1fr))", gap: 12 }}>
         {marketCardIds.map((cardId) => {
           const card = cardsCatalog[cardId];
           if (!card) return null;
@@ -52,7 +52,7 @@ export const BirdMarket: React.FC<BirdMarketProps> = ({
               highlightNameTags={highlightNameTags}
               actionLabel="Robar esta ave"
               onAction={() => onDrawMarketCard(cardId)}
-              compact
+              mode="full"
             />
           );
         })}

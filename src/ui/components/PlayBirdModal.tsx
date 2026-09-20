@@ -353,8 +353,8 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 16 }}>
-          <BirdCard card={card} compact />
+        <div style={{ display: "grid", gridTemplateColumns: "264px 1fr", gap: 16 }}>
+          <BirdCard card={card} mode="full" />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {/* Step 1: Habitat selection */}

@@ -167,7 +167,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                           eggs={slot.eggs}
                           cached={slot.cached}
                           tucked={slot.tucked}
-                          compact
+                          mode="board"
                           actionLabel={
                             isOwner && slot.eggs < card.eggCapacity && isCurrentPlayerTurn && onOpenLayEggsModal
                               ? "+ Poner huevos"

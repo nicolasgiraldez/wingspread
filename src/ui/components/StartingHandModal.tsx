@@ -75,10 +75,10 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
         </div>
 
         <strong style={{ fontSize: "0.9rem" }}>1. Aves que conservas ({kept.length} de {player.hand.length})</strong>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))", gap: 10, margin: "8px 0 16px 0" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(264px, 1fr))", gap: 10, margin: "8px 0 16px 0" }}>
           {player.hand.map((id) => (
             <div key={id} title={kept.includes(id) ? "Se conserva (pulsa para descartarla)" : "Se descarta (pulsa para conservarla)"}>
-              <BirdCard card={gameState.cards[id]} isSelected={kept.includes(id)} onClick={() => toggleBird(id)} />
+              <BirdCard card={gameState.cards[id]} mode="full" selected={kept.includes(id)} onClick={() => toggleBird(id)} />
               <div style={{ textAlign: "center", fontSize: "0.75rem", marginTop: 3, color: kept.includes(id) ? "#3fae72" : "#75897b" }}>
                 {kept.includes(id) ? (
                   <>
