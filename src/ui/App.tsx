@@ -1,21 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Bird,
-  Bot,
-  Eye,
-  EyeOff,
-  Feather,
-  Lock,
-  RefreshCw,
-  Sparkles,
-  Trophy,
-} from "lucide-react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   applyMove,
   createInitialState,
   getActivatablePowers,
   isLegalMove,
-  scorePlayerDetails,
 } from "../game";
 import type {
   BonusCard,
@@ -27,10 +15,16 @@ import type {
   PlayerId,
   PowerEggChoices,
   PowerMoveChoices,
-  ResourceFace,
   SpeciesCard,
 } from "../game";
 import { BirdCard } from "./components/BirdCard";
+import { CardBack } from "./components/CardBack";
+import { GameSidebar } from "./components/GameSidebar";
+import { LogText } from "./components/LogText";
+import { ToastRegion } from "./components/Toast";
+import { GameTopBar } from "./components/GameTopBar";
+import { Banner } from "./components/ui/Banner";
+import { Button } from "./components/ui/Button";
 import { BirdFeeder } from "./components/BirdFeeder";
 import { BirdMarket } from "./components/BirdMarket";
 import { ChooseBonusCardModal } from "./components/ChooseBonusCardModal";
@@ -44,13 +38,19 @@ import { LayEggsModal } from "./components/LayEggsModal";
 import { PlayBirdModal } from "./components/PlayBirdModal";
 import { PlayerBoard } from "./components/PlayerBoard";
 import { RoundGoalsMat } from "./components/RoundGoalsMat";
-import {
-  bonusNameTags,
-  resourceIcons,
-  resourceLabels,
-} from "./labels";
+import { bonusNameTags } from "./labels";
 import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./network/hostGame";
-import { clearSavedGame, loadSavedGame, saveGame, summarizeSavedGame } from "./savedGame";
+import { classifyLog } from "./logEvents";
+import { countOf, pressVerb } from "./text";
+import { useToasts } from "./useToasts";
+import {
+  clearSavedGame,
+  isSaveBlocked,
+  loadSavedGame,
+  saveGame,
+  subscribeSaveStatus,
+  summarizeSavedGame,
+} from "./savedGame";
 import type { SavedGame } from "./savedGame";
 import {
   ConnectionStatus,
@@ -90,8 +90,8 @@ export const App: React.FC = () => {
   const [savedGame, setSavedGame] = useState<SavedGame | null>(() => loadSavedGame());
 
   const [selectedCardForPlay, setSelectedCardForPlay] = useState<SpeciesCard | null>(null);
-  const [selectedHabitat, setSelectedHabitat] = useState<HabitatId>("forest");
-  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
+  // Carta de la mano elegida en el tablero (se muestra en la columna lateral con el botón "Jugar esta ave").
+  const [selectedHandId, setSelectedHandId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PlayerId>("nico");
 
   const [layEggsModalOpen, setLayEggsModalOpen] = useState<boolean>(false);
@@ -104,6 +104,11 @@ export const App: React.FC = () => {
     { dieIndex: number; wildChoice?: "insect" | "seed" } | null
   >(null);
   const [pendingDraw, setPendingDraw] = useState<DrawCardSelection[] | null>(null);
+
+  // Avisos efímeros (turno, poderes, caza, ronda, errores) y aviso de guardado bloqueado.
+  const { toasts, push: pushToast, dismiss: dismissToast } = useToasts();
+  const toastSeen = useRef<{ log: number; round: number; myTurn: boolean } | null>(null);
+  const saveBlocked = useSyncExternalStore(subscribeSaveStatus, isSaveBlocked);
 
   const gameStateRef = useRef<GameState | null>(null);
   useEffect(() => {
@@ -122,6 +127,37 @@ export const App: React.FC = () => {
       saveGame({ kind: "online-host", state: gameState, roomCode, savedAt: Date.now() });
     }
   }, [gameState, isHost, roomCode]);
+
+  // Avisos por los mismos eventos que alimentan el registro: turno propio, poderes, caza y cambio de ronda.
+  useEffect(() => {
+    if (!gameState) {
+      toastSeen.current = null;
+      return;
+    }
+    const myTurn = gameState.phase === "round" && gameState.currentPlayerId === localPlayerId;
+    const prev = toastSeen.current;
+    toastSeen.current = { log: gameState.log.length, round: gameState.round, myTurn };
+    // La primera vez (o al cargar una partida guardada) no se avisa de lo que ya pasó.
+    if (!prev || gameState.log.length < prev.log) return;
+
+    for (const entry of gameState.log.slice(prev.log)) {
+      const event = classifyLog(entry);
+      if (event.kind === "power") pushToast({ kind: "pow", title: `Poder de ${event.bird}`, text: <LogText text={event.text} /> });
+      if (event.kind === "hunt") pushToast({ kind: "hunt", title: "¡Caza exitosa!", text: <LogText text={`Depredador [${event.bird}]: ${event.text}`} /> });
+      if (event.kind === "miss") pushToast({ kind: "miss", title: "Caza fallida", text: <LogText text={`Depredador [${event.bird}]: ${event.text}`} /> });
+    }
+    if (gameState.phase === "round" && gameState.round > prev.round) {
+      const left = 4 - gameState.round;
+      pushToast({
+        kind: "round",
+        title: `Comienza la ronda ${gameState.round}`,
+        text: `${left === 0 ? "Es la última ronda." : `${left === 1 ? "Queda" : "Quedan"} ${countOf(left, "ronda", "rondas")}.`} Revisá los objetivos de la ronda.`,
+      });
+    }
+    if (myTurn && !prev.myTurn) {
+      pushToast({ kind: "turn", title: "Es tu turno", text: "Tomá una acción: jugar un ave, comida, huevos o cartas." });
+    }
+  }, [gameState, localPlayerId, pushToast]);
 
   // Cambia el estado y actualiza el ref al instante: el anfitrión procesa mensajes de red que
   // pueden llegar antes de que React re-renderice, y cada uno debe partir del estado más nuevo.
@@ -340,7 +376,14 @@ export const App: React.FC = () => {
   // (p. ej. mientras reconecta) la jugada no llega, y se avisa en vez de perderla en silencio.
   const sendGuestMove = (move: Move) => {
     const sent = networkManager.sendMessage({ type: "APPLY_MOVE", move, playerId: localPlayerId });
-    if (!sent) setConnectionMessage("Sin conexión con el anfitrión: tu jugada no se envió. Reintentá cuando vuelva.");
+    if (!sent) {
+      pushToast({
+        kind: "err",
+        title: "Sin conexión con el anfitrión",
+        text: "Tu jugada no se envió. Reintentá cuando vuelva.",
+        action: { label: "Reintentar", onClick: () => sendGuestMove(move) },
+      });
+    }
   };
 
   // Como executeLocalMove, pero sin exigir que sea el turno del jugador local: la elección de
@@ -450,6 +493,7 @@ export const App: React.FC = () => {
   const handleConfirmPlayBird = (move: Extract<Move, { type: "playBird" }>) => {
     executeLocalMove(move);
     setSelectedCardForPlay(null);
+    setSelectedHandId(null);
   };
 
   // ── Show HomePage / connecting screen ─────────────────────────────────────
@@ -484,457 +528,163 @@ export const App: React.FC = () => {
     (currentPlayer?.actionCubesAvailable ?? 0) > 0 &&
     gameState.phase === "round";
 
+  const localPlayer = gameState.players[localPlayerId];
+  const selectedHandCard =
+    selectedHandId && localPlayer?.hand.includes(selectedHandId) ? (gameState.cards[selectedHandId] ?? null) : null;
+  const playBlockedReason = !isMyTurn ? "No es tu turno" : !isControlsActive ? "Sin acciones disponibles" : null;
+  const feederReason = !isMyTurn
+    ? "Todavía no es tu turno. Los dados se activan cuando te toque jugar."
+    : !isControlsActive
+      ? "No tenés acciones disponibles en este momento."
+      : undefined;
+
   return (
-    <div className="app-shell">
-      {/* ── Side Panel ───────────────────────────────────────────────────── */}
-      <aside className="side-panel">
-        <div className="brand">
-          <div className="brand-icon">
-            <Bird size={28} />
-          </div>
-          <div>
-            <h1>Wingspread</h1>
-            <p>
-              {gameState.gameMode === "solo"
-                ? "Modo Solitario (vs la IA)"
-                : "Multijugador Online (P2P)"}
-            </p>
-          </div>
-        </div>
+    <div className="game">
+      <GameTopBar
+        round={gameState.round}
+        ended={gameState.phase === "gameEnd"}
+        isMyTurn={isMyTurn}
+        currentName={getDisplayName(gameState, gameState.currentPlayerId)}
+        onHome={handleGoHome}
+      />
 
-        {/* Active Turn */}
-        <div className={`status-card ${isMyTurn ? "active-turn" : ""}`}>
-          <h4>Turno Actual</h4>
-          <div className="player-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {currentPlayer?.botLevel ? <Bot size={20} /> : null}
-            {getDisplayName(gameState, gameState.currentPlayerId)}
-            {gameState.currentPlayerId === localPlayerId && (
-              <span style={{ fontSize: "0.75rem", color: "var(--color-forest)", fontWeight: 700 }}>(Tú)</span>
-            )}
-          </div>
-          <div>
-            <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
-              Cubos de acción ({currentPlayer?.actionCubesAvailable ?? 0} restantes):
-            </span>
-            <div className="cubes-indicator">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`cube ${i >= (currentPlayer?.actionCubesAvailable ?? 0) ? "spent" : ""}`}
-                />
-              ))}
-            </div>
-          </div>
-          <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: 2 }}>
-            Ronda <strong>{gameState.round}</strong> de 4{" "}
-            {gameState.phase === "gameEnd" ? "(Terminada)" : ""}
-          </div>
-        </div>
+      <div className="game__body">
+        <GameSidebar
+          gameState={gameState}
+          localPlayerId={localPlayerId}
+          activeTab={activeTab}
+          onSelectPlayer={setActiveTab}
+          selectedCard={selectedHandCard}
+          playBlockedReason={playBlockedReason}
+          onPlayCard={() => selectedHandCard && setSelectedCardForPlay(selectedHandCard)}
+        />
 
-        {/* Scoreboard */}
-        <div className="status-card">
-          <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Trophy size={14} color="var(--color-grassland)" /> Puntuación en Vivo
-          </h4>
-          {gameState.playerOrder.map((pId) => {
-            const scoreDetails = scorePlayerDetails(gameState, pId);
-            return (
-              <div
-                key={pId}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "4px 0",
-                  borderBottom: "1px solid var(--color-border)",
-                }}
-              >
-                <span>
-                  <strong>{getDisplayName(gameState, pId)}</strong>
-                  {pId === localPlayerId && (
-                    <small style={{ color: "var(--color-forest)" }}> (Tú)</small>
-                  )}
-                  {gameState.firstPlayerId === pId && (
-                    <span style={{ fontSize: "0.7rem", color: "var(--color-forest)", marginLeft: 4 }}>
-                      (1er jugador)
-                    </span>
-                  )}
-                </span>
-                <strong style={{ color: "var(--color-forest)" }}>{scoreDetails.total} pts</strong>
+        <main className="table">
+          {saveBlocked && (
+            <Banner tone="warn" icon="alert" title="Partida sin guardar · almacenamiento bloqueado">
+              No se pudo guardar la partida en este navegador. El almacenamiento está lleno o bloqueado (modo privado). Podés seguir
+              jugando, pero no vas a poder reanudarla si cerrás la pestaña.
+            </Banner>
+          )}
+
+          {/* Online connection bar */}
+          {gameState.gameMode === "online" && (
+            <ConnectionStatusBar
+              roomCode={roomCode}
+              isHost={isHost}
+              status={connectionStatus}
+              statusMessage={connectionMessage}
+              localPlayerName={getDisplayName(gameState, localPlayerId)}
+            />
+          )}
+
+          {/* Waiting banner */}
+          {gameState.gameMode === "online" && !isMyTurn && gameState.phase === "round" && (
+            <Banner tone="info" icon="hourglass">
+              Turno de {getDisplayName(gameState, gameState.currentPlayerId)}... Esperando su jugada en tiempo real.
+            </Banner>
+          )}
+
+          <RoundGoalsMat gameState={gameState} />
+
+          <BirdFeeder
+            feeder={gameState.feeder}
+            onTakeDie={handleGainFood}
+            onReroll={handleRerollFeeder}
+            disabled={!isControlsActive}
+            disabledReason={feederReason}
+            waitingFor={!isMyTurn && gameState.phase === "round" ? getDisplayName(gameState, gameState.currentPlayerId) : undefined}
+          />
+
+          <BirdMarket
+            marketCardIds={gameState.market}
+            cardsCatalog={gameState.cards}
+            deckCount={gameState.deck.length}
+            onDrawMarketCard={handleDrawFromMarket}
+            onDrawFromDeck={handleDrawFromDeck}
+            disabled={!isControlsActive}
+            disabledReason={playBlockedReason ?? undefined}
+            highlightNameTags={myNameTags}
+          />
+
+          {viewedPlayer && (
+            <PlayerBoard
+              player={viewedPlayer}
+              gameState={gameState}
+              isOwner={activeTab === localPlayerId}
+              highlightNameTags={activeTab === localPlayerId ? myNameTags : undefined}
+              onOpenLayEggsModal={handleOpenLayEggs}
+              isCurrentPlayerTurn={isControlsActive && activeTab === localPlayerId}
+            />
+          )}
+
+          {/* Mano del rival: cartas ocultas (boca abajo) */}
+          {activeTab !== localPlayerId && viewedPlayer && (
+            <section className="hand hand--hidden" aria-labelledby="rival-hand-title">
+              <div className="hand__head">
+                <h2 id="rival-hand-title" className="label">
+                  Mano de {getDisplayName(gameState, viewedPlayer.id)} · {countOf(viewedPlayer.hand.length, "carta oculta", "cartas ocultas")}
+                </h2>
+                <span className="hand__hint">Las cartas de la mano del rival permanecen en secreto</span>
               </div>
-            );
-          })}
-        </div>
-
-        {/* View tabs */}
-        <div>
-          <h4 style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "var(--color-text-muted)" }}>VER VISTA DE:</h4>
-          <div style={{ display: "flex", gap: 8 }}>
-            {gameState.playerOrder.map((pId) => (
-              <button
-                key={pId}
-                onClick={() => setActiveTab(pId)}
-                style={{
-                  flex: 1,
-                  backgroundColor: activeTab === pId ? "var(--color-forest-strong)" : "var(--color-panel-bg-raised)",
-                  color: activeTab === pId ? "#ffffff" : "var(--color-text)",
-                  justifyContent: "center",
-                  fontSize: "0.8rem",
-                }}
-              >
-                {pId === localPlayerId ? `${getDisplayName(gameState, pId)} (Tú)` : getDisplayName(gameState, pId)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Resources */}
-        {viewedPlayer && (
-          <div className="status-card">
-            <h4>Recursos de {getDisplayName(gameState, viewedPlayer.id)}</h4>
-            <div className="resources-grid">
-              {Object.entries(viewedPlayer.resources ?? {}).map(([res, count]) => (
-                <div key={res} className="resource-badge">
-                  <span>
-                    {resourceIcons[res as ResourceFace]} {resourceLabels[res as ResourceFace]}
-                  </span>
-                  <strong>{count ?? 0}</strong>
+              {viewedPlayer.hand.length > 0 ? (
+                <div className="hand__cards">
+                  {viewedPlayer.hand.map((_, i) => (
+                    <CardBack key={i} title="Carta oculta en la mano del oponente" />
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Bonus cards */}
-        {viewedPlayer && (
-          <div className="status-card">
-            <h4 style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Sparkles size={14} color="var(--color-forest)" /> Cartas de Bonificación
-            </h4>
-            {activeTab === localPlayerId || gameState.phase === "gameEnd" ? (
-              viewedPlayer.bonusCards?.length > 0 ? (
-                viewedPlayer.bonusCards.map((b) => (
-                  <div
-                    key={b.id}
-                    style={{
-                      fontSize: "0.8rem",
-                      background: "var(--color-panel-bg-raised)",
-                      padding: "6px 8px",
-                      borderRadius: 6,
-                      border: "1px solid var(--color-border)",
-                      marginTop: 4,
-                    }}
-                  >
-                    <strong>{b.name}</strong>
-                    <p style={{ margin: "2px 0 0 0", color: "var(--color-text-secondary)" }}>{b.description}</p>
-                  </div>
-                ))
               ) : (
-                <span style={{ fontSize: "0.8rem", color: "var(--color-text-dim)" }}>Sin cartas de bonificación</span>
-              )
-            ) : (
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  color: "var(--color-text-secondary)",
-                  background: "var(--color-panel-bg-alt)",
-                  padding: "8px 10px",
-                  borderRadius: 6,
-                  border: "1px dashed var(--color-border)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Lock size={15} color="var(--color-text-dim)" />
-                <div>
-                  <strong>{viewedPlayer.bonusCards?.length ?? 0} carta(s) secreta(s)</strong>
-                  <div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", marginTop: 2 }}>
-                    Se revelan al finalizar la partida.
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Activity log */}
-        <div className="status-card" style={{ maxHeight: 160, overflowY: "auto" }}>
-          <h4>Registro de Acciones</h4>
-          {gameState.log.slice(-6).map((entry, idx) => (
-            <div key={idx} style={{ fontSize: "0.75rem", padding: "2px 0", color: "var(--color-text-secondary)" }}>
-              {entry.playerId ? (
-                <strong>[{getDisplayName(gameState, entry.playerId)}]: </strong>
-              ) : (
-                ""
+                <p className="hand__empty">{getDisplayName(gameState, viewedPlayer.id)} no tiene cartas en su mano actualmente.</p>
               )}
-              {entry.message}
-            </div>
-          ))}
-        </div>
+            </section>
+          )}
 
-        <button
-          onClick={handleGoHome}
-          style={{ backgroundColor: "var(--color-forest-strong)", marginTop: "auto", justifyContent: "center" }}
-        >
-          <RefreshCw size={14} /> Nueva Partida / Inicio
-        </button>
-      </aside>
+          {/* Tu mano */}
+          {localPlayer && (
+            <section className="hand" aria-labelledby="hand-title">
+              <div className="hand__head">
+                <h2 id="hand-title" className="label">
+                  Tu mano · {countOf(localPlayer.hand.length, "carta", "cartas")}
+                </h2>
+                <span className="hand__hint">{pressVerb()} "Jugar esta ave" para colocarla en tu tablero</span>
+              </div>
 
-      {/* ── Main Table ───────────────────────────────────────────────────── */}
-      <main className="main-table">
-        {/* Online connection bar */}
-        {gameState.gameMode === "online" && (
-          <ConnectionStatusBar
-            roomCode={roomCode}
-            isHost={isHost}
-            status={connectionStatus}
-            statusMessage={connectionMessage}
-            localPlayerName={getDisplayName(gameState, localPlayerId)}
-          />
-        )}
-
-        {/* Waiting banner */}
-        {gameState.gameMode === "online" && !isMyTurn && gameState.phase === "round" && (
-          <div
-            style={{
-              background: "var(--color-grassland-bg)",
-              border: "1px solid var(--color-grassland-border)",
-              padding: "10px 16px",
-              borderRadius: 8,
-              color: "var(--color-grassland)",
-              fontWeight: 600,
-              fontSize: "0.9rem",
-            }}
-          >
-            ⏳ Turno de {getDisplayName(gameState, gameState.currentPlayerId)}... Esperando su
-            jugada en tiempo real.
-          </div>
-        )}
-
-        <RoundGoalsMat gameState={gameState} />
-
-        <BirdFeeder
-          feeder={gameState.feeder}
-          onTakeDie={handleGainFood}
-          onReroll={handleRerollFeeder}
-          disabled={!isControlsActive}
-        />
-
-        <BirdMarket
-          marketCardIds={gameState.market}
-          cardsCatalog={gameState.cards}
-          deckCount={gameState.deck.length}
-          onDrawMarketCard={handleDrawFromMarket}
-          onDrawFromDeck={handleDrawFromDeck}
-          disabled={!isControlsActive}
-          highlightNameTags={myNameTags}
-        />
-
-        {/* Selector de Tablero */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--color-text-secondary)" }}>
-            Tablero mostrado:
-          </span>
-          {gameState.playerOrder.map((pId) => {
-            const isMe = pId === localPlayerId;
-            const isAut = !!gameState.players[pId]?.botLevel;
-            const pName = getDisplayName(gameState, pId);
-            const isCurrentActive = activeTab === pId;
-
-            return (
-              <button
-                key={pId}
-                onClick={() => setActiveTab(pId)}
-                style={{
-                  padding: "7px 14px",
-                  borderRadius: 8,
-                  border: isCurrentActive ? "2px solid var(--color-forest)" : "1px solid var(--color-border-light)",
-                  backgroundColor: isCurrentActive ? "var(--color-forest-strong)" : "var(--color-panel-bg)",
-                  color: isCurrentActive ? "#ffffff" : "var(--color-text)",
-                  fontWeight: isCurrentActive ? 700 : 500,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: "0.85rem",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                {isMe ? <Feather size={14} /> : isAut ? <Bot size={14} /> : <Eye size={14} />}
-                {isMe ? `Mi Tablero (${pName})` : `Tablero de ${pName}`}
-                {!isMe && !isAut && (
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      opacity: 0.9,
-                      background: isCurrentActive ? "rgba(255,255,255,0.2)" : "var(--color-panel-bg-raised)",
-                      color: isCurrentActive ? "#ffffff" : "var(--color-forest)",
-                      padding: "1px 6px",
-                      borderRadius: 10,
-                      fontWeight: 600,
-                    }}
+              {localPlayer.hand.length > 0 ? (
+                <div className="hand__cards">
+                  {localPlayer.hand.map((cardId) => {
+                    const card = gameState.cards[cardId];
+                    if (!card) return null;
+                    const isChosen = selectedHandCard?.id === cardId;
+                    return (
+                      <BirdCard
+                        key={cardId}
+                        card={card}
+                        mode="hand"
+                        highlightNameTags={myNameTags}
+                        selected={isChosen}
+                        lifted={isChosen}
+                        onClick={() => setSelectedHandId(isChosen ? null : cardId)}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="hand__empty">
+                  <p>Tu mano está vacía. Robá cartas del mercado o del mazo para jugar más aves.</p>
+                  <Button
+                    icon="stack"
+                    onClick={() => document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" })}
                   >
-                    {gameState.players[pId]?.hand?.length ?? 0} en mano
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                    Ir al mercado
+                  </Button>
+                </div>
+              )}
+            </section>
+          )}
+        </main>
+      </div>
 
-        {viewedPlayer && (
-          <PlayerBoard
-            player={viewedPlayer}
-            gameState={gameState}
-            isOwner={activeTab === localPlayerId}
-            highlightNameTags={activeTab === localPlayerId ? myNameTags : undefined}
-            onOpenLayEggsModal={handleOpenLayEggs}
-            onSelectEmptySlot={(hab, sIdx) => {
-              setSelectedHabitat(hab);
-              setSelectedSlotIndex(sIdx);
-            }}
-            selectedHabitat={selectedHabitat}
-            selectedSlotIndex={selectedSlotIndex}
-            isCurrentPlayerTurn={isControlsActive && activeTab === localPlayerId}
-          />
-        )}
-
-        {/* Opponent's Hand (Cartas ocultas / boca abajo) */}
-        {activeTab !== localPlayerId && viewedPlayer && (
-          <section
-            style={{
-              background: "var(--color-panel-bg-alt)",
-              padding: 16,
-              borderRadius: 16,
-              border: "1px dashed var(--color-border-light)",
-              boxShadow: "inset 0 1px 3px rgba(0,0,0,0.2)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-                flexWrap: "wrap",
-                gap: 8,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <EyeOff size={18} color="var(--color-text-muted)" />
-                <h4 style={{ margin: 0, fontSize: "1rem", color: "var(--color-text)" }}>
-                  Mano de {getDisplayName(gameState, viewedPlayer.id)} ({viewedPlayer.hand.length} carta{viewedPlayer.hand.length !== 1 ? "s" : ""} oculta{viewedPlayer.hand.length !== 1 ? "s" : ""})
-                </h4>
-              </div>
-              <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
-                🔒 Las cartas de la mano del rival permanecen en secreto
-              </span>
-            </div>
-
-            {viewedPlayer.hand.length > 0 ? (
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {viewedPlayer.hand.map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: 95,
-                      height: 130,
-                      borderRadius: 10,
-                      background: "linear-gradient(145deg, #1c4a2e 0%, #0a1a10 100%)",
-                      border: "2px solid #2c5c3f",
-                      boxShadow: "0 3px 6px rgba(0,0,0,0.35)",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#dcebe1",
-                      fontSize: "0.72rem",
-                      fontWeight: 600,
-                      textAlign: "center",
-                      padding: 6,
-                      userSelect: "none",
-                    }}
-                    title="Carta oculta en la mano del oponente"
-                  >
-                    <Bird size={24} style={{ marginBottom: 6, opacity: 0.85, color: "#7fce9c" }} />
-                    <span style={{ letterSpacing: "0.5px" }}>Wingspread</span>
-                    <span style={{ fontSize: "0.62rem", opacity: 0.7, marginTop: 4, background: "rgba(255,255,255,0.12)", padding: "1px 6px", borderRadius: 6 }}>
-                      Oculta #{i + 1}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ padding: 10, color: "var(--color-text-dim)", fontSize: "0.85rem" }}>
-                {getDisplayName(gameState, viewedPlayer.id)} no tiene cartas en su mano actualmente.
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Local Player's Hand */}
-        {gameState.players[localPlayerId] && (
-          <section
-            style={{
-              background: "var(--color-panel-bg)",
-              padding: 18,
-              borderRadius: 16,
-              border: "1px solid var(--color-border)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 14,
-                flexWrap: "wrap",
-                gap: 8,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Feather size={20} color="var(--color-forest)" />
-                <h3 style={{ margin: 0, fontSize: "1.15rem" }}>
-                  Tu Mano ({getDisplayName(gameState, localPlayerId)}) — {gameState.players[localPlayerId].hand.length} carta
-                  {gameState.players[localPlayerId].hand.length !== 1 ? "s" : ""}
-                </h3>
-              </div>
-              <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
-                Haz clic en "Jugar esta ave" para colocarla en tu tablero
-              </span>
-            </div>
-
-            {gameState.players[localPlayerId].hand.length > 0 ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                {gameState.players[localPlayerId].hand.map((cardId) => {
-                  const card = gameState.cards[cardId];
-                  if (!card) return null;
-                  return (
-                    <BirdCard
-                      key={cardId}
-                      card={card}
-                      highlightNameTags={myNameTags}
-                      actionLabel={isControlsActive ? "Jugar esta ave" : undefined}
-                      onAction={() => setSelectedCardForPlay(card)}
-                    />
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ padding: 20, textAlign: "center", color: "var(--color-text-dim)" }}>
-                Tu mano está vacía. Roba cartas del mercado o del mazo para jugar más aves.
-              </div>
-            )}
-          </section>
-        )}
-      </main>
+      <ToastRegion toasts={toasts} onDismiss={dismissToast} />
 
       {/* ── Modals ───────────────────────────────────────────────────────── */}
       {selectedCardForPlay && gameState.players[localPlayerId] && (

@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import { Check, Copy, Globe, Share2, Wifi, WifiOff } from "lucide-react";
 import type { ConnectionStatus } from "../network/peerManager";
+import { Button } from "./ui/Button";
+import { Field } from "./ui/Field";
+import { Icon } from "./ui/Icon";
+import type { IconName } from "./ui/iconNames";
 
 interface ConnectionStatusBarProps {
   roomCode: string;
@@ -10,6 +13,16 @@ interface ConnectionStatusBarProps {
   localPlayerName: string;
 }
 
+type Tone = "ok" | "warn" | "info" | "error";
+
+/** Cada estado lleva color + ícono + texto: el color nunca es lo único que informa. */
+const STATUS: Record<"connected" | "waiting_for_opponent" | "connecting" | "other", { tone: Tone; icon: IconName; text: string }> = {
+  connected: { tone: "ok", icon: "wifi", text: "Conectado en vivo" },
+  waiting_for_opponent: { tone: "warn", icon: "send", text: "Esperando oponente..." },
+  connecting: { tone: "info", icon: "wifi", text: "Conectando..." },
+  other: { tone: "error", icon: "wifioff", text: "Desconectado" },
+};
+
 export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
   roomCode,
   isHost,
@@ -18,126 +31,66 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
   localPlayerName,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
 
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(inviteUrl);
+      setCopyFailed(false);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch (e) {
       console.error("Failed to copy link", e);
+      setCopyFailed(true);
     }
   };
 
-  const getStatusBadge = () => {
-    switch (status) {
-      case "connected":
-        return {
-          bg: "rgba(63, 174, 114, 0.12)",
-          color: "#3fae72",
-          border: "rgba(63, 174, 114, 0.35)",
-          icon: <Wifi size={14} />,
-          text: "Conectado en Vivo",
-        };
-      case "waiting_for_opponent":
-        return {
-          bg: "rgba(217, 168, 59, 0.12)",
-          color: "#d9a83b",
-          border: "rgba(217, 168, 59, 0.35)",
-          icon: <Share2 size={14} />,
-          text: "Esperando Oponente...",
-        };
-      case "connecting":
-        return {
-          bg: "rgba(79, 168, 224, 0.12)",
-          color: "#4fa8e0",
-          border: "rgba(79, 168, 224, 0.35)",
-          icon: <Wifi size={14} />,
-          text: "Conectando...",
-        };
-      default:
-        return {
-          bg: "rgba(240, 100, 95, 0.12)",
-          color: "#f0645f",
-          border: "rgba(240, 100, 95, 0.35)",
-          icon: <WifiOff size={14} />,
-          text: "Desconectado",
-        };
-    }
-  };
-
-  const badge = getStatusBadge();
+  const state =
+    status === "connected" || status === "waiting_for_opponent" || status === "connecting"
+      ? STATUS[status]
+      : STATUS.other;
 
   return (
-    <div
-      style={{
-        background: "#182019",
-        border: "1px solid #2b332e",
-        borderRadius: 12,
-        padding: "10px 16px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-        flexWrap: "wrap",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ background: "rgba(63, 174, 114, 0.12)", color: "#3fae72", padding: 6, borderRadius: 8 }}>
-          <Globe size={18} />
-        </div>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: "0.85rem", color: "#c3ccc5" }}>Sala Online:</span>
-            <strong style={{ fontSize: "0.95rem", letterSpacing: 0.5 }}>{roomCode}</strong>
-            <span style={{ fontSize: "0.75rem", background: "#212b22", padding: "1px 6px", borderRadius: 4, color: "#c3ccc5" }}>
-              Rol: <strong>{localPlayerName} ({isHost ? "Host" : "Invitado"})</strong>
+    <section className={`conn conn--${state.tone}`} aria-label="Conexión de la sala online">
+      <div className="conn__main">
+        <span className="conn__tile">
+          <Icon name="globe" size={24} />
+        </span>
+        <div className="conn__text">
+          <div className="conn__room">
+            <span>Sala online:</span>
+            <strong>{roomCode}</strong>
+            <span className="chip">
+              Rol: <strong>{`${localPlayerName} (${isHost ? "Host" : "Invitado"})`}</strong>
             </span>
           </div>
-          {statusMessage && (
-            <div style={{ fontSize: "0.75rem", color: "#93a397", marginTop: 2 }}>
-              {statusMessage}
-            </div>
-          )}
+          {statusMessage && <div className="conn__msg">{statusMessage}</div>}
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {/* Status Badge */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            fontSize: "0.78rem",
-            padding: "4px 8px",
-            borderRadius: 6,
-            backgroundColor: badge.bg,
-            color: badge.color,
-            border: `1px solid ${badge.border}`,
-            fontWeight: 600,
-          }}
-        >
-          {badge.icon}
-          <span>{badge.text}</span>
-        </div>
-
-        {/* Copy Invite Link */}
-        <button
-          onClick={handleCopyLink}
-          style={{
-            backgroundColor: copied ? "#1f7a4f" : "#1a4a35",
-            minHeight: 32,
-            padding: "0 12px",
-            fontSize: "0.8rem",
-          }}
-        >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-          <span>{copied ? "¡Enlace Copiado!" : "Copiar Enlace de Sala"}</span>
-        </button>
+      <div className="conn__side">
+        <span className="chip conn__chip" role="status">
+          <Icon name={state.icon} size={18} />
+          {state.text}
+        </span>
+        <Button size="sm" icon={copied ? "check" : "copy"} onClick={handleCopyLink}>
+          {copied ? "¡Enlace copiado!" : "Copiar enlace de sala"}
+        </Button>
       </div>
-    </div>
+
+      {copyFailed && (
+        <div className="conn__fallback">
+          <Field
+            label="No se pudo copiar el enlace. Copialo a mano:"
+            icon="copy"
+            readOnly
+            value={inviteUrl}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+        </div>
+      )}
+    </section>
   );
 };

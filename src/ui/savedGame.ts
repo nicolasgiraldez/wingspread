@@ -18,14 +18,42 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const isArray = (value: unknown): value is unknown[] => Array.isArray(value);
 
-export function saveGame(game: SavedGame): void {
+// Estado del último guardado, para avisar en pantalla cuando el navegador no deja guardar.
+let saveBlocked = false;
+const saveListeners = new Set<() => void>();
+
+function setSaveBlocked(blocked: boolean) {
+  if (blocked === saveBlocked) return;
+  saveBlocked = blocked;
+  saveListeners.forEach((listener) => listener());
+}
+
+/** Para useSyncExternalStore: avisa cuando cambia si el guardado está bloqueado. */
+export function subscribeSaveStatus(listener: () => void): () => void {
+  saveListeners.add(listener);
+  return () => {
+    saveListeners.delete(listener);
+  };
+}
+
+/** true si el último intento de guardar falló (almacenamiento lleno o bloqueado, p. ej. modo privado). */
+export function isSaveBlocked(): boolean {
+  return saveBlocked;
+}
+
+/** Guarda la partida; devuelve false si no se pudo (almacenamiento lleno o bloqueado). */
+export function saveGame(game: SavedGame): boolean {
   try {
     // Los catálogos de cartas son estáticos y pesan ~66 KB: no se guardan. Al cargar se usan
     // los de la versión actual, así una partida guardada no arrastra datos viejos de cartas.
     const stored = { ...game, state: { ...game.state, cards: undefined, bonusCardsCatalog: undefined } };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    setSaveBlocked(false);
+    return true;
   } catch {
     // Almacenamiento lleno o bloqueado (modo privado): la partida sigue, solo no se puede reanudar.
+    setSaveBlocked(true);
+    return false;
   }
 }
 

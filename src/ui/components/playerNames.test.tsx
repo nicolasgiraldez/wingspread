@@ -22,8 +22,9 @@ describe("nombres de los jugadores en la interfaz", () => {
 
   it("los objetivos de ronda usan los nombres reales", () => {
     render(<RoundGoalsMat gameState={state} />);
-    expect(screen.getAllByText(/Lucía:/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Mateo:/).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/Nico:/)).toBeNull();
+    // En cada objetivo el nombre va solo en su propio elemento, junto al símbolo del jugador.
+    expect(screen.getAllByText("Lucía").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Mateo").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Nico")).toBeNull();
   });
 });

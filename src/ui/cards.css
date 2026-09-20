@@ -1,0 +1,367 @@
+/* ==========================================================================
+   Carta de ave (docs/design/03-cards.md). Las medidas de cada modo (full, hand, board, mini)
+   llegan como variables --card-* desde BirdCard (ver cardModes.ts).
+   ========================================================================== */
+
+.bird-card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+  flex: none;
+}
+
+.bird-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  width: var(--card-w);
+  min-height: var(--card-h);
+  padding: 0;
+  background: var(--c-crema);
+  color: var(--c-carbon);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: var(--fs-min);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.bird-card--board,
+.bird-card--mini {
+  height: var(--card-h);
+}
+
+.bird-card--interactive {
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bird-card {
+    transition: transform 0.12s ease;
+  }
+  .bird-card--interactive:hover:not(.is-lifted) {
+    transform: translateY(-2px);
+  }
+}
+
+/* ---- Ventana: escena de hábitat + ave + insignias ------------------------ */
+.bird-card__win {
+  position: relative;
+  display: block;
+  flex: none;
+  height: var(--card-win);
+  border-bottom: var(--stroke) solid var(--c-carbon);
+  overflow: hidden;
+}
+
+.bird-card__scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.bird-card__art {
+  position: absolute;
+  left: var(--card-art-x);
+  right: var(--card-art-x);
+  top: var(--card-art-top);
+  bottom: var(--card-art-bottom);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bird-card__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  /* Sombra plana del ave: petróleo profundo al 32 %. */
+  filter: drop-shadow(0 var(--card-shadow) 0 color-mix(in srgb, var(--c-petroleo-d) 32%, transparent));
+}
+
+.bird-card__silhouette {
+  width: 68%;
+  height: auto;
+  margin-bottom: 12%;
+  fill: var(--c-carbon);
+  opacity: 0.22;
+}
+
+.bird-card__pending {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  text-align: center;
+  font-size: var(--fs-min);
+  font-weight: 600;
+  color: var(--c-carbon);
+}
+
+.bird-card__pending--on-dark {
+  color: var(--c-crema);
+}
+
+.bird-card__points {
+  position: absolute;
+  top: var(--card-off);
+  left: var(--card-off);
+  width: var(--card-pts);
+  height: var(--card-pts);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-mostaza);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: var(--card-pts-num);
+  line-height: 1;
+}
+
+.bird-card__habitats {
+  position: absolute;
+  top: var(--card-off);
+  right: var(--card-off);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bird-card--board .bird-card__habitats,
+.bird-card--mini .bird-card__habitats {
+  gap: 4px;
+}
+
+.bird-card__habitat {
+  width: var(--card-hab);
+  height: var(--card-hab);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-crema);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: 50%;
+}
+
+.bird-card__bonus {
+  position: absolute;
+  left: var(--card-off);
+  bottom: var(--card-off);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.card-bonus-mark {
+  padding: 0 8px;
+  background: var(--c-mostaza);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-min);
+  font-weight: 600;
+  line-height: 18px;
+}
+
+/* ---- Nombre, datos y estadísticas ---------------------------------------- */
+.bird-card__head {
+  display: block;
+  flex: none;
+  padding: var(--card-pad) var(--card-pad) 0;
+}
+
+.bird-card__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--card-name);
+  line-height: 1.05;
+}
+
+.bird-card--full .bird-card__name {
+  text-wrap: balance;
+}
+
+.bird-card__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: var(--fs-min);
+  color: var(--c-muted);
+}
+
+.bird-card__sci {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+.bird-card__span {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.bird-card__stats {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 6px;
+  padding: 4px var(--card-pad);
+  min-height: 24px;
+}
+
+.bird-card__cost,
+.bird-card__nest,
+.bird-card__eggs,
+.bird-card__tokens,
+.bird-card__tokens > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.bird-card__cost {
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.bird-card__nest {
+  gap: 4px;
+  margin-left: auto;
+}
+
+.bird-card__nest > span:first-child {
+  display: inline-flex;
+}
+
+.bird-card__eggs {
+  gap: 2px;
+}
+
+.bird-card__tokens {
+  gap: 8px;
+  font-weight: 600;
+}
+
+.bird-card__tokens > span {
+  gap: 2px;
+}
+
+.bird-card__plus {
+  padding: 0 2px;
+  font-weight: 600;
+  color: var(--c-muted);
+}
+
+.bird-card__free {
+  padding: 2px 10px;
+  background: var(--c-petroleo);
+  color: var(--c-crema);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-min);
+  font-weight: 600;
+}
+
+/* ---- Bandas de poder: el color dice cuándo actúa, la etiqueta también ---- */
+.bird-card__powers {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+}
+
+.bird-card__power {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px var(--card-pad) 4px;
+  border-top: var(--stroke) solid var(--c-carbon);
+  font-size: var(--fs-min);
+  line-height: 1.28;
+}
+
+.bird-card--full .bird-card__power,
+.bird-card--hand .bird-card__power {
+  padding-top: 6px;
+  padding-bottom: 8px;
+}
+
+.bird-card--full .bird-card__power {
+  min-height: 64px;
+}
+
+.bird-card__power--onActivate {
+  background: var(--power-activate-bg);
+  color: var(--power-activate-fg);
+}
+
+.bird-card__power--onceBetweenTurns {
+  background: var(--power-between-bg);
+  color: var(--power-between-fg);
+}
+
+.bird-card__power--onPlay {
+  background: var(--power-play-bg);
+  color: var(--power-play-fg);
+}
+
+.bird-card__power--none {
+  align-items: center;
+  justify-content: center;
+  min-height: var(--card-nopower);
+  background: var(--c-crema-2);
+  color: var(--c-muted);
+  font-weight: 600;
+}
+
+.bird-card__timing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bird-card--hand .bird-card__power-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.bird-card__action {
+  width: 100%;
+}
+
+/* En board y mini cabe solo el nombre del timing: se aprieta para que "Entre turnos" no se corte. */
+.bird-card--board .bird-card__power,
+.bird-card--mini .bird-card__power {
+  padding: 2px 6px 3px;
+}
+
+.bird-card--board .bird-card__timing {
+  gap: 4px;
+  letter-spacing: 0.02em;
+}

@@ -1,6 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./ui/App";
+import "./ui/tokens.css";
+import "./ui/components.css";
+import "./ui/cards.css";
+import "./ui/home.css";
+import "./ui/modals.css";
+import "./ui/game.css";
+import "./ui/panels.css";
+import "./ui/feedback.css";
 import "./ui/styles.css";
 
 createRoot(document.getElementById("root")!).render(

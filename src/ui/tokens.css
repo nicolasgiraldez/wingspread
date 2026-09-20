@@ -1,0 +1,128 @@
+/* ==========================================================================
+   Wingspread · tokens de diseño · "Plano mid-century"
+   Fuente de verdad: tablero "Sistema visual" del lienzo de diseño.
+   Reemplaza las variables oscuras de :root en src/ui/styles.css
+   (ver docs/design/01-tokens.md para la tabla de equivalencias).
+   ========================================================================== */
+
+/* Tipografías: cargar en index.html (reemplaza a Inter)
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+*/
+
+:root {
+  color-scheme: light;
+
+  /* ---- Base ---- */
+  --c-crema: #F5EEDC;        /* fondo de página */
+  --c-crema-2: #EBE1C8;      /* paneles, huecos, superficies hundidas */
+  --c-carbon: #22292B;       /* texto y contornos (siempre 2px) */
+  --c-input: #FFFDF6;        /* fondo de campos de texto */
+  --c-muted: #4B5558;        /* texto secundario (contraste AA sobre crema) */
+  --c-slate: #56676A;        /* texto terciario, solo ≥14px */
+  --c-placeholder: #6B7578;  /* placeholder de campos */
+  --c-scrim: #2E3638;        /* fondo de modales: usar con opacity .72 */
+
+  /* ---- Color de marca / hábitat ---- */
+  --c-petroleo: #1F6F6B;     /* bosque, paneles, botones secundarios llenos */
+  --c-petroleo-d: #164F4C;   /* sombras de escena, texto sobre menta */
+  --c-petroleo-l: #2A8079;   /* luces de escena */
+  --c-mostaza: #D9A21B;      /* pradera, puntos, turno activo, selección */
+  --c-mostaza-l: #F3CF5E;    /* reservado: fin de partida */
+  --c-mostaza-d: #B98512;    /* sombra de pradera */
+  --c-tomate: #D8472B;       /* acentos e íconos (NO para texto pequeño) */
+  --c-tomate-d: #B23A1F;     /* botones primarios con texto crema */
+  --c-menta: #A9CFC7;        /* río */
+  --c-menta-d: #8FBFB5;      /* olas de río */
+
+  /* ---- Hábitats ---- */
+  --habitat-forest: var(--c-petroleo);
+  --habitat-grassland: var(--c-mostaza);
+  --habitat-wetland: var(--c-menta);
+
+  /* ---- Poderes (fondo de la banda / color de texto sobre ella) ---- */
+  --power-activate-bg: #7B4B2A;   /* Al activar (marrón)  */
+  --power-activate-fg: #F5EEDC;
+  --power-between-bg: #EC8FAE;    /* Entre turnos (rosa)  */
+  --power-between-fg: #22292B;
+  --power-play-bg: #FFFDF6;       /* Al jugar (blanco)    */
+  --power-play-fg: #22292B;
+  --power-round-bg: #5CC2B3;      /* Fin de ronda (turquesa) · RESERVADO, aún sin cartas */
+  --power-round-fg: #22292B;
+
+  /* ---- Estados ---- */
+  --state-error-bg: #F6D5CC;
+  --state-error-border: #B23A1F;
+  --state-warn-bg: #F8E6B0;
+  --state-warn-border: #B98512;
+  --state-info-bg: #A9CFC7;
+  --state-info-border: #164F4C;
+  --state-ok-bg: #A9CFC7;
+  --state-ok-border: #1F6F6B;
+  --focus-ring: 0 0 0 4px #D9A21B; /* también es el "seleccionado" de cartas/dados */
+
+  /* ---- Tipografía ---- */
+  --font-display: 'DM Serif Display', Georgia, serif;   /* titulares, nombres de carta, cifras grandes */
+  --font-body: 'Work Sans', system-ui, sans-serif;      /* todo lo demás */
+  --fs-label: 13px;   /* etiquetas en mayúsculas: 600, letter-spacing .08em */
+  --fs-min: 12px;     /* mínimo absoluto para cualquier texto */
+  --fs-small: 14px;
+  --fs-body: 16px;
+  --fs-lead: 18px;    /* campos de texto, botones grandes */
+
+  /* ---- Forma ---- */
+  --stroke: 2px;                     /* todo contorno es carbón de 2px */
+  --radius-btn: 12px;
+  --radius-field: 12px;
+  --radius-card: 14px;               /* paneles, avisos, filas */
+  --radius-panel: 16px;              /* tarjetas de modo, modales internos */
+  --radius-modal: 18px;
+  --radius-pill: 999px;
+
+  /* ---- Sombras "planas" (sin blur, solo desplazamiento) ---- */
+  --shadow-press-sm: 0 2px 0 var(--c-carbon);
+  --shadow-press: 0 4px 0 var(--c-carbon);     /* botones, avisos, chips elevados */
+  --shadow-lift: 0 8px 0 var(--c-carbon);      /* carta levantada */
+  --shadow-bird: 0 4px 0 rgba(22, 79, 76, .32);/* drop-shadow de la ilustración del ave (varía por modo de carta, ver 03-cards.md) */
+
+  /* ---- Espaciado (escala de 4) ---- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-12: 48px;
+
+  /* ---- Objetivos táctiles ---- */
+  --tap-min: 44px;
+  --btn-h-lg: 56px;
+  --btn-h-md: 52px;
+  --btn-h-sm: 44px;
+}
+
+html { background: var(--c-crema); }
+
+body {
+  margin: 0;
+  background: var(--c-crema);
+  color: var(--c-carbon);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.4;
+  min-height: 100vh;
+}
+
+h1, h2, h3, .display { font-family: var(--font-display); font-weight: 400; line-height: 1.05; margin: 0; }
+
+.label {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--fs-label);
+  line-height: 1;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}

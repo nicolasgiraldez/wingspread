@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useId } from "react";
 import type { CardId, HabitatId, Power } from "../../game";
 import { describePower } from "../labels";
+import { RichText } from "./ui/RichText";
 
 export interface PowerCardChoiceConfig {
   /** Texto explicando qué carta hay que elegir (p. ej. "¿Qué carta descartás?"). */
@@ -45,86 +46,88 @@ interface PowerChecklistProps {
   entries: PowerChecklistEntry[];
 }
 
+/** Selector con su etiqueta visible enlazada (`label for`). */
+const SelectChoice: React.FC<{
+  label: string;
+  value: string;
+  defaultLabel: string;
+  options: { value: string; name: string }[];
+  onChange: (value: string) => void;
+}> = ({ label, value, defaultLabel, options, onChange }) => {
+  const id = useId();
+  return (
+    <div className="power-row__choice">
+      <label htmlFor={id} className="power-row__label">
+        {label}
+      </label>
+      <select id={id} className="select" value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{defaultLabel}</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 /**
  * Lista de poderes opcionales (onPlay/onActivate) que se activarían con la acción actual.
  * Todos están tildados por defecto; el jugador puede destildar los que no quiera usar,
  * ya que el reglamento de Wingspan establece que todos los poderes son opcionales.
  */
 export const PowerChecklist: React.FC<PowerChecklistProps> = ({ title, entries }) => {
+  const headingId = useId();
   if (entries.length === 0) return null;
 
   return (
-    <div>
-      <strong style={{ fontSize: "0.9rem" }}>{title}</strong>
-      <p className="power-checklist-hint">
-        Todos los poderes son opcionales: destildá los que no quieras activar.
-      </p>
-      <div className="power-checklist">
+    <section className="step" aria-labelledby={headingId}>
+      <h3 id={headingId} className="step__title">
+        {title}
+      </h3>
+      <p className="step__note">Todos los poderes son opcionales: destildá los que no quieras activar.</p>
+      <div className="power-list">
         {entries.map((entry, idx) => (
-          <div
-            key={`${entry.power.id}-${idx}`}
-            className={`power-checklist-row ${entry.checked ? "checked" : ""}`}
-          >
-            <label className="power-checklist-label">
+          <div key={`${entry.power.id}-${idx}`} className={`power-row${entry.checked ? " power-row--on" : ""}`}>
+            <label className="power-row__main">
               <input type="checkbox" checked={entry.checked} onChange={entry.onToggle} />
               <span>
-                <strong>{entry.birdName}</strong>: {describePower(entry.power)}
+                <strong>{entry.birdName}</strong>: <RichText text={describePower(entry.power)} size={18} />
               </span>
             </label>
 
             {entry.checked && entry.cardChoice && entry.cardChoice.options.length > 0 && (
-              <div className="power-checklist-choice">
-                <span style={{ fontSize: "0.75rem", color: "#93a397" }}>{entry.cardChoice.label}</span>
-                <select
-                  value={entry.cardChoice.selected ?? ""}
-                  onChange={(e) => entry.cardChoice!.onSelect(e.target.value || null)}
-                >
-                  <option value="">{entry.cardChoice.defaultOptionLabel}</option>
-                  {entry.cardChoice.options.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SelectChoice
+                label={entry.cardChoice.label}
+                value={entry.cardChoice.selected ?? ""}
+                defaultLabel={entry.cardChoice.defaultOptionLabel}
+                options={entry.cardChoice.options.map((o) => ({ value: o.id, name: o.name }))}
+                onChange={(v) => entry.cardChoice!.onSelect(v || null)}
+              />
             )}
 
             {entry.checked && entry.slotChoice && entry.slotChoice.options.length > 0 && (
-              <div className="power-checklist-choice">
-                <span style={{ fontSize: "0.75rem", color: "#93a397" }}>{entry.slotChoice.label}</span>
-                <select
-                  value={entry.slotChoice.selected ?? ""}
-                  onChange={(e) => entry.slotChoice!.onSelect(e.target.value || null)}
-                >
-                  <option value="">{entry.slotChoice.defaultOptionLabel}</option>
-                  {entry.slotChoice.options.map((opt) => (
-                    <option key={opt.key} value={opt.key}>
-                      {opt.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SelectChoice
+                label={entry.slotChoice.label}
+                value={entry.slotChoice.selected ?? ""}
+                defaultLabel={entry.slotChoice.defaultOptionLabel}
+                options={entry.slotChoice.options.map((o) => ({ value: o.key, name: o.name }))}
+                onChange={(v) => entry.slotChoice!.onSelect(v || null)}
+              />
             )}
 
             {entry.checked && entry.habitatChoice && entry.habitatChoice.options.length > 1 && (
-              <div className="power-checklist-choice">
-                <span style={{ fontSize: "0.75rem", color: "#93a397" }}>{entry.habitatChoice.label}</span>
-                <div style={{ display: "flex", gap: 6 }}>
+              <div className="power-row__choice" role="group" aria-label={entry.habitatChoice.label}>
+                <span className="power-row__label">{entry.habitatChoice.label}</span>
+                <div className="pill-row">
                   {entry.habitatChoice.options.map((opt) => (
                     <button
                       key={opt.id}
                       type="button"
+                      className={`pill${entry.habitatChoice!.selected === opt.id ? " pill--on" : ""}`}
+                      aria-pressed={entry.habitatChoice!.selected === opt.id}
                       onClick={() => entry.habitatChoice!.onSelect(opt.id)}
-                      style={{
-                        flex: 1,
-                        padding: "5px 8px",
-                        borderRadius: 6,
-                        border: "1px solid rgba(63, 174, 114, 0.35)",
-                        background: entry.habitatChoice!.selected === opt.id ? "#1f7a4f" : "rgba(63, 174, 114, 0.12)",
-                        color: entry.habitatChoice!.selected === opt.id ? "#ffffff" : "#3fae72",
-                        fontSize: "0.78rem",
-                        cursor: "pointer",
-                      }}
                     >
                       {opt.name}
                     </button>
@@ -135,6 +138,6 @@ export const PowerChecklist: React.FC<PowerChecklistProps> = ({ title, entries }
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 };

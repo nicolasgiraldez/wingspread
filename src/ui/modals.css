@@ -1,0 +1,644 @@
+/* ==========================================================================
+   Modales: mano inicial, bonificación y esperas (docs/design/05-screens.md §4 y §6)
+   La carcasa (.modal, .scrim…) está en components.css.
+   ========================================================================== */
+
+.modal--wait .modal__head {
+  padding-bottom: 32px;
+}
+
+.modal__hint {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-tomate-d);
+}
+
+/* ---- Pasos numerados ---------------------------------------------------------- */
+.step__title {
+  margin-bottom: 12px;
+  font-size: 24px;
+}
+
+.step__note {
+  margin: -4px 0 12px;
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+/* ---- Aves de la mano inicial --------------------------------------------------- */
+.pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 6px;
+}
+
+.pick {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Descartada: desaturada y con poco contraste, siempre con el texto "Se descarta" debajo. */
+.pick--out .bird-card {
+  filter: grayscale(0.9);
+  opacity: 0.6;
+}
+
+.pick__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.pick__status--in {
+  color: var(--c-petroleo-d);
+}
+
+/* ---- Fichas de alimento a descartar --------------------------------------------- */
+.food-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.food {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 6px 18px 6px 12px;
+  background: var(--c-input);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-btn);
+  color: var(--c-carbon);
+  text-align: left;
+}
+
+/* Sin más descartes disponibles se ve igual que una ficha que se conserva: el motivo está en "(n de n)". */
+.food[aria-disabled="true"] {
+  background: var(--c-input);
+  color: var(--c-carbon);
+  border-style: solid;
+  cursor: not-allowed;
+}
+
+.food--out {
+  background: var(--state-error-bg);
+  border-color: var(--state-error-border);
+}
+
+.food__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.food__name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.food__state {
+  font-size: var(--fs-min);
+  font-weight: 600;
+}
+
+/* ---- Cartas de bonificación ------------------------------------------------------ */
+.bonus-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 4px;
+}
+
+.bonus-option {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  max-width: 360px;
+  background: var(--c-crema);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.bonus-option__tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--c-mostaza);
+  border-bottom: var(--stroke) solid var(--c-carbon);
+  font-size: var(--fs-min);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bonus-option__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px 18px;
+}
+
+.bonus-option__name {
+  font-size: 26px;
+}
+
+.bonus-option__desc {
+  flex: 1;
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+.bonus-option.is-selected {
+  border-radius: var(--radius-card);
+}
+
+/* ---- Móvil: aves en carrusel y pie fijo abajo ---------------------------------------- */
+@media (max-width: 640px) {
+  .pick-row {
+    flex-wrap: nowrap;
+    margin: 0 -16px;
+    padding: 6px 16px 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .pick {
+    scroll-snap-align: start;
+  }
+
+  .bonus-option {
+    max-width: none;
+  }
+
+  .modal--hand .modal__foot {
+    position: sticky;
+    bottom: 0;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--c-crema);
+  }
+}
+
+/* ==========================================================================
+   Modales de acción: jugar ave, poner huevos y poderes de hábitat (§6)
+   ========================================================================== */
+
+.modal .step__title {
+  font-size: 21px;
+}
+
+.modal--hand .step__title {
+  font-size: 24px;
+}
+
+.step__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-modal {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.action-modal__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Botones tipo píldora: hábitat, alimento a pagar y canje */
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px 0 12px;
+  background: var(--c-input);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pill:has(.pill__icon) {
+  padding-left: 8px;
+}
+
+.pill--sm {
+  min-height: var(--tap-min);
+  padding: 0 14px 0 10px;
+  font-size: var(--fs-small);
+}
+
+.pill--on {
+  background: var(--c-mostaza);
+  box-shadow: 0 3px 0 var(--c-carbon);
+}
+
+.pill__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--c-crema);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: 50%;
+}
+
+.select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  font-size: 15px;
+  border-radius: 10px;
+}
+
+/* Poderes opcionales (casilla + elección) */
+.power-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.power-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--c-crema-2);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+}
+
+.power-row--on {
+  background: var(--state-warn-bg);
+}
+
+.power-row__main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.power-row__main input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--c-petroleo);
+}
+
+.power-row__choice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 36px;
+}
+
+.power-row__label {
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.empty-state {
+  padding: 24px;
+  text-align: center;
+  background: var(--c-crema-2);
+  border: var(--stroke) dashed var(--c-muted);
+  border-radius: var(--radius-card);
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.empty-state p + p {
+  margin-top: 6px;
+  color: var(--c-muted);
+}
+
+/* Poner huevos */
+.egg-quota {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--c-crema-2);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+}
+
+.egg-quota__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.egg-quota__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.egg-quota__eggs {
+  display: inline-flex;
+  gap: 10px;
+}
+
+.egg-quota__left {
+  margin-left: auto;
+  min-height: 32px;
+}
+
+.egg-quota__trade {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: var(--stroke) dashed var(--c-muted);
+}
+
+.egg-birds {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.egg-bird {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--c-input);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+}
+
+.egg-bird--on {
+  background: var(--state-warn-bg);
+}
+
+.egg-bird__habitat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--c-crema);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: 50%;
+}
+
+.egg-bird__name {
+  font-family: var(--font-display);
+  font-size: 21px;
+  line-height: 1.1;
+}
+
+.egg-bird__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--c-muted);
+}
+
+.egg-bird__nest {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.egg-bird__count {
+  text-align: right;
+}
+
+.egg-bird__eggs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.egg-bird__plus {
+  margin-left: 2px;
+  color: var(--c-petroleo-d);
+}
+
+.egg-bird__space {
+  font-size: 13px;
+  color: var(--c-muted);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepper__btn {
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  background: var(--c-crema);
+  border-radius: var(--radius-btn);
+}
+
+.stepper__value {
+  min-width: 28px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .action-modal {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .action-modal__steps {
+    width: 100%;
+  }
+
+  .egg-bird {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .egg-bird__count {
+    grid-column: 1 / 2;
+    text-align: left;
+  }
+
+  .stepper {
+    grid-column: 2 / 3;
+    justify-content: flex-end;
+  }
+}
+
+/* ==========================================================================
+   Fin de partida (§5)
+   ========================================================================== */
+
+.modal--over .modal__icon--round {
+  width: 96px;
+  height: 96px;
+  background: var(--c-mostaza-l);
+}
+
+.modal--over .modal__title {
+  font-size: 44px;
+}
+
+.modal--over .modal__body {
+  padding-bottom: 4px;
+}
+
+.modal--over .modal__foot {
+  justify-content: center;
+  border-top: 0;
+}
+
+.score-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  font-size: var(--fs-small);
+}
+
+.score-table th,
+.score-table td {
+  padding: 10px 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.score-table thead th {
+  background: var(--c-carbon);
+  color: var(--c-crema);
+}
+
+.score-table thead th.score-table__win {
+  background: var(--c-mostaza);
+  color: var(--c-carbon);
+}
+
+.score-table .score-table__cat {
+  text-align: left;
+}
+
+.score-table__name {
+  display: block;
+  margin-top: 2px;
+}
+
+.score-table tbody th,
+.score-table tbody td {
+  border-bottom: var(--stroke) solid var(--c-crema-2);
+}
+
+.score-table tbody td {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.score-table tbody td.score-table__win {
+  background: var(--state-warn-bg);
+}
+
+.score-table__label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.score-table tfoot th,
+.score-table tfoot td {
+  padding: 14px 12px;
+  background: var(--c-petroleo);
+  color: var(--c-crema);
+}
+
+.score-table tfoot th {
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.score-table tfoot td {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.score-table__unit {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .modal--over .modal__title {
+    font-size: 30px;
+  }
+
+  .score-table th,
+  .score-table td {
+    padding: 8px 6px;
+  }
+
+  .score-table tbody td {
+    font-size: 20px;
+  }
+
+  .score-table__label {
+    gap: 8px;
+  }
+
+  .score-table tfoot td {
+    font-size: 26px;
+  }
+}

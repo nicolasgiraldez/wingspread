@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Bird, X } from "lucide-react";
 import { canPayResources, getOnPlayPowers, isLegalMove } from "../../game";
 import type {
   CardId,
@@ -15,11 +14,18 @@ import type {
 } from "../../game";
 import {
   describePower,
+  habitatIcons,
   habitatLabels,
   resourceIcons,
   resourceLabels,
 } from "../labels";
 import { BirdCard } from "./BirdCard";
+import { capitalize, countOf, pressVerb } from "../text";
+import { Button } from "./ui/Button";
+import { Icon } from "./ui/Icon";
+import { Modal } from "./ui/Modal";
+import { RichText } from "./ui/RichText";
+import { StatusLine } from "./ui/StatusLine";
 import { buildEggTargetOptions, decodeSlotKey } from "./powerOptions";
 import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
@@ -338,186 +344,187 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
 
   const isMoveValid = isSlotAvailable && isEggCostValid && isPaymentValid && isLegalMove(gameState, player.id, move);
 
+  const invalidReason = !isSlotAvailable
+    ? "No hay una columna libre en este hábitat."
+    : !isPaymentValid
+      ? "Falta pagar el coste en alimentos."
+      : !isEggCostValid
+        ? "Faltan huevos para pagar esta columna."
+        : !isMoveValid
+          ? "Revisá las elecciones de los poderes: la jugada no es válida."
+          : undefined;
+
+  const habitatPills = (habitats: HabitatId[], current: HabitatId | null | undefined, onPick: (hab: HabitatId) => void) => (
+    <div className="pill-row">
+      {habitats.map((hab) => (
+        <button
+          key={hab}
+          type="button"
+          className={`pill${current === hab ? " pill--on" : ""}`}
+          aria-pressed={current === hab}
+          onClick={() => onPick(hab)}
+        >
+          <span className="pill__icon">
+            <Icon name={habitatIcons[hab]} size={20} />
+          </span>
+          {habitatLabels[hab]}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Jugar Ave: {card.name}</h2>
-          <button
-            onClick={onClose}
-            style={{ background: "transparent", color: "#93a397", padding: 4 }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 16 }}>
-          <BirdCard card={card} compact />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Step 1: Habitat selection */}
-            <div>
-              <strong style={{ fontSize: "0.9rem" }}>1. Selecciona el Hábitat</strong>
-              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                {availableHabitats.map((hab) => (
-                  <button
-                    key={hab}
-                    onClick={() => setSelectedHabitat(hab)}
-                    style={{
-                      flex: 1,
-                      backgroundColor: selectedHabitat === hab ? "#1f7a4f" : "rgba(63, 174, 114, 0.12)",
-                      color: selectedHabitat === hab ? "#ffffff" : "#3fae72",
-                      border: "1px solid rgba(63, 174, 114, 0.35)",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {habitatLabels[hab]}
-                  </button>
-                ))}
-              </div>
-              <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#93a397" }}>
-                Se colocará en la Columna {slotIndex + 1} de {habitatLabels[selectedHabitat]} (Coste: {eggCost} 🥚).
-              </p>
-            </div>
-
-            {/* Step 2: Resource Payment & 2:1 */}
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong style={{ fontSize: "0.9rem" }}>2. Pago de Alimentos</strong>
-                <span style={{ fontSize: "0.75rem", color: isPaymentValid ? "#3fae72" : "#f0645f", fontWeight: 700 }}>
-                  {isPaymentValid ? "✓ Pago Válido" : "✗ Faltan Alimentos / Inválido"}
-                </span>
-              </div>
-              <p style={{ margin: "2px 0 6px 0", fontSize: "0.75rem", color: "#93a397" }}>
-                Haz clic en tus recursos para seleccionarlos. Puedes usar 2 recursos cualesquiera por cada 1 requerido.
-                {card.costAnyOf && card.costAnyOf.length > 0 && (
-                  <>
-                    {" "}Esta ave acepta 1{" "}
-                    {card.costAnyOf.map((res) => resourceIcons[res]).join(" o ")} indistintamente.
-                  </>
-                )}
-              </p>
-
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {Object.entries(player.resources).map(([res, total]) => {
-                  const r = res as ResourceFace;
-                  const selectedCount = selectedPaidResources.filter((item) => item === r).length;
-
-                  return (
-                    <button
-                      key={r}
-                      onClick={() => toggleResourceForPayment(r)}
-                      disabled={(total ?? 0) === 0 && selectedCount === 0}
-                      style={{
-                        backgroundColor: selectedCount > 0 ? "#1f7a4f" : "#212b22",
-                        color: selectedCount > 0 ? "#ffffff" : "#eef1ec",
-                        border: "1.5px solid #394239",
-                        padding: "6px 10px",
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      {resourceIcons[r]} {resourceLabels[r]}: {selectedCount}/{total ?? 0}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Step 3: Egg cost check */}
-            {showEggStep && (
-              <div>
-                <strong style={{ fontSize: "0.9rem" }}>{eggStepNumber}. Coste en Huevos ({eggCost} 🥚)</strong>
-                <p style={{ margin: "2px 0 0 0", fontSize: "0.8rem", color: isEggCostValid ? "#3fae72" : "#f0645f" }}>
-                  {isEggCostValid
-                    ? `✓ Se descontarán ${eggCost} huevo(s) de tu tablero.`
-                    : `✗ Necesitas al menos ${eggCost} huevo(s) en tu tablero para jugar en esta columna.`}
-                </p>
-              </div>
-            )}
-
-            {/* Step 4: Optional "when played" powers */}
-            {powerChecklistEntries.length > 0 && (
-              <PowerChecklist title={`${powersStepNumber}. Poderes al jugar (opcionales)`} entries={powerChecklistEntries} />
-            )}
-
-            {/* Step 5: Optional "playSecondBird" power */}
-            {secondBirdPower && (
-              <div>
-                <strong style={{ fontSize: "0.9rem" }}>{secondBirdStepNumber}. Jugar una segunda ave (opcional)</strong>
-                <p className="power-checklist-hint">
-                  {describePower(secondBirdPower)}. Si no elegís ninguna carta, este poder no se activa.
-                </p>
-
-                {secondBirdCandidates.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: "0.8rem", color: "#75897b" }}>
-                    No tenés otra ave en mano jugable en {secondBirdPower.habitats.map((h) => habitatLabels[h]).join(" o ")}.
-                  </p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <select
-                      value={secondBirdCardId ?? ""}
-                      onChange={(e) => setSecondBirdCard(e.target.value || null)}
-                      style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #394239", fontSize: "0.85rem" }}
-                    >
-                      <option value="">No jugar segunda ave</option>
-                      {secondBirdCandidates.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    {secondBirdCard && (
-                      <>
-                        {secondBirdAllowedHabitats.length > 1 && (
-                          <div style={{ display: "flex", gap: 6 }}>
-                            {secondBirdAllowedHabitats.map((hab) => (
-                              <button
-                                key={hab}
-                                type="button"
-                                onClick={() => setSecondBirdHabitatState(hab)}
-                                style={{
-                                  flex: 1,
-                                  backgroundColor: effectiveSecondBirdHabitat === hab ? "#1f7a4f" : "rgba(63, 174, 114, 0.12)",
-                                  color: effectiveSecondBirdHabitat === hab ? "#ffffff" : "#3fae72",
-                                  border: "1px solid rgba(63, 174, 114, 0.35)",
-                                  justifyContent: "center",
-                                  fontSize: "0.8rem",
-                                }}
-                              >
-                                {habitatLabels[hab]}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        <span style={{ fontSize: "0.78rem", color: secondBirdPaymentValid ? "#3fae72" : "#f0645f" }}>
-                          {secondBirdPaymentValid
-                            ? `✓ Se jugará en ${effectiveSecondBirdHabitat ? habitatLabels[effectiveSecondBirdHabitat] : ""} pagando su costo normal${secondBirdEggCost > 0 ? ` + ${secondBirdEggCost} 🥚` : ""}.`
-                            : "✗ No se puede pagar esta segunda ave con lo que queda disponible tras la primera."}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer actions */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #2b332e", paddingTop: 14 }}>
-          <button onClick={onClose} style={{ backgroundColor: "#212b22", color: "#c3ccc5" }}>
-            Cancelar
-          </button>
-          <button
-            onClick={() => onConfirmPlay(move)}
+    <Modal
+      title={`Jugar Ave: ${card.name}`}
+      width={1000}
+      onClose={onClose}
+      footer={
+        <>
+          {invalidReason && (
+            <span id="play-bird-reason" className="modal__hint" role="status">
+              {invalidReason}
+            </span>
+          )}
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button
+            variant="primary"
+            icon="bird"
             disabled={!isMoveValid}
-            style={{ backgroundColor: "#1f7a4f" }}
+            aria-describedby={invalidReason ? "play-bird-reason" : undefined}
+            onClick={() => onConfirmPlay(move)}
           >
-            <Bird size={16} /> Confirmar y Jugar Ave
-          </button>
+            Confirmar y Jugar Ave
+          </Button>
+        </>
+      }
+    >
+      <div className="action-modal">
+        <BirdCard card={card} mode="full" />
+
+        <div className="action-modal__steps">
+          {/* Paso 1: hábitat */}
+          <section className="step" aria-labelledby="play-step-habitat">
+            <h3 id="play-step-habitat" className="step__title">
+              1. Seleccioná el Hábitat
+            </h3>
+            {habitatPills(availableHabitats, selectedHabitat, setSelectedHabitat)}
+            <p className="step__note">
+              Se colocará en la Columna {slotIndex + 1} de {habitatLabels[selectedHabitat]} (Coste: {eggCost}{" "}
+              <Icon name="egg" size={16} />).
+            </p>
+          </section>
+
+          {/* Paso 2: pago de alimentos (2 cualesquiera por 1 requerido) */}
+          <section className="step" aria-labelledby="play-step-pay">
+            <div className="step__row">
+              <h3 id="play-step-pay" className="step__title">
+                2. Pago de Alimentos
+              </h3>
+              <StatusLine ok={isPaymentValid}>{isPaymentValid ? "Pago válido" : "Faltan alimentos"}</StatusLine>
+            </div>
+            <p className="step__note">
+              {pressVerb()} tus recursos para seleccionarlos. Podés usar 2 recursos cualesquiera por cada 1 requerido.
+              {card.costAnyOf && card.costAnyOf.length > 0 && (
+                <>
+                  {" "}
+                  Esta ave acepta 1{" "}
+                  <RichText text={`${card.costAnyOf.map((res) => `{${resourceIcons[res]}}`).join(" o ")} indistintamente.`} size={18} />
+                </>
+              )}
+            </p>
+            <div className="pill-row">
+              {Object.entries(player.resources).map(([res, total]) => {
+                const r = res as ResourceFace;
+                const selectedCount = selectedPaidResources.filter((item) => item === r).length;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`pill${selectedCount > 0 ? " pill--on" : ""}`}
+                    aria-pressed={selectedCount > 0}
+                    disabled={(total ?? 0) === 0 && selectedCount === 0}
+                    onClick={() => toggleResourceForPayment(r)}
+                  >
+                    <Icon name={resourceIcons[r]} size={24} />
+                    {capitalize(resourceLabels[r])}: {selectedCount}/{total ?? 0}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Paso 3: coste en huevos */}
+          {showEggStep && (
+            <section className="step" aria-labelledby="play-step-eggs">
+              <h3 id="play-step-eggs" className="step__title">
+                {eggStepNumber}. Coste en Huevos ({eggCost} <Icon name="egg" size={20} />)
+              </h3>
+              <StatusLine ok={isEggCostValid}>
+                {isEggCostValid
+                  ? eggCost === 1
+                    ? "Se descontará 1 huevo de tu tablero."
+                    : `Se descontarán ${eggCost} huevos de tu tablero.`
+                  : `Necesitás al menos ${countOf(eggCost, "huevo", "huevos")} en tu tablero para jugar en esta columna.`}
+              </StatusLine>
+            </section>
+          )}
+
+          {/* Paso 4: poderes "Al jugar" opcionales */}
+          {powerChecklistEntries.length > 0 && (
+            <PowerChecklist title={`${powersStepNumber}. Poderes al jugar (opcionales)`} entries={powerChecklistEntries} />
+          )}
+
+          {/* Paso 5: segunda ave (opcional) */}
+          {secondBirdPower && (
+            <section className="step" aria-labelledby="play-step-second">
+              <h3 id="play-step-second" className="step__title">
+                {secondBirdStepNumber}. Jugar una segunda ave (opcional)
+              </h3>
+              <p className="step__note">
+                <RichText text={describePower(secondBirdPower)} size={18} />. Si no elegís ninguna carta, este poder no se
+                activa.
+              </p>
+
+              {secondBirdCandidates.length === 0 ? (
+                <p className="step__note">
+                  No tenés otra ave en mano jugable en {secondBirdPower.habitats.map((h) => habitatLabels[h]).join(" o ")}.
+                </p>
+              ) : (
+                <div className="step__stack">
+                  <label htmlFor="play-second-card" className="sr-only">
+                    Segunda ave
+                  </label>
+                  <select
+                    id="play-second-card"
+                    className="select"
+                    value={secondBirdCardId ?? ""}
+                    onChange={(e) => setSecondBirdCard(e.target.value || null)}
+                  >
+                    <option value="">No jugar segunda ave</option>
+                    {secondBirdCandidates.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {secondBirdCard && (
+                    <>
+                      {secondBirdAllowedHabitats.length > 1 &&
+                        habitatPills(secondBirdAllowedHabitats, effectiveSecondBirdHabitat, setSecondBirdHabitatState)}
+                      <StatusLine ok={secondBirdPaymentValid}>
+                        {secondBirdPaymentValid
+                          ? `Se jugará en ${effectiveSecondBirdHabitat ? habitatLabels[effectiveSecondBirdHabitat] : ""} pagando su costo normal${secondBirdEggCost > 0 ? ` + ${countOf(secondBirdEggCost, "huevo", "huevos")}` : ""}.`
+                          : "No se puede pagar esta segunda ave con lo que queda disponible tras la primera."}
+                      </StatusLine>
+                    </>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

@@ -1,22 +1,16 @@
-import React, { useState } from "react";
-import {
-  Bird,
-  Bot,
-  ChevronRight,
-  Feather,
-  Globe,
-  History,
-  LogIn,
-  PlusCircle,
-  Trash2,
-  User,
-  Users,
-} from "lucide-react";
+import React, { useId, useState } from "react";
+import { speciesCards } from "../../game";
 import type { BotDifficulty } from "../../game";
+import logoUrl from "../assets/logo.svg";
 import { difficultyLabels } from "../labels";
 import { extractRoomCode, generateRoomCode } from "../network/peerManager";
 import { formatSavedAgo } from "../savedGame";
 import type { SavedGameSummary } from "../savedGame";
+import { BirdCard } from "./BirdCard";
+import { Button } from "./ui/Button";
+import { Field } from "./ui/Field";
+import { Icon } from "./ui/Icon";
+import type { IconName } from "./ui/iconNames";
 
 export interface HomePageConfig {
   mode: "solo" | "online-host" | "online-join";
@@ -37,6 +31,62 @@ interface HomePageProps {
 
 type Section = "welcome" | "solo" | "online";
 
+/** Escena de la portada: bosque, sol y colina con tres cartas reales abiertas en abanico (decorativa). */
+const WelcomeArt: React.FC = () => (
+  <div className="welcome__art" aria-hidden="true">
+    <svg className="welcome__scene" viewBox="0 0 800 900" preserveAspectRatio="xMidYMax slice" focusable="false">
+      <rect width="800" height="900" fill="var(--c-petroleo)" />
+      <circle cx="592" cy="180" r="96" fill="var(--c-mostaza-l)" />
+      <polygon points="20,828 250,828 130,380" fill="var(--c-petroleo-d)" />
+      <polygon points="160,828 300,828 230,540" fill="var(--c-petroleo-l)" />
+      <polygon points="590,828 790,828 690,420" fill="var(--c-petroleo-d)" />
+      <polygon points="510,828 650,828 580,560" fill="var(--c-petroleo-l)" />
+      <path d="M0 770 Q200 660 400 745 T800 700 V828 H0 Z" fill="var(--c-mostaza-d)" />
+      <rect y="828" width="800" height="72" fill="var(--c-petroleo-d)" />
+    </svg>
+    <div className="welcome__cards">
+      <div className="welcome__card welcome__card--left">
+        <BirdCard card={speciesCards.beltedKingfisher} mode="full" />
+      </div>
+      <div className="welcome__card welcome__card--right">
+        <BirdCard card={speciesCards.annasHummingbird} mode="full" />
+      </div>
+      <div className="welcome__card welcome__card--center">
+        <BirdCard card={speciesCards.baldEagle} mode="full" />
+      </div>
+    </div>
+  </div>
+);
+
+interface ModeCardProps {
+  variant: "solo" | "online";
+  icon: IconName;
+  title: string;
+  description: string;
+  disabled: boolean;
+  describedBy?: string;
+  onClick: () => void;
+}
+
+const ModeCard: React.FC<ModeCardProps> = ({ variant, icon, title, description, disabled, describedBy, onClick }) => (
+  <button
+    type="button"
+    className={`mode-card mode-card--${variant}`}
+    aria-disabled={disabled || undefined}
+    aria-describedby={disabled ? describedBy : undefined}
+    onClick={onClick}
+  >
+    <span className="mode-card__tile">
+      <Icon name={icon} size={34} />
+    </span>
+    <span className="mode-card__chev">
+      <Icon name="chev" size={20} ink="currentColor" />
+    </span>
+    <span className="mode-card__title">{title}</span>
+    <span className="mode-card__desc">{description}</span>
+  </button>
+);
+
 export const HomePage: React.FC<HomePageProps> = ({
   onStart,
   defaultJoinCode = "",
@@ -50,11 +100,23 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [difficulty, setDifficulty] = useState<BotDifficulty>("normal");
   const [joinCode, setJoinCode] = useState(defaultJoinCode);
   const [joinError, setJoinError] = useState("");
+  // Se avisa que falta el nombre recién cuando se intenta avanzar sin él.
+  const [nameMissing, setNameMissing] = useState(false);
+  const hintId = useId();
 
   const validName = playerName.trim().length >= 1;
+  const nameError = nameMissing && !validName ? "Escribí tu nombre para poder jugar." : undefined;
+
+  const goTo = (next: Section) => {
+    if (!validName) {
+      setNameMissing(true);
+      return;
+    }
+    setSection(next);
+  };
 
   const handleStartSolo = () => {
-    if (!validName) return;
+    if (!validName) return setNameMissing(true);
     onStart({
       mode: "solo",
       playerName: playerName.trim(),
@@ -63,7 +125,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   const handleCreateRoom = () => {
-    if (!validName) return;
+    if (!validName) return setNameMissing(true);
     const code = generateRoomCode();
     onStart({
       mode: "online-host",
@@ -91,12 +153,12 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validName) return;
+    if (!validName) return setNameMissing(true);
     if (!parsedJoinCode) {
       setJoinError(
         joinCode.trim()
           ? "No reconocemos ese código o enlace. Revisá que esté completo."
-          : "Por favor, introduce un código de sala.",
+          : "Ingresá un código de sala.",
       );
       return;
     }
@@ -108,500 +170,247 @@ export const HomePage: React.FC<HomePageProps> = ({
     });
   };
 
-  // ─── Welcome Screen ───────────────────────────────────────────────────────
+  // ─── Portada ──────────────────────────────────────────────────────────────
   if (section === "welcome") {
     return (
-      <div style={styles.fullPage}>
-        <div style={styles.heroCard}>
-          {/* Branding */}
-          <div style={styles.logoRow}>
-            <div style={styles.logoIcon}>
-              <Bird size={44} color="#ffffff" />
-            </div>
-            <div>
-              <h1 style={styles.title}>Wingspread</h1>
-              <p style={styles.subtitle}>
-                Juego de construcción de motor ecológico inspirado en Wingspan
-              </p>
-            </div>
+      <div className="welcome">
+        <WelcomeArt />
+        <main className="welcome__main">
+          <div className="welcome__brand">
+            <img className="welcome__logo" src={logoUrl} alt="" width={56} height={56} />
+            <h1 className="welcome__title">Wingspread</h1>
           </div>
+          <p className="welcome__lead">Juego de construcción de motor ecológico inspirado en Wingspan</p>
 
           {/* Partida guardada: continuar donde se dejó */}
           {savedGame && onResumeSaved && (
-            <div style={styles.savedCard}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={styles.savedTitle}>
-                  <History size={16} style={{ marginRight: 6 }} />
+            <section className="saved" aria-labelledby={`${hintId}-saved`}>
+              <div className="saved__info">
+                <div id={`${hintId}-saved`} className="saved__title">
+                  <Icon name="clock" size={18} />
                   Partida en curso
                 </div>
-                <div style={styles.savedInfo}>
+                <div className="saved__meta">
                   {savedGame.kind === "solo" ? "Modo solitario" : `Sala ${savedGame.roomCode}`} · Ronda {savedGame.round} ·
                   guardada {formatSavedAgo(savedGame.savedAt)}
                 </div>
                 {savedGame.kind === "online-host" && (
-                  <div style={styles.savedHint}>
+                  <div className="saved__meta">
                     Al continuar se reabre la sala: tu invitado se reconecta solo o con el mismo enlace.
                   </div>
                 )}
               </div>
-              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <button onClick={onResumeSaved} style={styles.savedResume}>
+              <div className="saved__actions">
+                <Button variant="primary" size="sm" onClick={onResumeSaved}>
                   Continuar
-                </button>
+                </Button>
                 {onDiscardSaved && (
-                  <button onClick={onDiscardSaved} style={styles.savedDiscard} title="Borrar la partida guardada">
-                    <Trash2 size={16} />
-                  </button>
+                  <Button
+                    iconOnly
+                    icon="trash"
+                    aria-label="Borrar la partida guardada"
+                    title="Borrar la partida guardada"
+                    onClick={onDiscardSaved}
+                  />
                 )}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Player name always first */}
-          <div style={styles.nameSection}>
-            <label style={styles.label}>
-              <User size={14} style={{ marginRight: 6 }} />
-              ¿Cómo te llamas?
-            </label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Escribe tu nombre..."
-              maxLength={24}
-              style={styles.input}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && validName) setSection("solo");
-              }}
+          <Field
+            label="¿Cómo te llamás?"
+            icon="user"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            placeholder="Escribí tu nombre..."
+            maxLength={24}
+            autoFocus
+            autoComplete="nickname"
+            error={nameError}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") goTo("solo");
+            }}
+          />
+
+          <div className="mode-grid">
+            <ModeCard
+              variant="solo"
+              icon="bot"
+              title="Modo Solitario"
+              description="Una partida 1 contra 1 contra la IA"
+              disabled={!validName}
+              describedBy={hintId}
+              onClick={() => goTo("solo")}
             />
-          </div>
-
-          {/* Mode buttons */}
-          <div style={styles.modeGrid}>
-            <button
-              onClick={() => setSection("solo")}
+            <ModeCard
+              variant="online"
+              icon="globe"
+              title="Multijugador Online"
+              description="Creá o unite a una sala en tiempo real"
               disabled={!validName}
-              style={{
-                ...styles.modeButton,
-                ...(validName ? styles.modeButtonSolo : styles.modeButtonDisabled),
-              }}
-            >
-              <Bot size={28} />
-              <span style={styles.modeLabel}>Modo Solitario</span>
-              <span style={styles.modeDesc}>Una partida 1 contra 1 contra la IA</span>
-              <ChevronRight size={16} style={styles.modeArrow} />
-            </button>
-
-            <button
-              onClick={() => setSection("online")}
-              disabled={!validName}
-              style={{
-                ...styles.modeButton,
-                ...(validName ? styles.modeButtonOnline : styles.modeButtonDisabled),
-              }}
-            >
-              <Globe size={28} />
-              <span style={styles.modeLabel}>Multijugador Online</span>
-              <span style={styles.modeDesc}>Crea o únete a una sala en tiempo real</span>
-              <ChevronRight size={16} style={styles.modeArrow} />
-            </button>
+              describedBy={hintId}
+              onClick={() => goTo("online")}
+            />
           </div>
 
           {!validName && (
-            <p style={styles.hint}>
-              ✏️ Introduce tu nombre para comenzar
+            <p id={hintId} className="welcome__hint">
+              Ingresá tu nombre para comenzar
             </p>
           )}
-        </div>
+        </main>
       </div>
     );
   }
 
-  // ─── Solo Setup ───────────────────────────────────────────────────────────
+  // ─── Modo solitario ───────────────────────────────────────────────────────
   if (section === "solo") {
     return (
-      <div style={styles.fullPage}>
-        <div style={{ ...styles.heroCard, maxWidth: 480 }}>
-          <button onClick={() => setSection("welcome")} style={styles.backBtn}>← Volver</button>
+      <div className="setup-page">
+        <main className="setup-card">
+          <Button size="sm" icon="back" onClick={() => setSection("welcome")}>
+            Volver
+          </Button>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ ...styles.logoIcon, background: "#1f7a4f" }}>
-              <Bot size={28} color="#fff" />
-            </div>
+          <header className="setup-card__head">
+            <span className="setup-card__tile setup-card__tile--solo">
+              <Icon name="bot" size={34} ink="var(--c-crema)" />
+            </span>
             <div>
-              <h2 style={{ margin: 0, fontSize: "1.4rem" }}>Modo Solitario</h2>
-              <p style={{ margin: 0, color: "#93a397", fontSize: "0.85rem" }}>Juega contra un rival controlado por la IA</p>
+              <h1 className="setup-card__title">Modo Solitario</h1>
+              <p className="setup-card__sub">Jugá contra un rival controlado por la IA</p>
             </div>
-          </div>
+          </header>
 
-          {/* Player name */}
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}><User size={13} /> Tu nombre</label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Tu nombre..."
-              maxLength={24}
-              style={styles.input}
-            />
-          </div>
-
-          {/* Difficulty */}
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>Dificultad del rival</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {(["easy", "normal", "hard"] as BotDifficulty[]).map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDifficulty(d)}
-                  style={{
-                    flex: 1,
-                    padding: "9px 6px",
-                    borderRadius: 8,
-                    border: `2px solid ${difficulty === d ? "#3fae72" : "#394239"}`,
-                    background: difficulty === d ? "#1f7a4f" : "#1c241d",
-                    color: difficulty === d ? "#fff" : "#c3ccc5",
-                    fontSize: "0.78rem",
-                    fontWeight: difficulty === d ? 700 : 400,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {difficultyLabels[d]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={handleStartSolo}
-            disabled={!validName}
-            style={{
-              ...styles.startBtn,
-              backgroundColor: validName ? "#1f7a4f" : "#3a453e",
-              cursor: validName ? "pointer" : "not-allowed",
-            }}
-          >
-            <Feather size={18} /> Comenzar Partida Solitaria
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── Online Setup ─────────────────────────────────────────────────────────
-  return (
-    <div style={styles.fullPage}>
-      <div style={{ ...styles.heroCard, maxWidth: 500 }}>
-        <button onClick={() => setSection("welcome")} style={styles.backBtn}>← Volver</button>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ ...styles.logoIcon, background: "#20699a" }}>
-            <Globe size={28} color="#fff" />
-          </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: "1.4rem" }}>Multijugador Online</h2>
-            <p style={{ margin: 0, color: "#93a397", fontSize: "0.85rem" }}>Juega con un amigo en tiempo real vía P2P</p>
-          </div>
-        </div>
-
-        {/* Your name */}
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}><User size={13} /> Tu nombre</label>
-          <input
-            type="text"
+          <Field
+            label="Tu nombre"
+            icon="user"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
             placeholder="Tu nombre..."
             maxLength={24}
-            style={styles.input}
+            error={nameError}
           />
-        </div>
 
-        {/* Create Room block */}
-        <div style={{ background: "rgba(79, 168, 224, 0.1)", border: "1.5px solid rgba(79, 168, 224, 0.35)", borderRadius: 12, padding: 16, marginBottom: 14 }}>
-          <p style={{ margin: "0 0 10px 0", fontWeight: 600, fontSize: "0.95rem", color: "#4fa8e0" }}>
-            <PlusCircle size={15} style={{ marginRight: 6, verticalAlign: "middle" }} />
-            Crear nueva sala
-          </p>
+          <fieldset className="options">
+            <legend className="label">Dificultad del rival</legend>
+            {(["easy", "normal", "hard"] as BotDifficulty[]).map((d) => (
+              <label key={d} className={`option${difficulty === d ? " option--on" : ""}`}>
+                <input
+                  type="radio"
+                  className="sr-only"
+                  name="difficulty"
+                  value={d}
+                  checked={difficulty === d}
+                  onChange={() => setDifficulty(d)}
+                />
+                <span>{difficultyLabels[d]}</span>
+                {difficulty === d && <Icon name="check" size={22} ink="var(--c-crema)" />}
+              </label>
+            ))}
+          </fieldset>
 
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}><Users size={13} /> Nombre de tu oponente (opcional)</label>
-            <input
-              type="text"
-              value={opponentName}
-              onChange={(e) => setOpponentName(e.target.value)}
-              placeholder="Nombre de tu amigo... (o déjalo en blanco)"
-              maxLength={24}
-              style={styles.input}
-            />
-          </div>
-
-          <button
-            onClick={handleCreateRoom}
+          <Button
+            variant="primary"
+            size="lg"
             disabled={!validName}
-            style={{
-              ...styles.startBtn,
-              backgroundColor: validName ? "#20699a" : "#3a453e",
-              cursor: validName ? "pointer" : "not-allowed",
-            }}
+            disabledText="Escribí tu nombre para empezar"
+            onClick={handleStartSolo}
           >
-            <PlusCircle size={16} /> Crear Sala y Compartir Enlace
-          </button>
-        </div>
-
-        {/* Divider */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 14px" }}>
-          <div style={{ flex: 1, height: 1, background: "#2b332e" }} />
-          <span style={{ fontSize: "0.75rem", color: "#75897b" }}>O UNIRSE A SALA EXISTENTE</span>
-          <div style={{ flex: 1, height: 1, background: "#2b332e" }} />
-        </div>
-
-        {/* Join Room block */}
-        <form onSubmit={handleJoinRoom} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}><LogIn size={13} /> Código de sala</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input
-                type="text"
-                value={joinCode}
-                onChange={(e) => handleJoinCodeChange(e.target.value)}
-                placeholder="ej. halcon-428 (o pegá el enlace de invitación)"
-                style={{ ...styles.input, flex: 1, minWidth: 0 }}
-              />
-              <button
-                type="submit"
-                disabled={!validName}
-                style={{
-                  ...styles.startBtn,
-                  width: "auto",
-                  padding: "0 18px",
-                  minWidth: 0,
-                  flexShrink: 0,
-                  backgroundColor: validName ? "#1f7a4f" : "#3a453e",
-                  cursor: validName ? "pointer" : "not-allowed",
-                }}
-              >
-                <LogIn size={15} /> Unirse
-              </button>
-            </div>
-            {joinCode.trim() && !joinError && (
-              parsedJoinCode ? (
-                <span style={{ fontSize: "0.78rem", color: "#3fae72" }}>
-                  ✓ Te unirás a la sala: <strong>{parsedJoinCode}</strong>
-                </span>
-              ) : (
-                <span style={{ fontSize: "0.78rem", color: "#d9a83b" }}>
-                  No reconocemos ese código o enlace todavía.
-                </span>
-              )
-            )}
-            {joinError && <span style={{ fontSize: "0.78rem", color: "#f0645f" }}>{joinError}</span>}
-          </div>
-        </form>
+            Comenzar Partida Solitaria
+          </Button>
+        </main>
       </div>
+    );
+  }
+
+  // ─── Multijugador online ──────────────────────────────────────────────────
+  return (
+    <div className="setup-page">
+      <main className="setup-card setup-card--wide">
+        <Button size="sm" icon="back" onClick={() => setSection("welcome")}>
+          Volver
+        </Button>
+
+        <header className="setup-card__head">
+          <span className="setup-card__tile setup-card__tile--online">
+            <Icon name="globe" size={34} />
+          </span>
+          <div>
+            <h1 className="setup-card__title">Multijugador Online</h1>
+            <p className="setup-card__sub">Jugá con un amigo en tiempo real vía P2P</p>
+          </div>
+        </header>
+
+        <Field
+          label="Tu nombre"
+          icon="user"
+          value={playerName}
+          onChange={(e) => setPlayerName(e.target.value)}
+          placeholder="Tu nombre..."
+          maxLength={24}
+          error={nameError}
+        />
+
+        <section className="panel setup-card__create" aria-labelledby={`${hintId}-create`}>
+          <h2 id={`${hintId}-create`} className="setup-card__block-title">
+            <Icon name="plus" size={22} />
+            Crear nueva sala
+          </h2>
+          <Field
+            label="Nombre de tu oponente (opcional)"
+            icon="user"
+            value={opponentName}
+            onChange={(e) => setOpponentName(e.target.value)}
+            placeholder="Nombre de tu amigo... (o dejalo en blanco)"
+            maxLength={24}
+          />
+          <Button
+            variant="primary"
+            size="lg"
+            disabled={!validName}
+            disabledText="Escribí tu nombre para empezar"
+            onClick={handleCreateRoom}
+          >
+            Crear Sala y Compartir Enlace
+          </Button>
+        </section>
+
+        <div className="divider" role="separator">
+          <span className="label">O unirse a sala existente</span>
+        </div>
+
+        <form onSubmit={handleJoinRoom} noValidate>
+          <Field
+            label="Código de sala"
+            icon="login"
+            value={joinCode}
+            onChange={(e) => handleJoinCodeChange(e.target.value)}
+            placeholder="ej. halcon-428 (o pegá el enlace de invitación)"
+            autoComplete="off"
+            error={joinError || undefined}
+            action={
+              <Button type="submit" size="lg" icon="login" disabled={!validName}>
+                Unirse
+              </Button>
+            }
+            hint={
+              joinCode.trim() && !joinError ? (
+                parsedJoinCode ? (
+                  <span className="status-line status-line--ok">
+                    <Icon name="check" size={18} ink="var(--c-petroleo)" />
+                    <span>
+                      Te vas a unir a la sala: <strong>{parsedJoinCode}</strong>
+                    </span>
+                  </span>
+                ) : (
+                  "No reconocemos ese código o enlace todavía."
+                )
+              ) : undefined
+            }
+          />
+        </form>
+      </main>
     </div>
   );
-};
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-const styles: Record<string, React.CSSProperties> = {
-  fullPage: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "linear-gradient(135deg, #0d1c14 0%, #0d161c 50%, #0d1a15 100%)",
-    padding: 24,
-  },
-  heroCard: {
-    background: "#182019",
-    border: "1px solid #2b332e",
-    borderRadius: 20,
-    padding: 36,
-    maxWidth: 560,
-    width: "100%",
-    boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
-  },
-  logoRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-    marginBottom: 28,
-  },
-  logoIcon: {
-    background: "linear-gradient(135deg, #3fae72, #4fa8e0)",
-    borderRadius: 16,
-    padding: 14,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  title: {
-    margin: 0,
-    fontSize: "2rem",
-    fontWeight: 800,
-    background: "linear-gradient(135deg, #3fae72, #4fa8e0)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
-  },
-  subtitle: {
-    margin: "4px 0 0 0",
-    color: "#93a397",
-    fontSize: "0.85rem",
-  },
-  nameSection: {
-    marginBottom: 24,
-  },
-  savedCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    flexWrap: "wrap",
-    padding: 14,
-    marginBottom: 20,
-    background: "rgba(63, 174, 114, 0.1)",
-    border: "1px solid rgba(63, 174, 114, 0.35)",
-    borderRadius: 12,
-  },
-  savedTitle: {
-    display: "flex",
-    alignItems: "center",
-    fontWeight: 700,
-    fontSize: "0.9rem",
-    color: "#3fae72",
-    marginBottom: 2,
-  },
-  savedInfo: {
-    fontSize: "0.82rem",
-    color: "#c3ccc5",
-  },
-  savedHint: {
-    fontSize: "0.75rem",
-    color: "#93a397",
-    marginTop: 4,
-  },
-  savedResume: {
-    background: "#1f7a4f",
-    color: "#ffffff",
-    fontWeight: 700,
-  },
-  savedDiscard: {
-    background: "#212b22",
-    color: "#c3ccc5",
-    padding: "0 10px",
-  },
-  label: {
-    display: "flex",
-    alignItems: "center",
-    fontSize: "0.82rem",
-    fontWeight: 600,
-    color: "#c3ccc5",
-    marginBottom: 6,
-  },
-  input: {
-    width: "100%",
-    boxSizing: "border-box" as const,
-    padding: "10px 14px",
-    borderRadius: 8,
-    border: "1.5px solid #394239",
-    background: "#212b22",
-    color: "#eef1ec",
-    fontSize: "1rem",
-    fontFamily: "inherit",
-    outline: "none",
-    transition: "border-color 0.15s",
-  },
-  modeGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 12,
-    marginBottom: 16,
-  },
-  modeButton: {
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "flex-start",
-    gap: 4,
-    padding: "18px 16px",
-    borderRadius: 14,
-    border: "2px solid transparent",
-    cursor: "pointer",
-    position: "relative" as const,
-    transition: "all 0.15s",
-  },
-  modeButtonSolo: {
-    background: "rgba(63, 174, 114, 0.12)",
-    borderColor: "rgba(63, 174, 114, 0.35)",
-    color: "#cdeddb",
-  },
-  modeButtonOnline: {
-    background: "rgba(79, 168, 224, 0.12)",
-    borderColor: "rgba(79, 168, 224, 0.35)",
-    color: "#cfe7f7",
-  },
-  modeButtonDisabled: {
-    background: "#1c241d",
-    borderColor: "#2b332e",
-    color: "#5c6b60",
-    cursor: "not-allowed",
-  },
-  modeLabel: {
-    fontWeight: 700,
-    fontSize: "0.9rem",
-    marginTop: 6,
-  },
-  modeDesc: {
-    fontSize: "0.75rem",
-    opacity: 0.7,
-  },
-  modeArrow: {
-    position: "absolute" as const,
-    right: 12,
-    top: "50%",
-    transform: "translateY(-50%)",
-    opacity: 0.5,
-  },
-  hint: {
-    textAlign: "center" as const,
-    color: "#75897b",
-    fontSize: "0.82rem",
-    margin: "0 0 16px 0",
-  },
-  fieldGroup: {
-    marginBottom: 14,
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: 4,
-  },
-  startBtn: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    width: "100%",
-    padding: "12px 0",
-    borderRadius: 10,
-    border: "none",
-    color: "#fff",
-    fontWeight: 700,
-    fontSize: "0.95rem",
-    fontFamily: "inherit",
-    transition: "background 0.15s",
-  },
-  backBtn: {
-    background: "none",
-    border: "none",
-    color: "#93a397",
-    cursor: "pointer",
-    fontSize: "0.85rem",
-    padding: "0 0 16px 0",
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-  },
 };

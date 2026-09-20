@@ -1,8 +1,12 @@
 import React, { useState } from "react";
-import { RefreshCw, Utensils } from "lucide-react";
 import { canRerollFeeder } from "../../game";
 import type { ResourceFace } from "../../game";
 import { resourceIcons, resourceLabels } from "../labels";
+import { capitalize, countOf, plural, pressVerb } from "../text";
+import { Button } from "./ui/Button";
+import { Icon } from "./ui/Icon";
+import { Modal } from "./ui/Modal";
+import { RichText } from "./ui/RichText";
 
 interface BirdFeederProps {
   feeder: ResourceFace[];
@@ -10,94 +14,36 @@ interface BirdFeederProps {
   onTakeDie: (dieIndex: number, wildChoice?: "insect" | "seed") => void;
   onReroll: () => void;
   disabled?: boolean;
+  /** Por qué los dados no se pueden usar ahora (se muestra en texto cuando `disabled`). */
+  disabledReason?: string;
+  /** Nombre de quien tiene el turno cuando no es el tuyo: se muestra como chip en el encabezado. */
+  waitingFor?: string;
 }
 
-/** Popup flotante para elegir entre insecto 🐛 o semilla 🌾 al tomar un dado "wild" */
-const WildChoicePopup: React.FC<{
+/** Elección de alimento al tomar un dado "wild" (insecto o semilla). */
+const WildChoiceModal: React.FC<{
   onChoose: (choice: "insect" | "seed") => void;
   onCancel: () => void;
 }> = ({ onChoose, onCancel }) => (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      zIndex: 1000,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "rgba(0,0,0,0.65)",
-    }}
-    onClick={onCancel}
+  <Modal
+    title="Cara comodín — ¿Qué alimento elegís?"
+    subtitle={<RichText text="Este dado muestra insecto {insect} y semilla {seed}. Elegí uno." size={18} />}
+    align="center"
+    width={440}
+    onClose={onCancel}
+    footer={<Button onClick={onCancel}>Cancelar</Button>}
   >
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        background: "#182019",
-        border: "1px solid #2b332e",
-        borderRadius: 16,
-        padding: "24px 32px",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 18,
-        minWidth: 260,
-      }}
-    >
-      <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "#eef1ec" }}>
-        Cara comodín — ¿Qué alimento elegís?
-      </div>
-      <p style={{ margin: 0, fontSize: "0.85rem", color: "#93a397", textAlign: "center" }}>
-        Este dado muestra insecto&nbsp;🐛 y semilla&nbsp;🌾. Elegí uno.
-      </p>
-      <div style={{ display: "flex", gap: 16 }}>
-        <button
-          style={{
-            fontSize: "1.5rem",
-            padding: "12px 24px",
-            borderRadius: 12,
-            border: "2px solid rgba(63, 174, 114, 0.35)",
-            background: "rgba(63, 174, 114, 0.12)",
-            cursor: "pointer",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 4,
-          }}
-          onClick={() => onChoose("insect")}
-          title="Tomar 1 insecto/gusano"
-        >
-          🐛
-          <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Gusano</span>
-        </button>
-        <button
-          style={{
-            fontSize: "1.5rem",
-            padding: "12px 24px",
-            borderRadius: 12,
-            border: "2px solid rgba(63, 174, 114, 0.35)",
-            background: "rgba(63, 174, 114, 0.12)",
-            cursor: "pointer",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 4,
-          }}
-          onClick={() => onChoose("seed")}
-          title="Tomar 1 semilla/trigo"
-        >
-          🌾
-          <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Trigo</span>
-        </button>
-      </div>
-      <button
-        style={{ fontSize: "0.8rem", color: "#75897b", background: "none", border: "none", cursor: "pointer" }}
-        onClick={onCancel}
-      >
-        Cancelar
+    <div className="wild-choice">
+      <button type="button" className="wild-choice__option" onClick={() => onChoose("insect")} title="Tomar 1 insecto/gusano">
+        <Icon name="insect" size={44} />
+        Insecto
+      </button>
+      <button type="button" className="wild-choice__option" onClick={() => onChoose("seed")} title="Tomar 1 semilla/trigo">
+        <Icon name="seed" size={44} />
+        Semilla
       </button>
     </div>
-  </div>
+  </Modal>
 );
 
 export const BirdFeeder: React.FC<BirdFeederProps> = ({
@@ -105,9 +51,12 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
   onTakeDie,
   onReroll,
   disabled = false,
+  disabledReason,
+  waitingFor,
 }) => {
   const [wildPending, setWildPending] = useState<number | null>(null);
   const canReroll = canRerollFeeder(feeder);
+  const empty = feeder.length === 0;
 
   const handleDieClick = (idx: number) => {
     if (disabled) return;
@@ -128,70 +77,80 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
 
   return (
     <>
-      {wildPending !== null && (
-        <WildChoicePopup
-          onChoose={handleWildChoice}
-          onCancel={() => setWildPending(null)}
-        />
-      )}
+      {wildPending !== null && <WildChoiceModal onChoose={handleWildChoice} onCancel={() => setWildPending(null)} />}
 
-      <div className="birdfeeder-box">
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <Utensils size={18} color="#a68968" />
-            <strong style={{ fontSize: "1.05rem" }}>Comedero de Aves</strong>
-            <span style={{ fontSize: "0.85rem", color: "#93a397" }}>
-              ({feeder.length} dado{feeder.length !== 1 ? "s" : ""} disponible{feeder.length !== 1 ? "s" : ""})
+      <section className="panel-wide feeder" aria-labelledby="feeder-title">
+        <div className="feeder__info">
+          <div className="panel-wide__head">
+            <h2 id="feeder-title" className="panel-wide__title">
+              Comedero de Aves
+            </h2>
+            <span className="panel-wide__count">
+              ({countOf(feeder.length, "dado", "dados")} {plural(feeder.length, "disponible", "disponibles")})
             </span>
+            {waitingFor && <span className="chip chip--on">Turno de {waitingFor}</span>}
           </div>
-          <p style={{ margin: 0, fontSize: "0.8rem", color: "#93a397" }}>
-            Haz clic en un dado para obtener ese alimento y activar tu bosque.
-            {feeder.includes("wild") && (
-              <span style={{ color: "#3fae72", fontWeight: 600 }}>
-                {" "}La cara 🐛/🌾 te pedirá que elijas.
-              </span>
-            )}
-          </p>
+          {empty ? (
+            <p className="panel-wide__help">El comedero está vacío. Relanzá los dados para volver a llenarlo.</p>
+          ) : disabled && disabledReason ? (
+            <p className="panel-wide__help">{disabledReason}</p>
+          ) : (
+            <p className="panel-wide__help">
+              {pressVerb()} un dado para obtener ese alimento y activar tu bosque.
+              {feeder.includes("wild") && (
+                <span className="panel-wide__strong">
+                  {" "}
+                  <RichText text="La cara {insect}/{seed} te pedirá que elijas." size={16} />
+                </span>
+              )}
+            </p>
+          )}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div className="feeder-dice-row">
-            {feeder.map((face, idx) => (
+        <div className="feeder__dice">
+          {empty ? (
+            <span className="die-token die-token--hole" aria-hidden="true" />
+          ) : (
+            feeder.map((face, idx) => (
               <button
                 key={idx}
+                type="button"
                 className={`die-token${face === "wild" ? " die-wild" : ""}`}
                 onClick={() => handleDieClick(idx)}
                 disabled={disabled}
                 title={
                   face === "wild"
-                    ? "Dado comodín: elegí entre gusano 🐛 o trigo 🌾"
+                    ? "Dado comodín: elegí entre insecto o semilla"
                     : `Tomar 1 ${resourceLabels[face]}`
                 }
               >
-                <span className="die-icon">{resourceIcons[face]}</span>
-                <span className="die-label">
-                  {face === "wild" ? "elegir" : resourceLabels[face]}
+                <span className="die-icon">
+                  {face === "wild" ? (
+                    <>
+                      <Icon name="insect" size={26} />
+                      <Icon name="seed" size={26} />
+                    </>
+                  ) : (
+                    <Icon name={resourceIcons[face]} size={40} />
+                  )}
                 </span>
+                <span className="die-label">{face === "wild" ? "Elegir" : capitalize(resourceLabels[face])}</span>
               </button>
-            ))}
-          </div>
+            ))
+          )}
 
           {canReroll && (
-            <button
-              onClick={onReroll}
+            <Button
+              icon="refresh"
               disabled={disabled}
-              style={{
-                backgroundColor: "#6b5a3e",
-                minHeight: 44,
-                padding: "0 14px",
-              }}
+              onClick={onReroll}
               title="Relanzar todos los dados (permitido cuando todos son iguales o está vacío)"
             >
-              <RefreshCw size={16} /> Relanzar
-            </button>
+              Relanzar
+            </Button>
           )}
         </div>
-      </div>
+      </section>
     </>
   );
 };

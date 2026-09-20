@@ -1,11 +1,11 @@
 import { getActivatablePowers } from "../../game";
 import type { GameState, HabitatId, PlayerState, SlotRef } from "../../game";
-import { describePower, habitatLabels, resourceIcons, resourceLabels } from "../labels";
+import { describePowerText, habitatLabels, resourceLabels } from "../labels";
 
 /** Alimentos entre los que se elige en los poderes "ganá 1 alimento a elección" (resource "wild"). */
 export const anyFoodOptions: { id: string; name: string }[] = (
   ["insect", "seed", "fruit", "fish", "rodent"] as const
-).map((food) => ({ id: food, name: `${resourceIcons[food]} ${resourceLabels[food]}` }));
+).map((food) => ({ id: food, name: resourceLabels[food] }));
 
 /** Opciones "pagado>recibido" para el poder que cambia 1 alimento por otro (costo comodín). */
 export function tradeOptions(player: PlayerState): { id: string; name: string }[] {
@@ -17,7 +17,7 @@ export function tradeOptions(player: PlayerState): { id: string; name: string }[
       if (gain === pay) continue;
       options.push({
         id: `${pay}>${gain}`,
-        name: `${resourceIcons[pay]} → ${resourceIcons[gain]} (${resourceLabels[pay]} por ${resourceLabels[gain]})`,
+        name: `${resourceLabels[pay]} → ${resourceLabels[gain]}`,
       });
     }
   }
@@ -47,7 +47,7 @@ export function buildEggTargetOptions(
       if (!card || slot.eggs >= card.eggCapacity) return;
       options.push({
         key: encodeSlotKey({ habitat: hab, slotIndex }),
-        name: `${card.name} (${habitatLabels[hab]}, ${slot.eggs}/${card.eggCapacity} 🥚)`,
+        name: `${card.name} (${habitatLabels[hab]}, ${slot.eggs}/${card.eggCapacity} huevos)`,
       });
     });
   }
@@ -68,7 +68,7 @@ export function buildEggSourceOptions(
       const card = gameState.cards[slot.cardId];
       options.push({
         key: encodeSlotKey({ habitat: hab, slotIndex }),
-        name: `${card?.name ?? slot.cardId} (${habitatLabels[hab]}, ${slot.eggs} 🥚)`,
+        name: `${card?.name ?? slot.cardId} (${habitatLabels[hab]}, ${slot.eggs} huevos)`,
       });
     });
   }
@@ -91,6 +91,6 @@ export function buildRepeatPowerOptions(
     })
     .map(({ source: s, card, power: p }) => ({
       key: encodeSlotKey(s),
-      name: `${card.name}: ${describePower(p)}`,
+      name: `${card.name}: ${describePowerText(p)}`,
     }));
 }
