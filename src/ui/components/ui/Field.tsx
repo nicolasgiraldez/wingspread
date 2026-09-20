@@ -8,10 +8,12 @@ interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "id"> {
   icon?: IconName;
   hint?: ReactNode;
   error?: ReactNode;
+  /** Elemento al lado del input (p. ej. el botón "Unirse"). */
+  action?: ReactNode;
 }
 
 /** Campo de texto con etiqueta visible, ayuda y error enlazados (`aria-describedby`, `aria-invalid`). */
-export function Field({ label, icon, hint, error, className, ...input }: FieldProps) {
+export function Field({ label, icon, hint, error, action, className, ...input }: FieldProps) {
   const id = useId();
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
@@ -22,13 +24,16 @@ export function Field({ label, icon, hint, error, className, ...input }: FieldPr
         {icon && <Icon name={icon} size={16} />}
         {label}
       </label>
-      <input
-        {...input}
-        id={id}
-        className="field__input"
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
-      />
+      <div className={action ? "field__row" : undefined}>
+        <input
+          {...input}
+          id={id}
+          className="field__input"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+        />
+        {action}
+      </div>
       {hint && (
         <div id={hintId} className="field__hint">
           {hint}

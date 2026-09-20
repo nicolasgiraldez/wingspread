@@ -4,6 +4,7 @@ import { App } from "./ui/App";
 import "./ui/tokens.css";
 import "./ui/components.css";
 import "./ui/cards.css";
+import "./ui/home.css";
 import "./ui/styles.css";
 
 createRoot(document.getElementById("root")!).render(

@@ -1,0 +1,474 @@
+/* ==========================================================================
+   Bienvenida y configuración (docs/design/05-screens.md §3)
+   ========================================================================== */
+
+.field__row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.field__row .field__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.field__row .btn {
+  flex: none;
+  height: var(--btn-h-lg);
+}
+
+/* ---- Portada -------------------------------------------------------------- */
+.welcome {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 640px) minmax(0, 1fr);
+  background: var(--c-crema);
+}
+
+.welcome__main {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+  padding: 72px;
+}
+
+.welcome__brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.welcome__logo {
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+
+.welcome__title {
+  font-size: 72px;
+  line-height: 1;
+}
+
+.welcome__lead {
+  margin: -8px 0 0;
+  max-width: 24em;
+  font-size: 20px;
+  color: var(--c-muted);
+}
+
+.welcome__hint {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--c-muted);
+}
+
+/* Escena decorativa de la derecha */
+.welcome__art {
+  order: 2;
+  position: relative;
+  overflow: hidden;
+  background: var(--c-petroleo);
+}
+
+.welcome__scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.welcome__cards {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 264px;
+  height: 400px;
+  margin: -215px 0 0 -132px;
+}
+
+.welcome__card {
+  position: absolute;
+  inset: 0;
+}
+
+.welcome__card--left {
+  transform: translate(-215px, 55px) rotate(-8deg);
+}
+
+.welcome__card--right {
+  transform: translate(215px, 65px) rotate(7deg);
+}
+
+.welcome__card--center {
+  z-index: 2;
+}
+
+/* ---- Partida guardada ------------------------------------------------------ */
+.saved {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--c-crema-2);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+}
+
+.saved__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.saved__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.saved__meta {
+  margin-top: 4px;
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+.saved__actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+/* ---- Botones de modo ------------------------------------------------------- */
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.mode-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto 1fr auto auto;
+  grid-template-areas:
+    "tile . chev"
+    ". . ."
+    "title title title"
+    "desc desc desc";
+  align-items: start;
+  justify-content: stretch;
+  gap: 0;
+  min-height: 188px;
+  padding: 18px;
+  text-align: left;
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-press);
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
+.mode-card--solo {
+  background: var(--c-petroleo);
+  color: var(--c-crema);
+}
+
+.mode-card--online {
+  background: var(--c-mostaza);
+  color: var(--c-carbon);
+}
+
+.mode-card[aria-disabled="true"] {
+  background: var(--c-crema-2);
+  color: var(--c-muted);
+  border-style: dashed;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.mode-card:not([aria-disabled="true"]):hover {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-press-sm);
+}
+
+.mode-card__tile {
+  grid-area: tile;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: var(--c-crema);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-btn);
+}
+
+.mode-card__chev {
+  grid-area: chev;
+  display: flex;
+  color: inherit;
+}
+
+.mode-card__title {
+  grid-area: title;
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1.05;
+}
+
+.mode-card__desc {
+  grid-area: desc;
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+/* ---- Tarjetas de configuración --------------------------------------------- */
+.setup-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background: var(--c-crema-2);
+}
+
+.setup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: min(480px, 100%);
+  padding: 32px;
+  background: var(--c-crema);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: 20px;
+  box-shadow: 0 6px 0 var(--c-carbon);
+}
+
+.setup-card--wide {
+  width: min(520px, 100%);
+}
+
+.setup-card > .btn {
+  align-self: flex-start;
+}
+
+.setup-card__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.setup-card__tile {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: 16px;
+}
+
+.setup-card__tile--solo {
+  background: var(--c-petroleo);
+}
+
+.setup-card__tile--online {
+  background: var(--c-menta);
+}
+
+.setup-card__tile--error {
+  background: var(--c-tomate);
+}
+
+.setup-card__title {
+  font-size: 32px;
+}
+
+.setup-card__sub {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--c-muted);
+}
+
+.setup-card__note {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+.setup-card__create {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.setup-card__block-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.setup-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.setup-card__actions .btn {
+  flex: 1;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: var(--stroke) dashed var(--c-muted);
+}
+
+/* ---- Opciones (dificultad) --------------------------------------------------- */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.options legend {
+  padding: 0;
+  margin-bottom: 10px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--btn-h-md);
+  padding: 0 18px;
+  background: var(--c-input);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-btn);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.option--on {
+  background: var(--c-petroleo);
+  color: var(--c-crema);
+  box-shadow: var(--shadow-press);
+}
+
+.option:has(input:focus-visible) {
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .option {
+    transition: transform 0.12s ease;
+  }
+  .option:hover:not(.option--on) {
+    transform: translateY(-2px);
+  }
+}
+
+/* ---- Móvil y tablet: una columna ---------------------------------------------- */
+@media (max-width: 1023px) {
+  .welcome {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .welcome__art {
+    order: 0;
+    height: 290px;
+  }
+
+  .welcome__cards {
+    top: 24px;
+    margin: 0 0 0 -132px;
+    transform: scale(0.55);
+    transform-origin: 50% 0;
+  }
+
+  .welcome__main {
+    justify-content: flex-start;
+    gap: 20px;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 16px 32px;
+  }
+
+  .welcome__title {
+    font-size: 44px;
+  }
+
+  .welcome__logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .welcome__lead {
+    margin-top: -8px;
+    font-size: var(--fs-body);
+  }
+
+  .mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mode-card {
+    grid-template-columns: 60px 1fr auto;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "tile title chev"
+      "tile desc chev";
+    align-items: center;
+    column-gap: 16px;
+    min-height: 0;
+  }
+
+  .mode-card__title {
+    font-size: 24px;
+  }
+
+  .mode-card__desc {
+    margin-top: 2px;
+    font-size: var(--fs-small);
+  }
+}
+
+@media (max-width: 640px) {
+  .saved {
+    flex-wrap: wrap;
+  }
+
+  .setup-card {
+    padding: 20px;
+  }
+
+  .setup-card__title {
+    font-size: 28px;
+  }
+}

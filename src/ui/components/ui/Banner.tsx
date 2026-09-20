@@ -29,7 +29,7 @@ export function Banner({ tone, title, icon, children, action, className }: Banne
       className={["banner", `banner--${tone}`, className].filter(Boolean).join(" ")}
       role={tone === "error" ? "alert" : "status"}
     >
-      <Icon name={icon ?? DEFAULT_ICON[tone]} size={22} />
+      <Icon name={icon ?? DEFAULT_ICON[tone]} size={22} className={icon === "spinner" ? "spin" : undefined} />
       <div className="banner__body">
         {title && <div className="banner__title">{title}</div>}
         {children && <div className="banner__text">{children}</div>}
