@@ -18,6 +18,7 @@ import {
   scorePlayerDetails,
   shuffle,
   standardDieFaces,
+  tuckGainChoiceKey,
 } from ".";
 import type { BonusCard, GameState, Move, SpeciesCard } from "./types";
 
@@ -2320,6 +2321,117 @@ describe("motor de reglas expandido de wingspread", () => {
       expect(metric(state, "birdsInGrassland")).toBe(0);
       expect(metric(state, "eggsInForest")).toBe(3);
       expect(metric(state, "totalBirds")).toBe(3);
+    });
+  });
+});
+
+describe("poderes de cartas reales que dependían de una elección o de un dado del comedero", () => {
+  const take = (state: GameState, choices: Record<string, string> = {}) =>
+    applyMove(state, "nico", { type: "gainFood", dieIndexes: [0], powerCardChoices: choices });
+
+  describe("Sita Enana (solapá 1 carta de tu mano y ganá 1 insecto o 1 semilla)", () => {
+    const nuthatchState = () => {
+      const state = createTestState(["nico", "santi"]);
+      state.players.nico.board.forest[0].cardId = "pygmyNuthatch";
+      state.players.nico.resources = {};
+      state.feeder = ["fish", "fish", "fish", "fish", "fish"];
+      return state;
+    };
+    const power = "pygmyNuthatch.power1";
+
+    it("gana la semilla si el jugador la elige", () => {
+      const state = nuthatchState();
+      const next = take(state, { [tuckGainChoiceKey(power)]: "seed" });
+      expect(next.players.nico.board.forest[0].tucked).toHaveLength(1);
+      expect(next.players.nico.resources.seed).toBe(1);
+      expect(next.players.nico.resources.insect ?? 0).toBe(0);
+    });
+
+    it("gana el insecto si el jugador lo elige o si no elige nada", () => {
+      const chosen = take(nuthatchState(), { [tuckGainChoiceKey(power)]: "insect" });
+      expect(chosen.players.nico.resources.insect).toBe(1);
+      expect(chosen.players.nico.resources.seed ?? 0).toBe(0);
+
+      const none = take(nuthatchState());
+      expect(none.players.nico.resources.insect).toBe(1);
+      expect(none.players.nico.resources.seed ?? 0).toBe(0);
+    });
+
+    it("una elección que no es ninguna de las dos opciones se ignora (gana el insecto)", () => {
+      const next = take(nuthatchState(), { [tuckGainChoiceKey(power)]: "fish" });
+      expect(next.players.nico.resources.insect).toBe(1);
+      expect(next.players.nico.resources.fish ?? 0).toBe(1); // solo el pez del dado que tomó
+    });
+
+    it("sin cartas en la mano no solapa y por lo tanto no gana nada", () => {
+      const state = nuthatchState();
+      state.players.nico.hand = [];
+      const next = take(state, { [tuckGainChoiceKey(power)]: "seed" });
+      expect(next.players.nico.board.forest[0].tucked).toHaveLength(0);
+      expect(next.players.nico.resources.seed ?? 0).toBe(0);
+      expect(next.players.nico.resources.insect ?? 0).toBe(0);
+    });
+
+    it("la clave de la elección de alimento no pisa la de la carta que se solapa", () => {
+      const state = nuthatchState();
+      const chosenCard = state.players.nico.hand[1];
+      const next = take(state, { [power]: chosenCard, [tuckGainChoiceKey(power)]: "seed" });
+      expect(next.players.nico.board.forest[0].tucked).toEqual([chosenCard]);
+      expect(next.players.nico.resources.seed).toBe(1);
+    });
+  });
+
+  describe("Carpintero Bellotero (almacená 1 semilla del comedero)", () => {
+    const woodpeckerState = (feeder: GameState["feeder"]) => {
+      const state = createTestState(["nico", "santi"]);
+      state.players.nico.board.forest[0].cardId = "acornWoodpecker";
+      state.players.nico.resources = {};
+      state.feeder = feeder;
+      return state;
+    };
+
+    it("toma la semilla del comedero y la deja en la carta, sin tocar la reserva", () => {
+      const next = take(woodpeckerState(["fish", "seed", "fish", "fish", "fish"]));
+      const slot = next.players.nico.board.forest[0];
+      expect(slot.cached).toEqual(["seed"]);
+      expect(next.feeder).toEqual(["fish", "fish", "fish"]); // el dado tomado y la semilla almacenada
+      expect(next.players.nico.resources.seed ?? 0).toBe(0);
+    });
+
+    it("si no hay semilla en el comedero no almacena nada (no la saca de la reserva)", () => {
+      const next = take(woodpeckerState(["fish", "fish", "fish", "fish", "fish"]));
+      expect(next.players.nico.board.forest[0].cached).toEqual([]);
+      expect(next.feeder).toHaveLength(4);
+      expect(next.log.some((entry) => /no había seed en el comedero/.test(entry.message))).toBe(true);
+    });
+
+    it("la cara comodín (insecto/semilla) sirve como semilla", () => {
+      const next = take(woodpeckerState(["fish", "wild", "fish", "fish", "fish"]));
+      expect(next.players.nico.board.forest[0].cached).toEqual(["seed"]);
+      expect(next.feeder).not.toContain("wild");
+    });
+
+    it("prefiere un dado de semilla antes que gastar la cara comodín", () => {
+      const next = take(woodpeckerState(["fish", "wild", "seed", "fish", "fish"]));
+      expect(next.players.nico.board.forest[0].cached).toEqual(["seed"]);
+      expect(next.feeder).toContain("wild");
+    });
+
+    it("si el comedero queda vacío tras almacenar, se relanzan los 5 dados", () => {
+      const next = take(woodpeckerState(["fish", "seed"]));
+      expect(next.players.nico.board.forest[0].cached).toEqual(["seed"]);
+      expect(next.feeder).toHaveLength(5);
+    });
+  });
+
+  describe("Carbonero de Carolina (almacená 1 semilla de la reserva)", () => {
+    it("almacena de la reserva: el comedero solo pierde el dado que tomó el jugador", () => {
+      const state = createTestState(["nico", "santi"]);
+      state.players.nico.board.forest[0].cardId = "carolinaChickadee";
+      state.feeder = ["fish", "fish", "fish", "fish", "fish"];
+      const next = take(state);
+      expect(next.players.nico.board.forest[0].cached).toEqual(["seed"]);
+      expect(next.feeder).toHaveLength(4);
     });
   });
 });

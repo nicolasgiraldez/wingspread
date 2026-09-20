@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { getActivatablePowers, getHabitatActionAllowance } from "../../game";
+import { getActivatablePowers, getHabitatActionAllowance, tuckGainChoiceKey } from "../../game";
 import { capitalize, countOf } from "../text";
 import { Button } from "./ui/Button";
 import { Icon } from "./ui/Icon";
@@ -28,6 +28,7 @@ import {
   buildEggSourceOptions,
   buildEggTargetOptions,
   buildRepeatPowerOptions,
+  buildTuckGainChoice,
   decodeSlotKey,
   tradeOptions,
 } from "./powerOptions";
@@ -234,12 +235,14 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       };
     }
 
+    const gainChoice = buildTuckGainChoice(power, powerCardChoices, setPowerCardChoices);
     return {
       power,
       birdName: card.name,
       checked: !skippedPowerIds.has(power.id),
       onToggle: () => togglePower(power.id),
       cardChoice,
+      gainChoice,
       slotChoice,
       habitatChoice,
     };
@@ -284,6 +287,9 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       if (!entry.checked) continue;
       if (entry.cardChoice?.selected) {
         activePowerCardChoices[entry.power.id] = entry.cardChoice.selected;
+      }
+      if (entry.gainChoice?.selected) {
+        activePowerCardChoices[tuckGainChoiceKey(entry.power.id)] = entry.gainChoice.selected;
       }
       if (entry.slotChoice?.selected) {
         activePowerEggChoices[entry.power.id] = decodeSlotKey(entry.slotChoice.selected);

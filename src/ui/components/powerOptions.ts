@@ -1,11 +1,43 @@
-import { getActivatablePowers } from "../../game";
-import type { GameState, HabitatId, PlayerState, SlotRef } from "../../game";
+import { getActivatablePowers, tuckGainChoiceKey } from "../../game";
+import type { GameState, HabitatId, Power, PlayerState, SlotRef } from "../../game";
 import { describePowerText, habitatLabels, resourceLabels } from "../labels";
+import { capitalize } from "../text";
+import type { PowerCardChoiceConfig } from "./PowerChecklist";
 
 /** Alimentos entre los que se elige en los poderes "ganá 1 alimento a elección" (resource "wild"). */
 export const anyFoodOptions: { id: string; name: string }[] = (
   ["insect", "seed", "fruit", "fish", "rodent"] as const
 ).map((food) => ({ id: food, name: resourceLabels[food] }));
+
+/**
+ * Elección del alimento de un poder "solapá una carta y ganá X o Y" (Sita Enana: insecto o semilla).
+ * `choices` es el mismo mapa de elecciones del modal: la elección se guarda con tuckGainChoiceKey.
+ * Devuelve undefined si el poder no tiene alternativa.
+ */
+export function buildTuckGainChoice(
+  power: Power,
+  choices: Record<string, string>,
+  setChoices: (update: (prev: Record<string, string>) => Record<string, string>) => void,
+): PowerCardChoiceConfig | undefined {
+  if (power.kind !== "tuckCard" || !power.thenGainResource || !power.thenGainResourceAlt) return undefined;
+  const key = tuckGainChoiceKey(power.id);
+  return {
+    label: "¿Qué alimento ganás?",
+    options: [power.thenGainResource, power.thenGainResourceAlt].map((res) => ({
+      id: res,
+      name: capitalize(resourceLabels[res]),
+    })),
+    selected: choices[key] ?? null,
+    onSelect: (id) =>
+      setChoices((prev) => {
+        const next = { ...prev };
+        if (id) next[key] = id;
+        else delete next[key];
+        return next;
+      }),
+    defaultOptionLabel: `${capitalize(resourceLabels[power.thenGainResource])} (por defecto)`,
+  };
+}
 
 /** Opciones "pagado>recibido" para el poder que cambia 1 alimento por otro (costo comodín). */
 export function tradeOptions(player: PlayerState): { id: string; name: string }[] {

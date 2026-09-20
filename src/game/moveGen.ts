@@ -2,7 +2,14 @@
  * Generación de jugadas válidas para un jugador (con sus elecciones de poderes). La usa el rival de
  * la IA para proponer candidatas y el simulador de partidas para jugar al azar.
  */
-import { canPayResources, canRerollFeeder, getActivatablePowers, getHabitatActionAllowance, getOnPlayPowers } from "./engine";
+import {
+  canPayResources,
+  canRerollFeeder,
+  getActivatablePowers,
+  getHabitatActionAllowance,
+  getOnPlayPowers,
+  tuckGainChoiceKey,
+} from "./engine";
 import type {
   BoardSlot,
   CardId,
@@ -207,8 +214,16 @@ function buildPowerChoices(
         const richest = mostOwnedFood(player);
         const poorest = leastOwnedFood(player);
         if (richest && richest !== poorest) fields.powerCardChoices[power.id] = `${richest}>${poorest}`;
+      } else if (power.kind === "tuckCard" && power.thenGainResource && power.thenGainResourceAlt) {
+        // "Ganá X o Y": el que menos tiene.
+        const [a, b] = [power.thenGainResource, power.thenGainResourceAlt];
+        fields.powerCardChoices[tuckGainChoiceKey(power.id)] =
+          (player.resources[a] ?? 0) <= (player.resources[b] ?? 0) ? a : b;
       }
       continue;
+    }
+    if (power.kind === "tuckCard" && power.thenGainResource && power.thenGainResourceAlt && chance(0.7)) {
+      fields.powerCardChoices[tuckGainChoiceKey(power.id)] = pick([power.thenGainResource, power.thenGainResourceAlt]);
     }
     if (power.kind === "tradeResource" && power.costResource === "wild") {
       // "pagado>recibido": un alimento que tenga y otro distinto.

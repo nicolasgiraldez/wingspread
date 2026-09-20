@@ -195,12 +195,16 @@ function describeEffect(power: Power): string {
       const after = [
         power.thenDraw && "robá 1 carta",
         power.thenGainEgg && "poné 1 huevo en esta ave",
-        power.thenGainResource && `ganá 1 ${ico(power.thenGainResource)} de la reserva`,
+        power.thenGainResource &&
+          `ganá 1 ${ico(power.thenGainResource)}${power.thenGainResourceAlt ? ` o 1 ${ico(power.thenGainResourceAlt)}` : ""} de la reserva`,
       ].filter(Boolean);
       return after.length > 0 ? `${base}; si lo hacés, ${after.join(" y ")}` : base;
     }
     case "cacheFood":
-      return `Almacená 1 ${food(power.resource, "semilla")} en esta carta`;
+      // Del comedero el dado sale del comedero (solo si hay uno); de la reserva no depende de nada.
+      return power.source === "feeder"
+        ? `Tomá 1 ${food(power.resource, "semilla")} del comedero y almacenalo en esta carta (si hay)`
+        : `Almacená 1 ${food(power.resource, "semilla")} de la reserva en esta carta`;
     case "huntPredator":
       return (
         `Caza: revelá la carta superior del mazo; si su envergadura es de ${power.maxWingspanCm} cm o menos, ` +

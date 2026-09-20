@@ -617,6 +617,28 @@ function takeDieFromFeeder(state: GameState): ResourceFace | undefined {
   return die === "wild" ? "insect" : die;
 }
 
+/**
+ * Saca del comedero un dado que muestre `res` (la cara comodín insecto/semilla vale como cualquiera de
+ * los dos si no hay un dado exacto). Devuelve false, sin tocar nada, si no hay ninguno. Si el comedero
+ * queda vacío se relanzan los 5 dados, como en cualquier otra toma.
+ */
+function takeMatchingDieFromFeeder(state: GameState, res: ResourceFace): boolean {
+  let index = state.feeder.indexOf(res);
+  if (index === -1 && (res === "insect" || res === "seed")) index = state.feeder.indexOf("wild");
+  if (index === -1) return false;
+  state.feeder.splice(index, 1);
+  if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
+  return true;
+}
+
+/**
+ * Clave en `powerCardChoices` de la elección de alimento de un poder "solapá y ganá X o Y": la clave
+ * `power.id` sola es la carta que se solapa, así que esta elección viaja con su propio sufijo.
+ */
+export function tuckGainChoiceKey(powerId: string): string {
+  return `${powerId}:gain`;
+}
+
 function drawBonusCardFromDeck(state: GameState): string | undefined {
   if (state.bonusDeck.length === 0 && state.bonusDiscard.length > 0) {
     state.bonusDeck = shuffle([...state.bonusDiscard]);
@@ -970,8 +992,14 @@ export function resolvePower(
           }
         }
         if (power.thenGainResource) {
-          player.resources[power.thenGainResource] = (player.resources[power.thenGainResource] ?? 0) + 1;
-          msg += ` Y ganó 1 ${power.thenGainResource} de la reserva.`;
+          // Con alternativa ("insecto o semilla") el jugador elige cuál gana; sin elección válida, el principal.
+          const options = [power.thenGainResource, power.thenGainResourceAlt].filter(
+            (res): res is ResourceFace => res !== undefined,
+          );
+          const picked = cardChoices?.[tuckGainChoiceKey(power.id)];
+          const gained = options.find((res) => res === picked) ?? power.thenGainResource;
+          player.resources[gained] = (player.resources[gained] ?? 0) + 1;
+          msg += ` Y ganó 1 ${gained} de la reserva.`;
         }
         state.log.push({ playerId: player.id, message: msg });
       }
@@ -982,10 +1010,27 @@ export function resolvePower(
   if (power.kind === "cacheFood") {
     if (currentSlot) {
       const res = power.resource ?? "seed";
+      if (power.source === "feeder") {
+        // "Almacená 1 [alimento] del comedero": el dado sale del comedero y su alimento queda en la carta.
+        // Si no hay un dado de ese alimento no pasa nada (no se toma de la reserva).
+        if (!takeMatchingDieFromFeeder(state, res)) {
+          state.log.push({
+            playerId: player.id,
+            message: `Poder de [${birdName}]: no había ${res} en el comedero para almacenar.`,
+          });
+          return;
+        }
+        currentSlot.cached.push(res);
+        state.log.push({
+          playerId: player.id,
+          message: `Poder de [${birdName}]: tomó 1 ${res} del comedero y lo almacenó en su carta.`,
+        });
+        return;
+      }
       currentSlot.cached.push(res);
       state.log.push({
         playerId: player.id,
-        message: `Poder de [${birdName}]: almacenó 1 ${res} en su carta.`,
+        message: `Poder de [${birdName}]: almacenó 1 ${res} de la reserva en su carta.`,
       });
     }
     return;

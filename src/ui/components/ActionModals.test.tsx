@@ -1,7 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { createInitialState } from "../../game";
+import { createInitialState, tuckGainChoiceKey } from "../../game";
+import { HabitatPowersModal } from "./HabitatPowersModal";
 import { GameOverModal } from "./GameOverModal";
 import { LayEggsModal } from "./LayEggsModal";
 import { PlayBirdModal } from "./PlayBirdModal";
@@ -59,5 +60,33 @@ describe("GameOverModal", () => {
     render(<GameOverModal gameState={{ ...state, phase: "gameEnd" }} onRestart={onRestart} />);
     await userEvent.click(screen.getByRole("button", { name: "Jugar Otra Partida" }));
     expect(onRestart).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("HabitatPowersModal con la Sita Enana", () => {
+  it("ofrece elegir entre insecto y semilla y manda la elección con su propia clave", async () => {
+    const user = userEvent.setup();
+    const game = createInitialState({ mode: "solo", playerIds: ["nico", "bot"] });
+    game.players.nico.board.forest[0].cardId = "pygmyNuthatch";
+    const onConfirm = vi.fn();
+    render(
+      <HabitatPowersModal
+        title="Confirmar: Obtener comida"
+        subtitle="Tenés aves con poderes opcionales en el bosque."
+        habitat="forest"
+        player={game.players.nico}
+        gameState={game}
+        onConfirm={onConfirm}
+        onClose={() => {}}
+      />,
+    );
+    const select = screen.getByLabelText("¿Qué alimento ganás?");
+    expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual(["Insecto (por defecto)", "Insecto", "Semilla"]);
+
+    await user.selectOptions(select, "seed");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    const cardChoices = onConfirm.mock.calls[0][1];
+    expect(cardChoices).toEqual({ [tuckGainChoiceKey("pygmyNuthatch.power1")]: "seed" });
   });
 });

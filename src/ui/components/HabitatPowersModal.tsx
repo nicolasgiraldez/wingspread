@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { getActivatablePowers } from "../../game";
+import { getActivatablePowers, tuckGainChoiceKey } from "../../game";
 import type { GameState, HabitatId, PlayerState, PowerEggChoices, PowerMoveChoices } from "../../game";
 import {
   buildEggSourceOptions,
   buildEggTargetOptions,
   anyFoodOptions,
   buildRepeatPowerOptions,
+  buildTuckGainChoice,
   decodeSlotKey,
   tradeOptions,
 } from "./powerOptions";
@@ -179,12 +180,14 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
       };
     }
 
+    const gainChoice = buildTuckGainChoice(power, choices, setChoices);
     return {
       power,
       birdName: card.name,
       checked: !skipped.has(power.id),
       onToggle: () => toggle(power.id),
       cardChoice,
+      gainChoice,
       slotChoice,
       habitatChoice,
     };
@@ -198,6 +201,9 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
       if (!entry.checked) continue;
       if (entry.cardChoice?.selected) {
         activeChoices[entry.power.id] = entry.cardChoice.selected;
+      }
+      if (entry.gainChoice?.selected) {
+        activeChoices[tuckGainChoiceKey(entry.power.id)] = entry.gainChoice.selected;
       }
       if (entry.slotChoice?.selected) {
         activeEggChoices[entry.power.id] = decodeSlotKey(entry.slotChoice.selected);

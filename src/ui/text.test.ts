@@ -53,7 +53,12 @@ describe("describePower en voseo, con plurales correctos", () => {
   });
 
   it("alimento", () => {
-    expect(describePowerText(p({ kind: "cacheFood", resource: "seed" }))).toBe("Almacená 1 semilla en esta carta");
+    expect(describePowerText(p({ kind: "cacheFood", resource: "seed", source: "supply" }))).toBe(
+      "Almacená 1 semilla de la reserva en esta carta",
+    );
+    expect(describePowerText(p({ kind: "cacheFood", resource: "seed", source: "feeder" }))).toBe(
+      "Tomá 1 semilla del comedero y almacenalo en esta carta (si hay)",
+    );
   });
 
   it("mover de hábitat ya tiene texto", () => {
