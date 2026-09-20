@@ -1,102 +1,100 @@
+/*
+ * Estilos de la aplicación. Los tokens (colores, tipografía, formas) viven en tokens.css y los
+ * componentes base (.btn, .field, .chip, .banner, .modal…) en components.css: acá no va ningún color literal.
+ */
+
+/* ALIAS TEMPORALES: los nombres de variable del tema oscuro anterior apuntan a los tokens nuevos
+   mientras se restilan los componentes uno por uno. Se eliminan al terminar (Fase 7). */
 :root {
-  color-scheme: dark;
-  --color-bg: #0f1310;
-  --color-text: #eef1ec;
-  --color-text-secondary: #c3ccc5;
-  --color-text-muted: #93a397;
-  --color-text-dim: #75897b;
-  --color-border: #2b332e;
-  --color-border-light: #394239;
-  --color-panel-bg: #182019;
-  --color-panel-bg-alt: #1c241d;
-  --color-panel-bg-raised: #212b22;
+  --color-bg: var(--c-crema);
+  --color-text: var(--c-carbon);
+  --color-text-secondary: var(--c-muted);
+  --color-text-muted: var(--c-slate);
+  --color-text-dim: var(--c-slate);
+  --color-border: var(--c-carbon);
+  --color-border-light: var(--c-carbon);
+  --color-panel-bg: var(--c-crema-2);
+  --color-panel-bg-alt: var(--c-crema-2);
+  --color-panel-bg-raised: var(--c-crema);
 
-  --color-forest: #3fae72;
-  --color-forest-strong: #1f7a4f;
-  --color-forest-bg: rgba(63, 174, 114, 0.12);
-  --color-forest-border: rgba(63, 174, 114, 0.35);
+  --color-forest: var(--habitat-forest);
+  --color-forest-strong: var(--c-petroleo-d);
+  --color-forest-bg: var(--c-menta);
+  --color-forest-border: var(--c-carbon);
+  --color-grassland: var(--c-mostaza-d);
+  --color-grassland-bg: var(--state-warn-bg);
+  --color-grassland-border: var(--c-mostaza-d);
+  --color-wetland: var(--c-petroleo);
+  --color-wetland-bg: var(--c-menta);
+  --color-wetland-border: var(--c-carbon);
 
-  --color-grassland: #d9a83b;
-  --color-grassland-bg: rgba(217, 168, 59, 0.12);
-  --color-grassland-border: rgba(217, 168, 59, 0.35);
+  --color-power-brown: var(--power-activate-bg);
+  --color-power-white: var(--power-play-bg);
+  --color-power-pink: var(--power-between-bg);
+  --color-power-teal: var(--power-round-bg);
+  --color-power-yellow: var(--c-mostaza-l);
 
-  --color-wetland: #4fa8e0;
-  --color-wetland-bg: rgba(79, 168, 224, 0.12);
-  --color-wetland-border: rgba(79, 168, 224, 0.35);
+  --color-danger: var(--c-tomate-d);
+  --color-danger-bg: var(--state-error-bg);
+  --color-gold: var(--c-mostaza);
+  --color-cube-blue: var(--c-petroleo);
+  --color-success: var(--c-petroleo);
 
-  --color-power-brown: #c08a55;
-  --color-power-white: #b7c2bd;
-  --color-power-pink: #dd74cf;
-  --color-power-teal: #3fc2b0;
-  --color-power-yellow: #e3ba4a;
-
-  --color-danger: #f0645f;
-  --color-danger-bg: rgba(240, 100, 95, 0.12);
-  --color-gold: #f0bf5c;
-  --color-cube-blue: #5b9bf5;
-  --color-success: #4ade95;
-
-  --font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family: var(--font-body);
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --shadow-sm: var(--shadow-press-sm);
+  --shadow-md: var(--shadow-press);
+  --shadow-lg: var(--shadow-lift);
 }
 
 * {
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-family);
-  font-size: 15px;
-  line-height: 1.4;
-  min-height: 100vh;
-}
-
 button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background-color: var(--color-forest-strong);
-  color: #ffffff;
-  border: 0;
-  border-radius: var(--radius-sm);
-  padding: 8px 14px;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap-min);
+  background-color: transparent;
+  color: var(--c-carbon);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-btn);
+  padding: 0 16px;
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-small);
   font-weight: 600;
+  line-height: 1.1;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
-button:hover:not(:disabled) {
-  opacity: 0.92;
-  transform: translateY(-1px);
-}
-
-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-button:disabled {
-  opacity: 0.5;
+button:disabled,
+button[aria-disabled="true"] {
+  background-color: var(--c-crema-2);
+  color: var(--c-muted);
+  border-style: dashed;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 input,
 select,
 textarea {
-  background-color: var(--color-panel-bg-raised);
-  color: var(--color-text);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
+  background-color: var(--c-input);
+  color: var(--c-carbon);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-field);
   font-family: inherit;
+  font-size: var(--fs-body);
+  min-height: var(--tap-min);
+}
+
+/* Alias temporal: ConnectingScreen todavía usa esta clase (se elimina al restilarla). */
+.spin-icon {
+  animation: spin 1s linear infinite;
 }
 
 /* App Shell Layout */
@@ -322,7 +320,7 @@ textarea {
 }
 
 .die-token .die-label {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-text-secondary);
   margin-top: 1px;
@@ -504,7 +502,7 @@ textarea {
 }
 
 .card-scientific {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-style: italic;
   color: var(--color-text-muted);
 }
@@ -598,7 +596,7 @@ textarea {
 .card-power-item {
   border-radius: 6px;
   padding: 4px 6px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.25;
   display: flex;
   flex-direction: column;
@@ -606,7 +604,7 @@ textarea {
 }
 
 .power-timing-badge {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -669,15 +667,6 @@ textarea {
 .power-timing-badge.badge-gameEnd {
   background: rgba(227, 186, 74, 0.28);
   color: #f6ecc8;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.spin-icon {
-  animation: spin 1s linear infinite;
 }
 
 /* Power activation checklist (poderes opcionales) */
