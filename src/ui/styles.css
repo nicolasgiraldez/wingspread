@@ -1,53 +1,8 @@
 /*
- * Estilos de la aplicación. Los tokens (colores, tipografía, formas) viven en tokens.css y los
- * componentes base (.btn, .field, .chip, .banner, .modal…) en components.css: acá no va ningún color literal.
+ * Reinicio de elementos nativos. Los tokens (colores, tipografía, formas) viven en tokens.css, los
+ * componentes base (.btn, .field, .chip, .banner, .modal…) en components.css y cada pantalla en su
+ * propio archivo (home, game, panels, modals, feedback, cards). Acá no va ningún color literal.
  */
-
-/* ALIAS TEMPORALES: los nombres de variable del tema oscuro anterior apuntan a los tokens nuevos
-   mientras se restilan los componentes uno por uno. Se eliminan al terminar (Fase 7). */
-:root {
-  --color-bg: var(--c-crema);
-  --color-text: var(--c-carbon);
-  --color-text-secondary: var(--c-muted);
-  --color-text-muted: var(--c-slate);
-  --color-text-dim: var(--c-slate);
-  --color-border: var(--c-carbon);
-  --color-border-light: var(--c-carbon);
-  --color-panel-bg: var(--c-crema-2);
-  --color-panel-bg-alt: var(--c-crema-2);
-  --color-panel-bg-raised: var(--c-crema);
-
-  --color-forest: var(--habitat-forest);
-  --color-forest-strong: var(--c-petroleo-d);
-  --color-forest-bg: var(--c-menta);
-  --color-forest-border: var(--c-carbon);
-  --color-grassland: var(--c-mostaza-d);
-  --color-grassland-bg: var(--state-warn-bg);
-  --color-grassland-border: var(--c-mostaza-d);
-  --color-wetland: var(--c-petroleo);
-  --color-wetland-bg: var(--c-menta);
-  --color-wetland-border: var(--c-carbon);
-
-  --color-power-brown: var(--power-activate-bg);
-  --color-power-white: var(--power-play-bg);
-  --color-power-pink: var(--power-between-bg);
-  --color-power-teal: var(--power-round-bg);
-  --color-power-yellow: var(--c-mostaza-l);
-
-  --color-danger: var(--c-tomate-d);
-  --color-danger-bg: var(--state-error-bg);
-  --color-gold: var(--c-mostaza);
-  --color-cube-blue: var(--c-petroleo);
-  --color-success: var(--c-petroleo);
-
-  --font-family: var(--font-body);
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --shadow-sm: var(--shadow-press-sm);
-  --shadow-md: var(--shadow-press);
-  --shadow-lg: var(--shadow-lift);
-}
 
 * {
   box-sizing: border-box;
@@ -92,7 +47,19 @@ textarea {
   min-height: var(--tap-min);
 }
 
-/* Alias temporal: ConnectingScreen todavía usa esta clase (se elimina al restilarla). */
-.spin-icon {
-  animation: spin 1s linear infinite;
+/* Foco visible: el anillo mostaza se suma a la sombra plana de los controles que ya la tienen. */
+.btn--primary:focus-visible,
+.btn--panel:focus-visible,
+.die-token:focus-visible,
+.pill--on:focus-visible,
+.option--on:focus-visible,
+.mode-card:focus-visible,
+.wild-choice__option:focus-visible,
+.score--viewed:focus-visible {
+  box-shadow: var(--focus-ring), var(--shadow-press);
+}
+
+/* El diálogo recibe el foco por programa cuando no tiene controles: sin anillo, conserva su sombra. */
+.modal:focus-visible {
+  box-shadow: var(--shadow-lift);
 }
