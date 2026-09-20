@@ -478,6 +478,11 @@ export const App: React.FC = () => {
   const selectedHandCard =
     selectedHandId && localPlayer?.hand.includes(selectedHandId) ? (gameState.cards[selectedHandId] ?? null) : null;
   const playBlockedReason = !isMyTurn ? "No es tu turno" : !isControlsActive ? "Sin acciones disponibles" : null;
+  const feederReason = !isMyTurn
+    ? "Todavía no es tu turno. Los dados se activan cuando te toque jugar."
+    : !isControlsActive
+      ? "No tenés acciones disponibles en este momento."
+      : undefined;
 
   return (
     <div className="game">
@@ -526,6 +531,8 @@ export const App: React.FC = () => {
             onTakeDie={handleGainFood}
             onReroll={handleRerollFeeder}
             disabled={!isControlsActive}
+            disabledReason={feederReason}
+            waitingFor={!isMyTurn && gameState.phase === "round" ? getDisplayName(gameState, gameState.currentPlayerId) : undefined}
           />
 
           <BirdMarket
@@ -535,6 +542,7 @@ export const App: React.FC = () => {
             onDrawMarketCard={handleDrawFromMarket}
             onDrawFromDeck={handleDrawFromDeck}
             disabled={!isControlsActive}
+            disabledReason={playBlockedReason ?? undefined}
             highlightNameTags={myNameTags}
           />
 

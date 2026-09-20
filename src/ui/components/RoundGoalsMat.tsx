@@ -2,6 +2,7 @@ import React from "react";
 import { evaluateRoundGoalMetric } from "../../game";
 import type { GameState } from "../../game";
 import { playerNames } from "../labels";
+import { playerSymbol, playerSymbolName } from "./playerSymbols";
 import { Icon } from "./ui/Icon";
 
 interface RoundGoalsMatProps {
@@ -12,67 +13,65 @@ export const RoundGoalsMat: React.FC<RoundGoalsMatProps> = ({ gameState }) => {
   const nameOf = (id: string) => gameState.players[id]?.name || playerNames[id] || id;
 
   return (
-    <div className="goals-mat">
-      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 160 }}>
-        <Icon name="target" size={24} />
-        <div>
-          <strong style={{ fontSize: "0.95rem" }}>Objetivos de Ronda</strong>
-          <div style={{ fontSize: "0.75rem", color: "#93a397" }}>
-            Ronda {gameState.round} de 4
-          </div>
-        </div>
+    <section className="panel-wide" aria-labelledby="goals-title">
+      <div className="panel-wide__head">
+        <h2 id="goals-title" className="panel-wide__title">
+          Objetivos de Ronda
+        </h2>
+        <span className="panel-wide__count">Ronda {gameState.round} de 4</span>
       </div>
 
-      <div className="goals-strip">
+      <ol className="goals">
         {gameState.roundGoals.map((goal, idx) => {
           const roundNumber = idx + 1;
           const isActive = gameState.round === roundNumber && gameState.phase !== "gameEnd";
           const isCompleted = gameState.round > roundNumber || gameState.phase === "gameEnd";
           const roundResults = gameState.roundGoalResults?.[roundNumber];
+          const status = isActive ? "En curso" : isCompleted ? "Cerrada" : "Próxima";
 
           return (
-            <div
-              key={goal.id}
-              className={`goal-card ${isActive ? "active" : ""}`}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span className="round-tag">Ronda {roundNumber}</span>
-                {isActive && (
-                  <span style={{ fontSize: "0.7rem", color: "#3fae72", fontWeight: 700 }}>
-                    ● En Curso
-                  </span>
-                )}
+            <li key={goal.id} className={`goal${isActive ? " is-selected" : ""}`}>
+              <div className="goal__head">
+                <span className="label">Ronda {roundNumber}</span>
+                <span className={`chip goal__status${isActive ? " chip--on" : ""}`}>
+                  {isActive && <span className="goal__dot" aria-hidden="true" />}
+                  {status}
+                </span>
               </div>
-              <strong style={{ fontSize: "0.85rem", margin: "2px 0" }}>{goal.name}</strong>
-              <span style={{ fontSize: "0.7rem", color: "#93a397" }}>{goal.description}</span>
+              <h3 className="goal__name">{goal.name}</h3>
+              <p className="goal__desc">{goal.description}</p>
 
-              {/* Score / Live Metric */}
-              <div style={{ marginTop: 4, paddingTop: 4, borderTop: "1px dashed #394239", fontSize: "0.75rem" }}>
-                {isCompleted && roundResults ? (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {Object.entries(roundResults).map(([pId, pts]) => (
-                      <span key={pId}>
-                        {nameOf(pId)}: <strong>+{pts}p</strong>
+              {/* Puntos ganados (ronda cerrada) o cuenta actual (ronda en curso y próximas) */}
+              <ul className="goal__scores">
+                {gameState.playerOrder.map((pId, pIdx) => {
+                  const closedPoints = isCompleted && roundResults ? roundResults[pId] : undefined;
+                  const metric =
+                    closedPoints === undefined
+                      ? evaluateRoundGoalMetric(gameState.players[pId], gameState, goal)
+                      : undefined;
+                  return (
+                    <li key={pId} className="goal__score">
+                      <Icon name={playerSymbol(pIdx)} size={18} label={`Símbolo: ${playerSymbolName(pIdx)}`} />
+                      <span className="goal__player">{nameOf(pId)}</span>
+                      <span className="goal__value">
+                        {closedPoints !== undefined ? (
+                          <>
+                            +{closedPoints}
+                            <span className="goal__unit">p</span>
+                            <span className="sr-only"> puntos</span>
+                          </>
+                        ) : (
+                          metric
+                        )}
                       </span>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", gap: 8, color: "#c3ccc5" }}>
-                    {gameState.playerOrder.map((pId) => {
-                      const metric = evaluateRoundGoalMetric(gameState.players[pId], gameState, goal);
-                      return (
-                        <span key={pId}>
-                          {nameOf(pId)}: {metric}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ol>
+    </section>
   );
 };

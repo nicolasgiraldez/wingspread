@@ -1,0 +1,292 @@
+/* ==========================================================================
+   Paneles de la mesa: comedero, objetivos de ronda y mercado (docs/design/05-screens.md §2)
+   ========================================================================== */
+
+.panel-wide {
+  padding: 24px;
+  background: var(--c-crema-2);
+  border-radius: 20px;
+}
+
+.panel-wide__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.panel-wide__title {
+  font-size: 30px;
+}
+
+.panel-wide__count {
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+.panel-wide__head .chip {
+  align-self: center;
+}
+
+.panel-wide__help {
+  max-width: 34em;
+  margin: 8px 0 0;
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+.panel-wide__strong {
+  font-weight: 600;
+  color: var(--c-petroleo-d);
+}
+
+/* ---- Comedero ------------------------------------------------------------------------ */
+.feeder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+}
+
+.feeder__dice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.die-token {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 76px;
+  height: 84px;
+  padding: 0;
+  background: var(--c-crema);
+  color: var(--c-carbon);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-press);
+}
+
+.die-token .die-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.die-token .die-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Cara comodín (insecto o semilla): se ensancha para mostrar los dos íconos */
+.die-token.die-wild {
+  width: 92px;
+  background: var(--c-mostaza);
+}
+
+.die-token:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.die-token:disabled {
+  background: var(--c-crema);
+  border-style: solid;
+  box-shadow: none;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.die-token.die-wild:disabled {
+  background: var(--c-mostaza);
+}
+
+/* Comedero vacío: hueco del mismo tamaño */
+.die-token--hole {
+  background: none;
+  border-style: dashed;
+  border-color: var(--c-muted);
+  box-shadow: none;
+}
+
+.wild-choice {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.wild-choice__option {
+  flex-direction: column;
+  width: 128px;
+  height: 112px;
+  gap: 8px;
+  background: var(--c-crema);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-press);
+  font-size: 16px;
+}
+
+.wild-choice__option:hover {
+  transform: translateY(-2px);
+}
+
+/* ---- Objetivos de ronda -------------------------------------------------------------- */
+.goals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--c-crema);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+}
+
+.goal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.goal__dot {
+  width: 8px;
+  height: 8px;
+  background: var(--c-tomate);
+  border-radius: 50%;
+}
+
+.goal__name {
+  font-size: 22px;
+}
+
+.goal__desc {
+  flex: 1;
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+.goal__scores {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 0 0;
+  list-style: none;
+  border-top: var(--stroke) dashed var(--c-muted);
+}
+
+.goal__score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-small);
+}
+
+.goal__player {
+  flex: 1;
+  min-width: 0;
+}
+
+.goal__value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.goal__unit {
+  margin-left: 2px;
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+/* ---- Mercado ------------------------------------------------------------------------- */
+.market {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+  margin-top: 16px;
+  padding-right: 8px;
+}
+
+.market__deck {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  width: 192px;
+}
+
+.market__deck .btn {
+  height: auto;
+  min-height: var(--tap-min);
+  padding: 8px 12px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.market__hole {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 192px;
+  min-height: 290px;
+  padding: 16px;
+  color: var(--c-muted);
+  border: var(--stroke) dashed var(--c-muted);
+  border-radius: var(--radius-card);
+  font-size: var(--fs-small);
+  text-align: center;
+}
+
+@media (max-width: 1023px) {
+  .goals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .panel-wide {
+    padding: 16px;
+  }
+
+  .panel-wide__title {
+    font-size: 26px;
+  }
+
+  .goals {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feeder__dice {
+    gap: 8px;
+  }
+
+  .market {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .market > * {
+    scroll-snap-align: start;
+  }
+}

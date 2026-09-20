@@ -7,6 +7,7 @@ import "./ui/cards.css";
 import "./ui/home.css";
 import "./ui/modals.css";
 import "./ui/game.css";
+import "./ui/panels.css";
 import "./ui/styles.css";
 
 createRoot(document.getElementById("root")!).render(

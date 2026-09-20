@@ -45,6 +45,9 @@ interface BirdCardProps {
   /** Botón de acción debajo de la carta ("Jugar esta ave", "Robar esta ave"). */
   actionLabel?: string;
   onAction?: (e: React.MouseEvent) => void;
+  /** El botón de acción no se puede usar ahora; `actionDisabledText` (si hay) reemplaza su texto con el motivo. */
+  actionDisabled?: boolean;
+  actionDisabledText?: string;
 }
 
 const TIMING_GLYPH: Record<PowerTiming, IconName> = {
@@ -83,6 +86,8 @@ export const BirdCard: React.FC<BirdCardProps> = ({
   highlightNameTags = [],
   actionLabel,
   onAction,
+  actionDisabled = false,
+  actionDisabledText,
 }) => {
   const m = CARD_MODES[mode];
   const image = getBirdImage(card.id);
@@ -284,7 +289,13 @@ export const BirdCard: React.FC<BirdCardProps> = ({
         </div>
       )}
       {actionLabel && onAction && (
-        <Button size="sm" className="bird-card__action" onClick={onAction}>
+        <Button
+          size="sm"
+          className="bird-card__action"
+          disabled={actionDisabled}
+          disabledText={actionDisabledText}
+          onClick={onAction}
+        >
           {actionLabel}
         </Button>
       )}
