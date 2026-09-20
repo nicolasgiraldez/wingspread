@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { BonusCard, CardId, GameState, Move, PlayerState, ResourceFace } from "../../game";
 import { resourceIcons, resourceLabels } from "../labels";
 import { BirdCard } from "./BirdCard";
+import { countOf } from "../text";
 import { Icon } from "./ui/Icon";
 
 type StartMove = Extract<Move, { type: "chooseStart" }>;
@@ -45,9 +46,9 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
   const missing = kept.length - discarded.length;
   const ready = missing === 0 && bonusId !== null;
   const hint = missing > 0
-    ? `Elige ${missing} ficha${missing === 1 ? "" : "s"} de alimento más para descartar.`
+    ? `Elegí ${countOf(missing, "ficha", "fichas")} de alimento más para descartar.`
     : bonusId === null
-      ? "Elige una carta de bonificación."
+      ? "Elegí una carta de bonificación."
       : "";
 
   const confirm = () => {
@@ -68,16 +69,16 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
           <span style={{ display: "inline-flex", margin: "0 auto 8px auto" }}>
             <Icon name="star" size={40} />
           </span>
-          <h2 style={{ margin: "0 0 6px 0", fontSize: "1.3rem" }}>{player.name}, prepara tu mano inicial</h2>
+          <h2 style={{ margin: "0 0 6px 0", fontSize: "1.3rem" }}>{player.name}, prepará tu mano inicial</h2>
           <p style={{ margin: 0, color: "#93a397", fontSize: "0.88rem" }}>
-            Te tocaron 5 aves y 5 fichas de alimento. Quédate con las aves que quieras, pero por cada una descarta 1 ficha de alimento.
+            Te tocaron 5 aves y 5 fichas de alimento. Quedate con las aves que quieras, pero por cada una descartá 1 ficha de alimento.
           </p>
         </div>
 
-        <strong style={{ fontSize: "0.9rem" }}>1. Aves que conservas ({kept.length} de {player.hand.length})</strong>
+        <strong style={{ fontSize: "0.9rem" }}>1. Aves que conservás ({kept.length} de {player.hand.length})</strong>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(264px, 1fr))", gap: 10, margin: "8px 0 16px 0" }}>
           {player.hand.map((id) => (
-            <div key={id} title={kept.includes(id) ? "Se conserva (pulsa para descartarla)" : "Se descarta (pulsa para conservarla)"}>
+            <div key={id} title={kept.includes(id) ? "Se conserva (pulsá para descartarla)" : "Se descarta (pulsá para quedártela)"}>
               <BirdCard card={gameState.cards[id]} mode="full" selected={kept.includes(id)} onClick={() => toggleBird(id)} />
               <div style={{ textAlign: "center", fontSize: "0.75rem", marginTop: 3, color: kept.includes(id) ? "#3fae72" : "#75897b" }}>
                 {kept.includes(id) ? (
@@ -92,7 +93,7 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
           ))}
         </div>
 
-        <strong style={{ fontSize: "0.9rem" }}>2. Alimento que descartas ({discarded.length} de {kept.length})</strong>
+        <strong style={{ fontSize: "0.9rem" }}>2. Alimento que descartás ({discarded.length} de {kept.length})</strong>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "8px 0 16px 0" }}>
           {FOODS.map((food) => {
             const isDiscarded = discarded.includes(food);
@@ -102,7 +103,7 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
                 type="button"
                 onClick={() => toggleFood(food)}
                 disabled={!isDiscarded && discarded.length >= kept.length}
-                title={isDiscarded ? "Se descarta (pulsa para quedártela)" : "Se conserva (pulsa para descartarla)"}
+                title={isDiscarded ? "Se descarta (pulsá para quedártela)" : "Se conserva (pulsá para descartarla)"}
                 style={{
                   backgroundColor: isDiscarded ? "rgba(240, 100, 95, 0.15)" : "#212b22",
                   color: isDiscarded ? "#f0645f" : "#eef1ec",
@@ -116,7 +117,7 @@ export const StartingHandModal: React.FC<StartingHandModalProps> = ({ player, ga
           })}
         </div>
 
-        <strong style={{ fontSize: "0.9rem" }}>3. Carta de bonificación que conservas</strong>
+        <strong style={{ fontSize: "0.9rem" }}>3. Carta de bonificación que conservás</strong>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "8px 0 16px 0" }}>
           {offered.map((bonus) => (
             <div

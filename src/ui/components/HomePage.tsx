@@ -84,7 +84,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       setJoinError(
         joinCode.trim()
           ? "No reconocemos ese código o enlace. Revisá que esté completo."
-          : "Por favor, introduce un código de sala.",
+          : "Ingresá un código de sala.",
       );
       return;
     }
@@ -155,7 +155,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               type="text"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Escribe tu nombre..."
+              placeholder="Escribí tu nombre..."
               maxLength={24}
               style={styles.input}
               autoFocus
@@ -198,7 +198,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {!validName && (
             <p style={styles.hint}>
-              Introduce tu nombre para comenzar
+              Ingresá tu nombre para comenzar
             </p>
           )}
         </div>
@@ -325,7 +325,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               type="text"
               value={opponentName}
               onChange={(e) => setOpponentName(e.target.value)}
-              placeholder="Nombre de tu amigo... (o déjalo en blanco)"
+              placeholder="Nombre de tu amigo... (o dejalo en blanco)"
               maxLength={24}
               style={styles.input}
             />
@@ -382,7 +382,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             {joinCode.trim() && !joinError && (
               parsedJoinCode ? (
                 <span style={{ fontSize: "0.78rem", color: "#3fae72" }}>
-                  <Icon name="check" size={18} ink="var(--c-petroleo)" /> Te unirás a la sala: <strong>{parsedJoinCode}</strong>
+                  <Icon name="check" size={18} ink="var(--c-petroleo)" /> Te vas a unir a la sala: <strong>{parsedJoinCode}</strong>
                 </span>
               ) : (
                 <span style={{ fontSize: "0.78rem", color: "#d9a83b" }}>

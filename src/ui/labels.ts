@@ -1,6 +1,7 @@
 import type { BonusCard, BotDifficulty, HabitatId, NameTag, NestType, Power, PowerTiming, ResourceFace, SpeciesCard } from "../game";
 import type { IconName } from "./components/ui/iconNames";
 import { plainText } from "./components/ui/richTextParts";
+import { countOf } from "./text";
 
 export const playerNames: Record<string, string> = {
   nico: "Nico",
@@ -94,6 +95,8 @@ export const nestIcons: Record<NestType, IconName> = {
 
 /** Marcador de ícono para incrustar un alimento dentro de un texto (se dibuja con <RichText>). */
 const ico = (res: ResourceFace) => `{${resourceIcons[res]}}`;
+const eggs = (n: number) => countOf(n, "huevo", "huevos");
+const cards = (n: number) => countOf(n, "carta", "cartas");
 
 /**
  * Descripción legible de un poder, usada tanto en BirdCard como en los checklists de activación.
@@ -104,43 +107,43 @@ export function describePower(power: Power): string {
   switch (power.kind) {
     case "gainResource": {
       if (power.gainAllMatching) {
-        return `Obtén TODOS los ${power.resource ? ico(power.resource) : "dados"} que haya en el comedero`;
+        return `Obtené TODOS los ${power.resource ? ico(power.resource) : "dados"} que haya en el comedero`;
       }
       if (power.anyDie) {
-        return "Obtén 1 dado cualquiera del comedero";
+        return "Obtené 1 dado cualquiera del comedero";
       }
       const altText = power.resourceAlt ? ` o ${ico(power.resourceAlt)}` : "";
-      return `Obtén ${power.amount} ${power.resource ? ico(power.resource) : "alimento"}${altText}${power.from === "feeder" ? " del comedero" : ""}`;
+      return `Obtené ${power.amount} ${power.resource ? ico(power.resource) : "alimento"}${altText}${power.from === "feeder" ? " del comedero" : ""}`;
     }
     case "layEgg": {
-      if (power.target === "self") return `Pon ${power.amount} huevo(s) en este nido`;
+      if (power.target === "self") return `Poné ${eggs(power.amount)} en este nido`;
       if (power.target === "eachNestType") {
-        return `Pon ${power.amount} huevo(s) en CADA una de tus aves con nido ${power.nestType ? nestLabels[power.nestType] : ""}`;
+        return `Poné ${eggs(power.amount)} en CADA una de tus aves con nido ${power.nestType ? nestLabels[power.nestType] : ""}`;
       }
       if (power.target === "allPlayersNestType") {
         return `Todos ponen 1 huevo en 1 ave con nido ${power.nestType ? nestLabels[power.nestType] : ""}; vos ponés ${power.activePlayerBonus ?? 1} extra`;
       }
       if (power.target === "nestType") {
-        return `Pon ${power.amount} huevo(s) en otra ave con nido ${power.nestType ? nestLabels[power.nestType] : ""}`;
+        return `Poné ${eggs(power.amount)} en otra ave con nido ${power.nestType ? nestLabels[power.nestType] : ""}`;
       }
-      return `Pon ${power.amount} huevo(s) en cualquier ave`;
+      return `Poné ${eggs(power.amount)} en cualquier ave`;
     }
     case "drawCard":
-      return `Roba ${power.amount} carta(s)${power.thenDiscard ? " y descarta 1" : ""}`;
+      return `Robá ${cards(power.amount)}${power.thenDiscard ? " y descartá 1" : ""}`;
     case "tuckCard": {
       const costPrefix = power.costResource
         ? `Descartá ${power.costAmount ?? 1} ${ico(power.costResource)} para `
         : "";
-      const verb = costPrefix ? "solapar" : "Solapa";
+      const verb = costPrefix ? "solapar" : "Solapá";
       return (
-        `${costPrefix}${verb} ${power.amount} carta(s)${power.source === "deck" ? " del mazo" : " de tu mano"}` +
-        `${power.thenDraw ? " y roba 1" : ""}` +
-        `${power.thenGainEgg ? " y pon 1 huevo" : ""}` +
+        `${costPrefix}${verb} ${cards(power.amount)}${power.source === "deck" ? " del mazo" : " de tu mano"}` +
+        `${power.thenDraw ? " y robá 1" : ""}` +
+        `${power.thenGainEgg ? " y poné 1 huevo" : ""}` +
         `${power.thenGainResource ? ` y ganá 1 ${ico(power.thenGainResource)}${power.thenGainResourceAlt ? ` o 1 ${ico(power.thenGainResourceAlt)}` : ""}` : ""}`
       );
     }
     case "cacheFood":
-      return `Almacena 1 ${power.resource ? ico(power.resource) : "semilla"} en esta carta`;
+      return `Almacená 1 ${power.resource ? ico(power.resource) : "semilla"} en esta carta`;
     case "huntPredator":
       return `Caza: si envergadura del mazo ≤ ${power.maxWingspanCm}cm, solapa como presa`;
     case "diceHuntPredator":
@@ -152,17 +155,19 @@ export function describePower(power: Power): string {
         ? "Todos los jugadores roban 1 carta del mazo"
         : `Todos obtienen 1 ${power.resource ? ico(power.resource) : "recurso"}`;
     case "tradeResource":
-      return `Cambia 1 ${ico(power.costResource)} por ${power.amount ?? 1} ${ico(power.gainResource)}`;
+      return `Cambiá 1 ${ico(power.costResource)} por ${power.amount ?? 1} ${ico(power.gainResource)}`;
     case "gainBonusCard":
-      return `Revela ${power.drawCount} carta(s) de bonificación y conservá ${power.keepCount}`;
+      return `Revelá ${cards(power.drawCount)} de bonificación y conservá ${power.keepCount}`;
     case "repeatPower":
       return `Repetí ${power.predatorOnly ? "un poder de caza" : "un poder marrón"} de otra ave en este hábitat`;
     case "fewestBirdsBenefit":
       return power.benefitType === "drawCard"
-        ? `Jugador(es) con menos aves en ${habitatLabels[power.habitat]}: roba(n) ${power.amount ?? 1} carta(s)`
+        ? `Jugador(es) con menos aves en ${habitatLabels[power.habitat]}: roba(n) ${cards(power.amount ?? 1)}`
         : `Jugador(es) con menos aves en ${habitatLabels[power.habitat]}: gana(n) 1 dado del comedero`;
     case "allPlayersGainDie":
       return "Cada jugador toma 1 dado del comedero, empezando por vos";
+    case "moveToHabitat":
+      return "Mové esta ave a otro hábitat";
     default:
       return "";
   }

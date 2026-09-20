@@ -108,7 +108,7 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
       };
     } else if (power.kind === "tradeResource" && power.costResource === "wild") {
       cardChoice = {
-        label: "¿Qué alimento cambias y por cuál? (opcional)",
+        label: "¿Qué alimento cambiás y por cuál? (opcional)",
         options: tradeOptions(player),
         selected: choices[power.id] ?? null,
         onSelect: (id) =>

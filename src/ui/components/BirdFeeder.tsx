@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { canRerollFeeder } from "../../game";
 import type { ResourceFace } from "../../game";
 import { resourceIcons, resourceLabels } from "../labels";
+import { countOf, plural, pressVerb } from "../text";
 import { Icon } from "./ui/Icon";
 import { RichText } from "./ui/RichText";
 
@@ -69,7 +70,7 @@ const WildChoicePopup: React.FC<{
           title="Tomar 1 insecto/gusano"
         >
           <Icon name="insect" size={32} />
-          <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Gusano</span>
+          <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Insecto</span>
         </button>
         <button
           style={{
@@ -88,7 +89,7 @@ const WildChoicePopup: React.FC<{
           title="Tomar 1 semilla/trigo"
         >
           <Icon name="seed" size={32} />
-          <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Trigo</span>
+          <span style={{ fontSize: "0.75rem", color: "#eef1ec", fontWeight: 600 }}>Semilla</span>
         </button>
       </div>
       <button
@@ -141,11 +142,11 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <strong style={{ fontSize: "1.05rem" }}>Comedero de Aves</strong>
             <span style={{ fontSize: "0.85rem", color: "#93a397" }}>
-              ({feeder.length} dado{feeder.length !== 1 ? "s" : ""} disponible{feeder.length !== 1 ? "s" : ""})
+              ({countOf(feeder.length, "dado", "dados")} {plural(feeder.length, "disponible", "disponibles")})
             </span>
           </div>
           <p style={{ margin: 0, fontSize: "0.8rem", color: "#93a397" }}>
-            Haz clic en un dado para obtener ese alimento y activar tu bosque.
+            {pressVerb()} un dado para obtener ese alimento y activar tu bosque.
             {feeder.includes("wild") && (
               <span style={{ color: "#3fae72", fontWeight: 600 }}>
                 {" "}
@@ -165,7 +166,7 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
                 disabled={disabled}
                 title={
                   face === "wild"
-                    ? "Dado comodín: elegí entre gusano o trigo"
+                    ? "Dado comodín: elegí entre insecto o semilla"
                     : `Tomar 1 ${resourceLabels[face]}`
                 }
               >

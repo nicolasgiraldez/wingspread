@@ -19,6 +19,7 @@ import {
   resourceLabels,
 } from "../labels";
 import { BirdCard } from "./BirdCard";
+import { countOf, pressVerb } from "../text";
 import { Icon } from "./ui/Icon";
 import { RichText } from "./ui/RichText";
 import { StatusLine } from "./ui/StatusLine";
@@ -359,7 +360,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {/* Step 1: Habitat selection */}
             <div>
-              <strong style={{ fontSize: "0.9rem" }}>1. Selecciona el Hábitat</strong>
+              <strong style={{ fontSize: "0.9rem" }}>1. Seleccioná el Hábitat</strong>
               <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                 {availableHabitats.map((hab) => (
                   <button
@@ -391,7 +392,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                 </span>
               </div>
               <p style={{ margin: "2px 0 6px 0", fontSize: "0.75rem", color: "#93a397" }}>
-                Haz clic en tus recursos para seleccionarlos. Puedes usar 2 recursos cualesquiera por cada 1 requerido.
+                {pressVerb()} tus recursos para seleccionarlos. Podés usar 2 recursos cualesquiera por cada 1 requerido.
                 {card.costAnyOf && card.costAnyOf.length > 0 && (
                   <>
                     {" "}Esta ave acepta 1{" "}
@@ -432,8 +433,8 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                 <p style={{ margin: "2px 0 0 0", fontSize: "0.8rem", color: isEggCostValid ? "#3fae72" : "#f0645f" }}>
                   <StatusLine ok={isEggCostValid}>
                     {isEggCostValid
-                      ? `Se descontarán ${eggCost} huevo(s) de tu tablero.`
-                      : `Necesitas al menos ${eggCost} huevo(s) en tu tablero para jugar en esta columna.`}
+                      ? eggCost === 1 ? "Se descontará 1 huevo de tu tablero." : `Se descontarán ${eggCost} huevos de tu tablero.`
+                      : `Necesitás al menos ${countOf(eggCost, "huevo", "huevos")} en tu tablero para jugar en esta columna.`}
                   </StatusLine>
                 </p>
               </div>
@@ -496,7 +497,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                         )}
                         <StatusLine ok={secondBirdPaymentValid}>
                           {secondBirdPaymentValid
-                            ? `Se jugará en ${effectiveSecondBirdHabitat ? habitatLabels[effectiveSecondBirdHabitat] : ""} pagando su costo normal${secondBirdEggCost > 0 ? ` + ${secondBirdEggCost} huevo(s)` : ""}.`
+                            ? `Se jugará en ${effectiveSecondBirdHabitat ? habitatLabels[effectiveSecondBirdHabitat] : ""} pagando su costo normal${secondBirdEggCost > 0 ? ` + ${countOf(secondBirdEggCost, "huevo", "huevos")}` : ""}.`
                             : "No se puede pagar esta segunda ave con lo que queda disponible tras la primera."}
                         </StatusLine>
                       </>

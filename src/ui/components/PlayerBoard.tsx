@@ -93,9 +93,9 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                   <Icon name={habitatIcons[hab]} size={24} /> {habitatLabels[hab]}
                 </h3>
                 <p style={{ margin: "4px 0 0 0", fontSize: "0.75rem", color: "#c3ccc5" }}>
-                  {hab === "forest" && "Obtén alimento del comedero"}
-                  {hab === "grassland" && "Pon huevos en tus nidos"}
-                  {hab === "wetland" && "Roba nuevas cartas de ave"}
+                  {hab === "forest" && "Obtené alimento del comedero"}
+                  {hab === "grassland" && "Poné huevos en tus nidos"}
+                  {hab === "wetland" && "Robá nuevas cartas de ave"}
                 </p>
               </div>
 

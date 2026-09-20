@@ -40,6 +40,7 @@ import {
   resourceLabels,
 } from "./labels";
 import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./network/hostGame";
+import { countOf, pressVerb } from "./text";
 import { clearSavedGame, loadSavedGame, saveGame, summarizeSavedGame } from "./savedGame";
 import type { SavedGame } from "./savedGame";
 import {
@@ -499,7 +500,7 @@ export const App: React.FC = () => {
             {currentPlayer?.botLevel ? <Icon name="bot" size={20} /> : null}
             {getDisplayName(gameState, gameState.currentPlayerId)}
             {gameState.currentPlayerId === localPlayerId && (
-              <span style={{ fontSize: "0.75rem", color: "var(--color-forest)", fontWeight: 700 }}>(Tú)</span>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-forest)", fontWeight: 700 }}>(Vos)</span>
             )}
           </div>
           <div>
@@ -542,7 +543,7 @@ export const App: React.FC = () => {
                 <span>
                   <strong>{getDisplayName(gameState, pId)}</strong>
                   {pId === localPlayerId && (
-                    <small style={{ color: "var(--color-forest)" }}> (Tú)</small>
+                    <small style={{ color: "var(--color-forest)" }}> (Vos)</small>
                   )}
                   {gameState.firstPlayerId === pId && (
                     <span style={{ fontSize: "0.7rem", color: "var(--color-forest)", marginLeft: 4 }}>
@@ -572,7 +573,7 @@ export const App: React.FC = () => {
                   fontSize: "0.8rem",
                 }}
               >
-                {pId === localPlayerId ? `${getDisplayName(gameState, pId)} (Tú)` : getDisplayName(gameState, pId)}
+                {pId === localPlayerId ? `${getDisplayName(gameState, pId)} (Vos)` : getDisplayName(gameState, pId)}
               </button>
             ))}
           </div>
@@ -637,7 +638,7 @@ export const App: React.FC = () => {
                 }}
               >
                                 <div>
-                  <strong>{viewedPlayer.bonusCards?.length ?? 0} carta(s) secreta(s)</strong>
+                  <strong>{countOf(viewedPlayer.bonusCards?.length ?? 0, "carta secreta", "cartas secretas")}</strong>
                   <div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", marginTop: 2 }}>
                     Se revelan al finalizar la partida.
                   </div>
@@ -812,7 +813,7 @@ export const App: React.FC = () => {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 <h4 style={{ margin: 0, fontSize: "1rem", color: "var(--color-text)" }}>
-                  Mano de {getDisplayName(gameState, viewedPlayer.id)} ({viewedPlayer.hand.length} carta{viewedPlayer.hand.length !== 1 ? "s" : ""} oculta{viewedPlayer.hand.length !== 1 ? "s" : ""})
+                  Mano de {getDisplayName(gameState, viewedPlayer.id)} ({countOf(viewedPlayer.hand.length, "carta oculta", "cartas ocultas")})
                 </h4>
               </div>
               <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
@@ -884,12 +885,11 @@ export const App: React.FC = () => {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Icon name="bird" size={20} />
                 <h3 style={{ margin: 0, fontSize: "1.15rem" }}>
-                  Tu Mano ({getDisplayName(gameState, localPlayerId)}) — {gameState.players[localPlayerId].hand.length} carta
-                  {gameState.players[localPlayerId].hand.length !== 1 ? "s" : ""}
+                  Tu mano · {countOf(gameState.players[localPlayerId].hand.length, "carta", "cartas")}
                 </h3>
               </div>
               <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
-                Haz clic en "Jugar esta ave" para colocarla en tu tablero
+                {pressVerb()} "Jugar esta ave" para colocarla en tu tablero
               </span>
             </div>
 
@@ -918,7 +918,7 @@ export const App: React.FC = () => {
               </div>
             ) : (
               <div style={{ padding: 20, textAlign: "center", color: "var(--color-text-dim)" }}>
-                Tu mano está vacía. Roba cartas del mercado o del mazo para jugar más aves.
+                Tu mano está vacía. Robá cartas del mercado o del mazo para jugar más aves.
               </div>
             )}
           </section>

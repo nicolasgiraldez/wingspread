@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { getActivatablePowers, getHabitatActionAllowance } from "../../game";
+import { countOf } from "../text";
 import { Icon } from "./ui/Icon";
 import type {
   CardId,
@@ -166,7 +167,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
       };
     } else if (power.kind === "tradeResource" && power.costResource === "wild") {
       cardChoice = {
-        label: "¿Qué alimento cambias y por cuál? (opcional)",
+        label: "¿Qué alimento cambiás y por cuál? (opcional)",
         options: tradeOptions(player),
         selected: powerCardChoices[power.id] ?? null,
         onSelect: (id) =>
@@ -501,10 +502,10 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
           {birds.length === 0 ? (
             <div style={{ textAlign: "center", padding: 32, color: "#75897b" }}>
               <p style={{ margin: 0, fontSize: "0.95rem" }}>
-                No tienes aves jugadas en tu tablero para poner huevos.
+                No tenés aves jugadas en tu tablero para poner huevos.
               </p>
               <p style={{ margin: "6px 0 0 0", fontSize: "0.8rem" }}>
-                Primero debes jugar aves en cualquiera de tus hábitats.
+                Primero tenés que jugar aves en cualquiera de tus hábitats.
               </p>
             </div>
           ) : totalBoardSpace === 0 ? (
@@ -579,7 +580,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
                         )}
                       </div>
                       <div style={{ fontSize: "0.7rem", color: isFull ? "#d9a83b" : "#93a397" }}>
-                        {isFull ? "Capacidad completa" : `${b.availableSpace - assigned} espacio(s) libre(s)`}
+                        {isFull ? "Capacidad completa" : countOf(b.availableSpace - assigned, "espacio libre", "espacios libres")}
                       </div>
                     </div>
 
@@ -710,7 +711,7 @@ export const LayEggsModal: React.FC<LayEggsModalProps> = ({
             }}
           >
             <Icon name="check" size={20} />
-            Confirmar y poner {totalAssigned} huevo{totalAssigned !== 1 ? "s" : ""}
+            Confirmar y poner {countOf(totalAssigned, "huevo", "huevos")}
           </button>
         </div>
       </div>

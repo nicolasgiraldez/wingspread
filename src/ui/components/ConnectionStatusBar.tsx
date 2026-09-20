@@ -39,7 +39,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
           color: "#3fae72",
           border: "rgba(63, 174, 114, 0.35)",
           icon: <Icon name="wifi" size={16} />,
-          text: "Conectado en Vivo",
+          text: "Conectado en vivo",
         };
       case "waiting_for_opponent":
         return {
@@ -47,7 +47,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
           color: "#d9a83b",
           border: "rgba(217, 168, 59, 0.35)",
           icon: <Icon name="send" size={16} />,
-          text: "Esperando Oponente...",
+          text: "Esperando oponente...",
         };
       case "connecting":
         return {
@@ -90,7 +90,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
         </div>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: "0.85rem", color: "#c3ccc5" }}>Sala Online:</span>
+            <span style={{ fontSize: "0.85rem", color: "#c3ccc5" }}>Sala online:</span>
             <strong style={{ fontSize: "0.95rem", letterSpacing: 0.5 }}>{roomCode}</strong>
             <span style={{ fontSize: "0.75rem", background: "#212b22", padding: "1px 6px", borderRadius: 4, color: "#c3ccc5" }}>
               Rol: <strong>{localPlayerName} ({isHost ? "Host" : "Invitado"})</strong>
@@ -135,7 +135,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
           }}
         >
           <Icon name={copied ? "check" : "copy"} size={16} />
-          <span>{copied ? "¡Enlace Copiado!" : "Copiar Enlace de Sala"}</span>
+          <span>{copied ? "¡Enlace copiado!" : "Copiar enlace de sala"}</span>
         </button>
       </div>
     </div>

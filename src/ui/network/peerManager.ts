@@ -449,7 +449,7 @@ export class NetworkManager {
     this.destroyPeer();
     callbacks?.onStatusChange(
       "error",
-      "La sala ya tiene otro invitado conectado. Si eras tú desde otra pestaña, ciérrala e inténtalo de nuevo.",
+      "La sala ya tiene otro invitado conectado. Si eras vos desde otra pestaña, cerrala e intentá de nuevo.",
     );
   }
 

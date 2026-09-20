@@ -114,7 +114,7 @@ const fingerprint = (player) =>
     const cards = [...document.querySelectorAll(".status-card")]
       .map((card) => card.innerText.replace(/\s+/g, " ").trim())
       .filter((text) => shared.test(text))
-      .map((text) => text.replace(/\s*\(Tú\)/g, "").replace(/\s*\(Invitado\)/g, ""));
+      .map((text) => text.replace(/\s*\((Tú|Vos)\)/g, "").replace(/\s*\(Invitado\)/g, ""));
     return `R${round} dice[${dice}] ${cards.join(" || ")}`;
   });
 
@@ -183,7 +183,7 @@ let roomCode = "";
 
 await step("El anfitrión crea una sala", async () => {
   await host.page.goto(BASE);
-  await host.page.getByPlaceholder("Escribe tu nombre...").fill("Lucía");
+  await host.page.getByPlaceholder("Escribí tu nombre...").fill("Lucía");
   await host.page.getByRole("button", { name: /Multijugador Online/ }).click();
   await host.page.getByRole("button", { name: /Crear Sala/ }).click();
   const code = host.page.locator("strong").filter({ hasText: /^[a-z]+-\d{3}$/ });
