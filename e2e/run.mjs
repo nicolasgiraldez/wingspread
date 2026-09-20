@@ -110,10 +110,9 @@ const fingerprint = (player) =>
   player.page.evaluate(() => {
     const dice = [...document.querySelectorAll(".die-token")].map((button) => button.title).join("|");
     const round = document.body.innerText.match(/Ronda\s*(\d)\s*de 4/)?.[1] ?? "?";
-    const shared = /^(TURNO ACTUAL|PUNTUACIÓN EN VIVO|REGISTRO DE ACCIONES)/i;
-    const cards = [...document.querySelectorAll(".status-card")]
+    // Los bloques que ven los dos por igual (ronda, marcador, cubos y registro) llevan data-fingerprint.
+    const cards = [...document.querySelectorAll("[data-fingerprint]")]
       .map((card) => card.innerText.replace(/\s+/g, " ").trim())
-      .filter((text) => shared.test(text))
       .map((text) => text.replace(/\s*\((Tú|Vos)\)/g, "").replace(/\s*\(Invitado\)/g, ""));
     return `R${round} dice[${dice}] ${cards.join(" || ")}`;
   });
