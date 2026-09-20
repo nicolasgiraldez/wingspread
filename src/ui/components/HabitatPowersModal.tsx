@@ -11,7 +11,8 @@ import {
 } from "./powerOptions";
 import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 import { habitatLabels } from "../labels";
-import { Icon } from "./ui/Icon";
+import { Button } from "./ui/Button";
+import { Modal } from "./ui/Modal";
 
 interface HabitatPowersModalProps {
   title: string;
@@ -209,28 +210,21 @@ export const HabitatPowersModal: React.FC<HabitatPowersModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{title}</h2>
-          <button onClick={onClose} style={{ background: "transparent", color: "#93a397", padding: 4 }}>
-            <Icon name="close" size={22} />
-          </button>
-        </div>
-
-        <p style={{ margin: 0, fontSize: "0.85rem", color: "#c3ccc5" }}>{subtitle}</p>
-
-        <PowerChecklist title="Poderes que se activarían" entries={entries} />
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #2b332e", paddingTop: 14 }}>
-          <button onClick={onClose} style={{ backgroundColor: "#212b22", color: "#c3ccc5" }}>
-            Cancelar
-          </button>
-          <button onClick={handleConfirm} style={{ backgroundColor: "#1f7a4f" }}>
-            <Icon name="check" size={18} /> Confirmar
-          </button>
-        </div>
-      </div>
-    </div>
+    <Modal
+      title={title}
+      subtitle={subtitle}
+      width={720}
+      onClose={onClose}
+      footer={
+        <>
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" icon="check" onClick={handleConfirm}>
+            Confirmar
+          </Button>
+        </>
+      }
+    >
+      <PowerChecklist title="Poderes que se activarían" entries={entries} />
+    </Modal>
   );
 };
