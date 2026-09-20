@@ -8,8 +8,11 @@ const FOCUSABLE =
 interface ModalProps {
   title: ReactNode;
   subtitle?: ReactNode;
-  /** Ficha de ícono opcional (56×56) a la izquierda del título. */
+  /** Ícono opcional junto al título: ficha de 56×56 ("tile"), sin marco ("bare") o círculo de 76px ("round"). */
   icon?: ReactNode;
+  iconStyle?: "tile" | "bare" | "round";
+  /** "center" apila el ícono sobre el título y lo centra (mano inicial, bonificación, esperas). */
+  align?: "start" | "center";
   /** Sin `onClose` el modal es obligatorio: no hay botón de cerrar ni cierra con Esc. */
   onClose?: () => void;
   /** Ancho en escritorio (px); en móvil ocupa el ancho de la pantalla menos el margen. */
@@ -23,7 +26,7 @@ interface ModalProps {
  * Carcasa de todos los modales: `role="dialog"`, `aria-modal`, foco atrapado, Esc (salvo los
  * obligatorios) y foco de vuelta al disparador al cerrarse.
  */
-export function Modal({ title, subtitle, icon, onClose, width = 900, footer, className, children }: ModalProps) {
+export function Modal({ title, subtitle, icon, iconStyle = "tile", align = "start", onClose, width = 900, footer, className, children }: ModalProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -71,7 +74,7 @@ export function Modal({ title, subtitle, icon, onClose, width = 900, footer, cla
       <div className="scrim" aria-hidden="true" />
       <div
         ref={dialogRef}
-        className={className ? `modal ${className}` : "modal"}
+        className={["modal", align === "center" && "modal--center", className].filter(Boolean).join(" ")}
         style={{ "--modal-w": `${width}px` } as CSSProperties}
         role="dialog"
         aria-modal="true"
@@ -81,7 +84,7 @@ export function Modal({ title, subtitle, icon, onClose, width = 900, footer, cla
       >
         <header className="modal__head">
           <div className="modal__heading">
-            {icon && <div className="modal__icon">{icon}</div>}
+            {icon && <div className={`modal__icon modal__icon--${iconStyle}`}>{icon}</div>}
             <div>
               <h2 id={titleId} className="modal__title">
                 {title}

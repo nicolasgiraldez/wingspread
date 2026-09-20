@@ -17,3 +17,8 @@ export function isTouchDevice(): boolean {
 export function pressVerb(): string {
   return isTouchDevice() ? "Tocá" : "Hacé clic en";
 }
+
+/** Primera letra en mayúscula: "insecto" → "Insecto". */
+export function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}

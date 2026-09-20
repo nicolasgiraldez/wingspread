@@ -1,0 +1,192 @@
+/* ==========================================================================
+   Modales: mano inicial, bonificación y esperas (docs/design/05-screens.md §4 y §6)
+   La carcasa (.modal, .scrim…) está en components.css.
+   ========================================================================== */
+
+.modal--wait .modal__head {
+  padding-bottom: 32px;
+}
+
+.modal__hint {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-tomate-d);
+}
+
+/* ---- Pasos numerados ---------------------------------------------------------- */
+.step__title {
+  margin-bottom: 12px;
+  font-size: 24px;
+}
+
+.step__note {
+  margin: -4px 0 12px;
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+/* ---- Aves de la mano inicial --------------------------------------------------- */
+.pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 6px;
+}
+
+.pick {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Descartada: desaturada y con poco contraste, siempre con el texto "Se descarta" debajo. */
+.pick--out .bird-card {
+  filter: grayscale(0.9);
+  opacity: 0.6;
+}
+
+.pick__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.pick__status--in {
+  color: var(--c-petroleo-d);
+}
+
+/* ---- Fichas de alimento a descartar --------------------------------------------- */
+.food-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.food {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 6px 18px 6px 12px;
+  background: var(--c-input);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-btn);
+  color: var(--c-carbon);
+  text-align: left;
+}
+
+/* Sin más descartes disponibles se ve igual que una ficha que se conserva: el motivo está en "(n de n)". */
+.food[aria-disabled="true"] {
+  background: var(--c-input);
+  color: var(--c-carbon);
+  border-style: solid;
+  cursor: not-allowed;
+}
+
+.food--out {
+  background: var(--state-error-bg);
+  border-color: var(--state-error-border);
+}
+
+.food__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.food__name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.food__state {
+  font-size: var(--fs-min);
+  font-weight: 600;
+}
+
+/* ---- Cartas de bonificación ------------------------------------------------------ */
+.bonus-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 4px;
+}
+
+.bonus-option {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  max-width: 360px;
+  background: var(--c-crema);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.bonus-option__tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--c-mostaza);
+  border-bottom: var(--stroke) solid var(--c-carbon);
+  font-size: var(--fs-min);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bonus-option__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px 18px;
+}
+
+.bonus-option__name {
+  font-size: 26px;
+}
+
+.bonus-option__desc {
+  flex: 1;
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+.bonus-option.is-selected {
+  border-radius: var(--radius-card);
+}
+
+/* ---- Móvil: aves en carrusel y pie fijo abajo ---------------------------------------- */
+@media (max-width: 640px) {
+  .pick-row {
+    flex-wrap: nowrap;
+    margin: 0 -16px;
+    padding: 6px 16px 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .pick {
+    scroll-snap-align: start;
+  }
+
+  .bonus-option {
+    max-width: none;
+  }
+
+  .modal--hand .modal__foot {
+    position: sticky;
+    bottom: 0;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--c-crema);
+  }
+}
