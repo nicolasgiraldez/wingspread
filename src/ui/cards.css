@@ -33,11 +33,6 @@
   line-height: 1.2;
 }
 
-.bird-card--board,
-.bird-card--mini {
-  height: var(--card-h);
-}
-
 .bird-card--interactive {
   cursor: pointer;
 }
@@ -344,11 +339,9 @@
   white-space: nowrap;
 }
 
-.bird-card--hand .bird-card__power-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+/* El texto del poder no se recorta: la carta crece lo que haga falta para que se lean sus condiciones. */
+.bird-card__power-text {
+  overflow-wrap: anywhere;
 }
 
 .bird-card__action {
@@ -361,7 +354,9 @@
   padding: 2px 6px 3px;
 }
 
-.bird-card--board .bird-card__timing {
+.bird-card--board .bird-card__timing,
+.bird-card--mini .bird-card__timing {
   gap: 4px;
   letter-spacing: 0.02em;
+  white-space: normal;
 }

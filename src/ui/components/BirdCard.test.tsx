@@ -108,6 +108,23 @@ describe("BirdCard", () => {
     expect(screen.getByText("Fotógrafo")).toBeInTheDocument();
   });
 
+  it.each(["full", "hand", "board", "mini"] as const)(
+    "en modo %s el detalle del poder (con su coste) está a la vista, no solo en el tooltip",
+    (mode) => {
+      const { container } = render(<BirdCard card={speciesCards.fishCrow} mode={mode} />);
+      const text = container.querySelector(".bird-card__power-text");
+      expect(text).toHaveTextContent("Descartá 1 huevo de otra ave para obtener 1 alimento a elección");
+      // Sin recortes: la carta no oculta el texto con line-clamp ni lo deja solo en title.
+      expect(screen.getByText(/Descartá 1 huevo de otra ave/)).toBeVisible();
+    },
+  );
+
+  it("un poder rosa muestra en la carta cuándo se dispara", () => {
+    render(<BirdCard card={speciesCards.beltedKingfisher} mode="board" />);
+    expect(screen.getByText(/Cuando otro jugador juegue un ave en su Río/)).toBeInTheDocument();
+    expect(screen.getByText("Entre turnos")).toBeInTheDocument();
+  });
+
   it("las medidas de cada modo son las del diseño", () => {
     expect(CARD_MODES.full).toMatchObject({ w: 264, h: 400, win: 196 });
     expect(CARD_MODES.hand).toMatchObject({ w: 192, h: 290, win: 146 });

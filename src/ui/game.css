@@ -490,6 +490,7 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 132px));
   gap: 12px;
+  align-items: start;
   justify-content: start;
 }
 
