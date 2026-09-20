@@ -10,10 +10,15 @@ import {
   powerTimingLabels,
   resourceLabels,
 } from "../labels";
+import logoUrl from "../assets/logo.svg";
+import { classifyLog } from "../logEvents";
+import type { LogKind } from "../logEvents";
+import { LogText } from "./LogText";
 import { playerSymbol, playerSymbolName } from "./playerSymbols";
 import { Banner } from "./ui/Banner";
 import { Button } from "./ui/Button";
 import { Icon } from "./ui/Icon";
+import type { IconName } from "./ui/iconNames";
 import { RichText } from "./ui/RichText";
 
 const RESERVE_ORDER: ResourceFace[] = ["seed", "fruit", "insect", "fish", "rodent"];
@@ -35,12 +40,12 @@ interface GameSidebarProps {
 
 const displayName = (state: GameState, id: PlayerId) => state.players[id]?.name || id;
 
-/** Las partes entre [corchetes] del texto del registro son nombres de ave: van en negrita, sin corchetes. */
-function renderLogMessage(text: string): React.ReactNode[] {
-  return text.split(/(\[[^\]]+\])/g).map((part, i) =>
-    /^\[[^\]]+\]$/.test(part) ? <strong key={i}>{part.slice(1, -1)}</strong> : part,
-  );
-}
+const LOG_ICON: Partial<Record<LogKind, { icon: IconName; label: string }>> = {
+  power: { icon: "bird", label: "Poder de ave" },
+  hunt: { icon: "target", label: "Caza exitosa" },
+  miss: { icon: "close", label: "Caza fallida" },
+  eggs: { icon: "egg", label: "Huevos" },
+};
 
 const Scoreboard: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" | "activeTab" | "onSelectPlayer">> = ({
   gameState,
@@ -250,12 +255,28 @@ const ActionLog: React.FC<{ gameState: GameState }> = ({ gameState }) => (
       Registro de acciones
     </h2>
     <ul className="log" role="log" aria-live="polite">
-      {gameState.log.slice(-LOG_LIMIT).map((entry, idx) => (
-        <li key={idx} className="log__entry">
-          {entry.playerId ? <strong>{displayName(gameState, entry.playerId)}: </strong> : null}
-          {renderLogMessage(entry.message)}
-        </li>
-      ))}
+      {gameState.log.slice(-LOG_LIMIT).map((entry, idx) => {
+        const event = classifyLog(entry);
+        const special = LOG_ICON[event.kind];
+        const playerIndex = entry.playerId ? gameState.playerOrder.indexOf(entry.playerId) : -1;
+        return (
+          <li key={idx} className="log__entry">
+            <span className="log__tile">
+              {special ? (
+                <Icon name={special.icon} size={20} label={special.label} />
+              ) : event.kind === "move" && playerIndex >= 0 ? (
+                <Icon name={playerSymbol(playerIndex)} size={20} label={`Símbolo: ${playerSymbolName(playerIndex)}`} />
+              ) : (
+                <img src={logoUrl} alt="Sistema" width={20} height={20} />
+              )}
+            </span>
+            <span className="log__text">
+              {entry.playerId ? <strong>{displayName(gameState, entry.playerId)}: </strong> : null}
+              <LogText text={entry.message} />
+            </span>
+          </li>
+        );
+      })}
     </ul>
   </section>
 );

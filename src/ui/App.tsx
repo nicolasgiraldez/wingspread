@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   applyMove,
   createInitialState,
@@ -20,6 +20,8 @@ import type {
 import { BirdCard } from "./components/BirdCard";
 import { CardBack } from "./components/CardBack";
 import { GameSidebar } from "./components/GameSidebar";
+import { LogText } from "./components/LogText";
+import { ToastRegion } from "./components/Toast";
 import { GameTopBar } from "./components/GameTopBar";
 import { Banner } from "./components/ui/Banner";
 import { Button } from "./components/ui/Button";
@@ -38,8 +40,17 @@ import { PlayerBoard } from "./components/PlayerBoard";
 import { RoundGoalsMat } from "./components/RoundGoalsMat";
 import { bonusNameTags } from "./labels";
 import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./network/hostGame";
+import { classifyLog } from "./logEvents";
 import { countOf, pressVerb } from "./text";
-import { clearSavedGame, loadSavedGame, saveGame, summarizeSavedGame } from "./savedGame";
+import { useToasts } from "./useToasts";
+import {
+  clearSavedGame,
+  isSaveBlocked,
+  loadSavedGame,
+  saveGame,
+  subscribeSaveStatus,
+  summarizeSavedGame,
+} from "./savedGame";
 import type { SavedGame } from "./savedGame";
 import {
   ConnectionStatus,
@@ -94,6 +105,11 @@ export const App: React.FC = () => {
   >(null);
   const [pendingDraw, setPendingDraw] = useState<DrawCardSelection[] | null>(null);
 
+  // Avisos efímeros (turno, poderes, caza, ronda, errores) y aviso de guardado bloqueado.
+  const { toasts, push: pushToast, dismiss: dismissToast } = useToasts();
+  const toastSeen = useRef<{ log: number; round: number; myTurn: boolean } | null>(null);
+  const saveBlocked = useSyncExternalStore(subscribeSaveStatus, isSaveBlocked);
+
   const gameStateRef = useRef<GameState | null>(null);
   useEffect(() => {
     gameStateRef.current = gameState;
@@ -111,6 +127,37 @@ export const App: React.FC = () => {
       saveGame({ kind: "online-host", state: gameState, roomCode, savedAt: Date.now() });
     }
   }, [gameState, isHost, roomCode]);
+
+  // Avisos por los mismos eventos que alimentan el registro: turno propio, poderes, caza y cambio de ronda.
+  useEffect(() => {
+    if (!gameState) {
+      toastSeen.current = null;
+      return;
+    }
+    const myTurn = gameState.phase === "round" && gameState.currentPlayerId === localPlayerId;
+    const prev = toastSeen.current;
+    toastSeen.current = { log: gameState.log.length, round: gameState.round, myTurn };
+    // La primera vez (o al cargar una partida guardada) no se avisa de lo que ya pasó.
+    if (!prev || gameState.log.length < prev.log) return;
+
+    for (const entry of gameState.log.slice(prev.log)) {
+      const event = classifyLog(entry);
+      if (event.kind === "power") pushToast({ kind: "pow", title: `Poder de ${event.bird}`, text: <LogText text={event.text} /> });
+      if (event.kind === "hunt") pushToast({ kind: "hunt", title: "¡Caza exitosa!", text: <LogText text={`Depredador [${event.bird}]: ${event.text}`} /> });
+      if (event.kind === "miss") pushToast({ kind: "miss", title: "Caza fallida", text: <LogText text={`Depredador [${event.bird}]: ${event.text}`} /> });
+    }
+    if (gameState.phase === "round" && gameState.round > prev.round) {
+      const left = 4 - gameState.round;
+      pushToast({
+        kind: "round",
+        title: `Comienza la ronda ${gameState.round}`,
+        text: `${left === 0 ? "Es la última ronda." : `${left === 1 ? "Queda" : "Quedan"} ${countOf(left, "ronda", "rondas")}.`} Revisá los objetivos de la ronda.`,
+      });
+    }
+    if (myTurn && !prev.myTurn) {
+      pushToast({ kind: "turn", title: "Es tu turno", text: "Tomá una acción: jugar un ave, comida, huevos o cartas." });
+    }
+  }, [gameState, localPlayerId, pushToast]);
 
   // Cambia el estado y actualiza el ref al instante: el anfitrión procesa mensajes de red que
   // pueden llegar antes de que React re-renderice, y cada uno debe partir del estado más nuevo.
@@ -329,7 +376,14 @@ export const App: React.FC = () => {
   // (p. ej. mientras reconecta) la jugada no llega, y se avisa en vez de perderla en silencio.
   const sendGuestMove = (move: Move) => {
     const sent = networkManager.sendMessage({ type: "APPLY_MOVE", move, playerId: localPlayerId });
-    if (!sent) setConnectionMessage("Sin conexión con el anfitrión: tu jugada no se envió. Reintentá cuando vuelva.");
+    if (!sent) {
+      pushToast({
+        kind: "err",
+        title: "Sin conexión con el anfitrión",
+        text: "Tu jugada no se envió. Reintentá cuando vuelva.",
+        action: { label: "Reintentar", onClick: () => sendGuestMove(move) },
+      });
+    }
   };
 
   // Como executeLocalMove, pero sin exigir que sea el turno del jugador local: la elección de
@@ -506,6 +560,13 @@ export const App: React.FC = () => {
         />
 
         <main className="table">
+          {saveBlocked && (
+            <Banner tone="warn" icon="alert" title="Partida sin guardar · almacenamiento bloqueado">
+              No se pudo guardar la partida en este navegador. El almacenamiento está lleno o bloqueado (modo privado). Podés seguir
+              jugando, pero no vas a poder reanudarla si cerrás la pestaña.
+            </Banner>
+          )}
+
           {/* Online connection bar */}
           {gameState.gameMode === "online" && (
             <ConnectionStatusBar
@@ -622,6 +683,8 @@ export const App: React.FC = () => {
           )}
         </main>
       </div>
+
+      <ToastRegion toasts={toasts} onDismiss={dismissToast} />
 
       {/* ── Modals ───────────────────────────────────────────────────────── */}
       {selectedCardForPlay && gameState.players[localPlayerId] && (
