@@ -7,12 +7,12 @@ const base = { id: "p", timing: "onActivate" } as const;
 describe("describePower", () => {
   it("incrusta los alimentos como marcadores de ícono, sin emoji", () => {
     const power = { ...base, kind: "gainResource", resource: "seed", amount: 2, from: "feeder" } as Power;
-    expect(describePower(power)).toBe("Obtené 2 {seed} del comedero");
+    expect(describePower(power)).toBe("Obtené 2 {seed} del comedero (si hay)");
   });
 
-  it("con alternativa lleva dos marcadores", () => {
-    const power = { ...base, kind: "gainResource", resource: "insect", resourceAlt: "seed", amount: 1 } as Power;
-    expect(describePower(power)).toBe("Obtené 1 {insect} o {seed}");
+  it("con alternativa lleva dos marcadores y dice que es un reemplazo si falta el primero", () => {
+    const power = { ...base, kind: "gainResource", resource: "insect", resourceAlt: "seed", amount: 1, from: "feeder" } as Power;
+    expect(describePower(power)).toBe("Obtené 1 {insect} del comedero; si no hay, 1 {seed}");
   });
 
   it("describePowerText pasa los marcadores a palabras", () => {

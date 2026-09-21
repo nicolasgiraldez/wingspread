@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { canPayResources, getOnPlayPowers, isLegalMove } from "../../game";
+import { canPayResources, getOnPlayPowers, isLegalMove, tuckGainChoiceKey } from "../../game";
 import type {
   CardId,
   GameState,
@@ -26,7 +26,7 @@ import { Icon } from "./ui/Icon";
 import { Modal } from "./ui/Modal";
 import { RichText } from "./ui/RichText";
 import { StatusLine } from "./ui/StatusLine";
-import { buildEggTargetOptions, decodeSlotKey } from "./powerOptions";
+import { buildEggTargetOptions, buildTuckGainChoice, decodeSlotKey } from "./powerOptions";
 import { PowerChecklist, PowerChecklistEntry } from "./PowerChecklist";
 
 function eggCostForColumn(slotIndex: number): number {
@@ -286,12 +286,14 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
       };
     }
 
+    const gainChoice = buildTuckGainChoice(power, powerCardChoices, setPowerCardChoices);
     return {
       power,
       birdName: card.name,
       checked: !skippedPowerIds.has(power.id),
       onToggle: () => togglePower(power.id),
       cardChoice,
+      gainChoice,
       slotChoice,
     };
   });
@@ -323,6 +325,9 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
     if (!entry.checked) continue;
     if (entry.cardChoice?.selected) {
       activePowerCardChoices[entry.power.id] = entry.cardChoice.selected;
+    }
+    if (entry.gainChoice?.selected) {
+      activePowerCardChoices[tuckGainChoiceKey(entry.power.id)] = entry.gainChoice.selected;
     }
     if (entry.slotChoice?.selected) {
       activePowerEggChoices[entry.power.id] = decodeSlotKey(entry.slotChoice.selected);

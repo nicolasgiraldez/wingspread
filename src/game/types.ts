@@ -84,7 +84,7 @@ export type Power =
       costAmount?: number;
       /** Si se solapó con éxito, además ganá este recurso de la reserva. */
       thenGainResource?: ResourceFace;
-      /** Segunda opción de thenGainResource; hoy se prioriza siempre thenGainResource. */
+      /** Segunda opción de thenGainResource: el jugador elige cuál gana (ver tuckGainChoiceKey); por defecto, la primera. */
       thenGainResourceAlt?: ResourceFace;
       /** Solo para el patrón rosa "cuando otro jugador juega un ave de [hábitat]": filtra el evento. */
       habitat?: HabitatId;

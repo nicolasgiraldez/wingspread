@@ -37,6 +37,8 @@ export interface PowerChecklistEntry {
   checked: boolean;
   onToggle: () => void;
   cardChoice?: PowerCardChoiceConfig;
+  /** Alimento que se gana al solapar cuando el poder ofrece dos (p. ej. insecto o semilla). */
+  gainChoice?: PowerCardChoiceConfig;
   slotChoice?: PowerSlotChoiceConfig;
   habitatChoice?: PowerHabitatChoiceConfig;
 }
@@ -104,6 +106,16 @@ export const PowerChecklist: React.FC<PowerChecklistProps> = ({ title, entries }
                 defaultLabel={entry.cardChoice.defaultOptionLabel}
                 options={entry.cardChoice.options.map((o) => ({ value: o.id, name: o.name }))}
                 onChange={(v) => entry.cardChoice!.onSelect(v || null)}
+              />
+            )}
+
+            {entry.checked && entry.gainChoice && (
+              <SelectChoice
+                label={entry.gainChoice.label}
+                value={entry.gainChoice.selected ?? ""}
+                defaultLabel={entry.gainChoice.defaultOptionLabel}
+                options={entry.gainChoice.options.map((o) => ({ value: o.id, name: o.name }))}
+                onChange={(v) => entry.gainChoice!.onSelect(v || null)}
               />
             )}
 

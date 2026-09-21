@@ -249,17 +249,16 @@ export const BirdCard: React.FC<BirdCardProps> = ({
                   size={mode === "full" ? 20 : mode === "hand" ? 18 : 16}
                   ink={p.timing === "onActivate" ? "var(--c-crema)" : undefined}
                 />
-                {mode !== "mini" && <span>{powerTimingLabels[p.timing]}</span>}
+                <span>{powerTimingLabels[p.timing]}</span>
               </span>
-              {(mode === "full" || mode === "hand") && (
-                <span className="bird-card__power-text">
-                  <RichText
-                    text={describePower(p)}
-                    size={mode === "full" ? 16 : 15}
-                    ink={p.timing === "onActivate" ? "var(--c-crema)" : undefined}
-                  />
-                </span>
-              )}
+              {/* El detalle del poder (con sus costes y condiciones) se ve siempre, en todos los modos. */}
+              <span className="bird-card__power-text">
+                <RichText
+                  text={describePower(p)}
+                  size={mode === "full" ? 16 : 15}
+                  ink={p.timing === "onActivate" ? "var(--c-crema)" : undefined}
+                />
+              </span>
             </span>
           ))
         )}
