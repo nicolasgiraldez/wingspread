@@ -5,6 +5,7 @@ import {
   costIcon,
   describePower,
   describePowerText,
+  habitatArticle,
   habitatIcons,
   habitatLabels,
   powerTimingLabels,
@@ -21,9 +22,9 @@ import { Button } from "./ui/Button";
 import { Icon } from "./ui/Icon";
 import type { IconName } from "./ui/iconNames";
 import { RichText } from "./ui/RichText";
+import { ThinkingDots } from "./ui/ThinkingDots";
 
 const RESERVE_ORDER: ResourceFace[] = ["seed", "fruit", "insect", "fish", "rodent"];
-const HABITAT_ARTICLE: Record<HabitatId, string> = { forest: "el", grassland: "la", wetland: "el" };
 const LOG_LIMIT = 6;
 
 interface GameSidebarProps {
@@ -61,13 +62,14 @@ const Scoreboard: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" 
     <ul className="score-list">
       {gameState.playerOrder.map((id, index) => {
         const inTurn = gameState.currentPlayerId === id && gameState.phase !== "gameEnd";
+        const rivalTurn = inTurn && id !== localPlayerId && gameState.phase === "round";
         const viewed = activeTab === id;
         const isBot = !!gameState.players[id]?.botLevel;
         return (
           <li key={id}>
             <button
               type="button"
-              className={`score${inTurn ? " score--turn" : ""}${viewed ? " score--viewed" : ""}`}
+              className={`score${inTurn ? " score--turn" : ""}${rivalTurn ? " score--rival" : ""}${viewed ? " score--viewed" : ""}`}
               aria-pressed={viewed}
               title={viewed ? "Estás viendo este tablero" : "Ver el tablero de este jugador"}
               onClick={() => onSelectPlayer(id)}
@@ -78,7 +80,12 @@ const Scoreboard: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" 
                 {isBot && <Icon name="bot" size={18} />}
                 {id === localPlayerId && <span className="score__mark">(Vos)</span>}
                 {gameState.firstPlayerId === id && <span className="score__mark">1.º</span>}
-                {inTurn && <span className="score__mark score__mark--turn">Turno</span>}
+                {inTurn && (
+                  <span className="score__mark score__mark--turn">
+                    Turno
+                    {rivalTurn && <ThinkingDots />}
+                  </span>
+                )}
               </span>
               <span className="score__points">
                 {scorePlayerDetails(gameState, id).total}
@@ -209,7 +216,7 @@ const SelectedCard: React.FC<Pick<GameSidebarProps, "selectedCard" | "playBlocke
               </span>
             ))}
           </span>
-          Se juega en {selectedCard.habitats.map((hab) => `${HABITAT_ARTICLE[hab]} ${habitatLabels[hab]}`).join(" o ")}
+          Se juega en {selectedCard.habitats.map((hab) => `${habitatArticle[hab]} ${habitatLabels[hab]}`).join(" o ")}
         </p>
         <p className="selected-card__cost" title="Coste">
           {Object.entries(selectedCard.cost).flatMap(([res, count]) =>

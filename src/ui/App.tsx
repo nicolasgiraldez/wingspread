@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   applyMove,
+  applyPlayerMove,
   createInitialState,
   getActivatablePowers,
   isLegalMove,
@@ -21,10 +22,12 @@ import { BirdCard } from "./components/BirdCard";
 import { CardBack } from "./components/CardBack";
 import { GameSidebar } from "./components/GameSidebar";
 import { LogText } from "./components/LogText";
+import { RivalActionPanel } from "./components/RivalActionPanel";
 import { ToastRegion } from "./components/Toast";
 import { GameTopBar } from "./components/GameTopBar";
 import { Banner } from "./components/ui/Banner";
 import { Button } from "./components/ui/Button";
+import { ThinkingDots } from "./components/ui/ThinkingDots";
 import { BirdFeeder } from "./components/BirdFeeder";
 import { BirdMarket } from "./components/BirdMarket";
 import { ChooseBonusCardModal } from "./components/ChooseBonusCardModal";
@@ -42,6 +45,7 @@ import { bonusNameTags } from "./labels";
 import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./network/hostGame";
 import { classifyLog } from "./logEvents";
 import { countOf, pressVerb } from "./text";
+import { useBotTurns } from "./useBotTurns";
 import { useToasts } from "./useToasts";
 import {
   clearSavedGame,
@@ -140,7 +144,11 @@ export const App: React.FC = () => {
     // La primera vez (o al cargar una partida guardada) no se avisa de lo que ya pasó.
     if (!prev || gameState.log.length < prev.log) return;
 
-    for (const entry of gameState.log.slice(prev.log)) {
+    // Lo que hace la IA lo cuenta el panel de acciones del rival, no un aviso.
+    const byBot = (entry: { playerId?: PlayerId }) => !!entry.playerId && !!gameState.players[entry.playerId]?.botLevel;
+    const newEntries = gameState.log.slice(prev.log);
+    for (const entry of newEntries) {
+      if (byBot(entry)) continue;
       const event = classifyLog(entry);
       if (event.kind === "power") pushToast({ kind: "pow", title: `Poder de ${event.bird}`, text: <LogText text={event.text} /> });
       if (event.kind === "hunt") pushToast({ kind: "hunt", title: "¡Caza exitosa!", text: <LogText text={`Depredador [${event.bird}]: ${event.text}`} /> });
@@ -154,7 +162,7 @@ export const App: React.FC = () => {
         text: `${left === 0 ? "Es la última ronda." : `${left === 1 ? "Queda" : "Quedan"} ${countOf(left, "ronda", "rondas")}.`} Revisá los objetivos de la ronda.`,
       });
     }
-    if (myTurn && !prev.myTurn) {
+    if (myTurn && !prev.myTurn && !newEntries.some(byBot)) {
       pushToast({ kind: "turn", title: "Es tu turno", text: "Tomá una acción: jugar un ave, comida, huevos o cartas." });
     }
   }, [gameState, localPlayerId, pushToast]);
@@ -165,6 +173,9 @@ export const App: React.FC = () => {
     gameStateRef.current = next;
     setGameState(next);
   };
+
+  // En solitario la IA juega de a una jugada, con pausas, y cada una se anuncia en el panel del rival.
+  const { action: rivalAction, dismiss: dismissRivalAction } = useBotTurns(gameState, commitGameState);
 
   // ── Crear o reanudar una sala como anfitrión ──────────────────────────────
   const startHosting = (code: string, state: GameState, resume: boolean) => {
@@ -341,6 +352,7 @@ export const App: React.FC = () => {
   // ── Return to homepage ────────────────────────────────────────────────────
   const handleGoHome = () => {
     networkManager.cleanup();
+    dismissRivalAction();
     setGameState(null);
     setSavedGame(loadSavedGame());
     setConnectionStatus("disconnected");
@@ -357,7 +369,7 @@ export const App: React.FC = () => {
 
     if (gameState.gameMode === "solo") {
       if (isLegalMove(gameState, localPlayerId, move)) {
-        setGameState(applyMove(gameState, localPlayerId, move));
+        setGameState(applyPlayerMove(gameState, localPlayerId, move));
       }
     } else if (gameState.gameMode === "online") {
       if (isHost) {
@@ -393,7 +405,7 @@ export const App: React.FC = () => {
 
     if (gameState.gameMode === "solo") {
       if (isLegalMove(gameState, localPlayerId, move)) {
-        setGameState(applyMove(gameState, localPlayerId, move));
+        setGameState(applyPlayerMove(gameState, localPlayerId, move));
       }
     } else if (gameState.gameMode === "online") {
       if (isHost) {
@@ -578,10 +590,12 @@ export const App: React.FC = () => {
             />
           )}
 
-          {/* Waiting banner */}
-          {gameState.gameMode === "online" && !isMyTurn && gameState.phase === "round" && (
-            <Banner tone="info" icon="hourglass">
-              Turno de {getDisplayName(gameState, gameState.currentPlayerId)}... Esperando su jugada en tiempo real.
+          {/* Turno del rival */}
+          {!isMyTurn && gameState.phase === "round" && (
+            <Banner tone="info" icon="hourglass" className="banner--rival">
+              <strong>Turno de {getDisplayName(gameState, gameState.currentPlayerId)}</strong>
+              {gameState.gameMode === "online" ? " · Esperando su jugada en tiempo real" : " · Está jugando"}
+              <ThinkingDots />
             </Banner>
           )}
 
@@ -684,6 +698,7 @@ export const App: React.FC = () => {
         </main>
       </div>
 
+      <RivalActionPanel action={rivalAction} onDismiss={dismissRivalAction} />
       <ToastRegion toasts={toasts} onDismiss={dismissToast} />
 
       {/* ── Modals ───────────────────────────────────────────────────────── */}
