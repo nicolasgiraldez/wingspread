@@ -1,0 +1,115 @@
+/* ==========================================================================
+   Wingspread · componentes base
+   BORRADOR derivado de los tableros. Depende de tokens.css.
+   Ante cualquier duda de medidas, manda el PNG del tablero en reference/.
+   ========================================================================== */
+
+/* ---- Botones ---------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--tap-min); height: var(--btn-h-md);
+  padding: 0 20px;
+  border-radius: var(--radius-btn);
+  border: var(--stroke) solid var(--c-carbon);
+  font-family: var(--font-body); font-weight: 600; font-size: 17px; line-height: 1;
+  cursor: pointer; box-sizing: border-box;
+}
+.btn--lg { height: var(--btn-h-lg); }
+.btn--sm { height: var(--btn-h-sm); padding: 0 18px; font-size: 15px; }
+
+.btn--primary { background: var(--c-tomate-d); color: var(--c-crema); box-shadow: var(--shadow-press); }
+.btn--primary:active:not(:disabled) { transform: translateY(2px); box-shadow: var(--shadow-press-sm); }
+
+.btn--secondary { background: transparent; color: var(--c-carbon); }
+
+/* Botón de modo / tarjeta de elección (Bienvenida) */
+.btn--panel { background: var(--c-petroleo); color: var(--c-crema); box-shadow: var(--shadow-press); border-radius: var(--radius-panel); }
+
+/* Deshabilitado: además de este estilo, SIEMPRE mostrar el motivo en texto
+   (ej. "Sin alimento suficiente"). Nunca un botón gris mudo. */
+.btn:disabled, .btn[aria-disabled="true"] {
+  background: var(--c-crema-2); color: var(--c-muted);
+  box-shadow: none; cursor: not-allowed;
+  border-style: dashed;
+}
+
+/* Botón de solo ícono: 44×44 mínimo y aria-label obligatorio */
+.btn--icon { width: var(--tap-min); padding: 0; }
+
+/* ---- Campos ----------------------------------------------------------- */
+.field { display: flex; flex-direction: column; gap: 8px; }
+/* La etiqueta del campo usa la clase global .label (tokens.css) sobre un <label for="..."> */
+.field__input {
+  width: 100%; height: var(--btn-h-lg); box-sizing: border-box;
+  border-radius: var(--radius-field); border: var(--stroke) solid var(--c-carbon);
+  background: var(--c-input); color: var(--c-carbon);
+  padding: 0 16px; font-family: var(--font-body); font-size: var(--fs-lead);
+}
+.field__input::placeholder { color: var(--c-placeholder); }
+.field__input[aria-invalid="true"] { border-color: var(--c-tomate-d); background: var(--state-error-bg); }
+.field__hint  { font-size: var(--fs-small); color: var(--c-muted); }
+.field__error { font-size: var(--fs-small); color: var(--c-tomate-d); font-weight: 600; }
+
+/* ---- Chips y etiquetas ------------------------------------------------ */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px;
+  border-radius: var(--radius-pill); border: var(--stroke) solid var(--c-carbon);
+  background: var(--c-crema); font-size: var(--fs-min); font-weight: 600; color: var(--c-carbon);
+}
+.chip--on { background: var(--c-mostaza); }
+.chip--filter { min-height: var(--tap-min); padding: 0 16px; font-size: var(--fs-small); cursor: pointer; }
+
+/* ---- Paneles / tarjetas ----------------------------------------------- */
+.panel {
+  background: var(--c-crema-2); border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card); padding: 16px;
+}
+.panel--raised { background: var(--c-crema); box-shadow: var(--shadow-press); }
+
+/* ---- Avisos en línea (banner) ----------------------------------------- */
+.banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px;
+  border-radius: var(--radius-card); border: var(--stroke) solid var(--c-carbon);
+  box-shadow: var(--shadow-press); font-size: var(--fs-small); line-height: 1.35;
+}
+.banner--error { background: var(--state-error-bg); border-color: var(--state-error-border); }
+.banner--warn  { background: var(--state-warn-bg); }
+.banner--info  { background: var(--state-info-bg); }
+.banner--ok    { background: var(--state-ok-bg); }
+
+/* ---- Toast (PROPUESTA: hoy no existe) --------------------------------- */
+.toast-region { position: fixed; z-index: 60; display: flex; flex-direction: column; gap: 10px; right: 20px; bottom: 20px; }
+@media (max-width: 640px) { .toast-region { left: 16px; right: 16px; bottom: 16px; } }
+.toast {
+  width: 400px; max-width: 100%; box-sizing: border-box; position: relative;
+  border-radius: var(--radius-card); border: var(--stroke) solid var(--c-carbon);
+  box-shadow: var(--shadow-press); padding: 14px 8px 22px 14px; display: flex; gap: 12px;
+}
+/* role="status" (o "alert" si es error). Auto-cierre a los 5 s (los errores no se cierran solos),
+   con botón de cerrar de 44×44. Ver 02-components.md y 05-screens.md §8. */
+
+/* ---- Modal ------------------------------------------------------------ */
+.scrim { position: fixed; inset: 0; background: var(--c-scrim); opacity: .72; z-index: 50; }
+.modal {
+  position: fixed; z-index: 51; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(var(--modal-w, 900px), calc(100vw - 32px)); max-height: calc(100vh - 32px);
+  display: flex; flex-direction: column; gap: 20px; overflow: auto;
+  background: var(--c-crema); border: var(--stroke) solid var(--c-carbon);
+  border-radius: 22px; box-shadow: var(--shadow-lift);
+}
+.modal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 28px 0; }
+.modal__body { display: flex; flex-direction: column; gap: 20px; padding: 0 28px; }
+.modal__foot { display: flex; justify-content: flex-end; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-top: 2px dashed var(--c-muted); margin: 0 28px; padding: 18px 0 24px; }
+@media (max-width: 640px) {
+  .modal__head { padding: 12px 16px 0; } .modal__body { padding: 0 16px; }
+  .modal__foot { margin: 0 16px; padding: 16px 0 12px; }
+  .modal__foot .btn { width: 100%; }
+}
+/* Requisitos: role="dialog", aria-modal="true", aria-labelledby, foco atrapado,
+   Esc cierra (salvo mano inicial y elección de bonificación), foco vuelve al disparador.
+   Anchos por modal en 02-components.md (Jugar ave 1000, Poner huevos 900, esperas 640). */
+
+/* ---- Carta seleccionada ------------------------------------------------ */
+.is-selected { box-shadow: var(--focus-ring); }
+.is-lifted   { transform: translateY(-12px); box-shadow: var(--focus-ring), var(--shadow-lift); }
