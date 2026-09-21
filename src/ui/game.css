@@ -89,7 +89,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 220px;
+  min-width: min(320px, calc(100vw - 24px));
   padding: 12px;
   background: var(--c-crema);
   color: var(--c-carbon);

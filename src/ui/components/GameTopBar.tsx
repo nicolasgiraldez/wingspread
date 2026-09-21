@@ -1,5 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import logoUrl from "../assets/logo.svg";
+import { SPEED_OPTIONS } from "../gameSpeed";
+import type { GameSpeed } from "../gameSpeed";
 import { Button } from "./ui/Button";
 import { ThinkingDots } from "./ui/ThinkingDots";
 
@@ -9,13 +11,24 @@ interface GameTopBarProps {
   isMyTurn: boolean;
   /** Nombre de quien tiene el turno (para el chip cuando no es el tuyo). */
   currentName: string;
+  /** Velocidad de la partida; si se pasa junto con `onSpeedChange`, el menú deja elegirla. */
+  speed?: GameSpeed;
+  onSpeedChange?: (speed: GameSpeed) => void;
   onHome: () => void;
 }
 
 const ROUNDS = 4;
 
 /** Barra superior: marca, progreso de rondas, de quién es el turno y menú de la partida. */
-export const GameTopBar: React.FC<GameTopBarProps> = ({ round, ended, isMyTurn, currentName, onHome }) => {
+export const GameTopBar: React.FC<GameTopBarProps> = ({
+  round,
+  ended,
+  isMyTurn,
+  currentName,
+  speed = "normal",
+  onSpeedChange,
+  onHome,
+}) => {
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -83,6 +96,25 @@ export const GameTopBar: React.FC<GameTopBarProps> = ({ round, ended, isMyTurn, 
           </button>
           {open && (
             <div id={menuId} ref={menuRef} className="topbar__popover" role="group" aria-label="Menú de la partida">
+              {onSpeedChange && (
+                <div className="topbar__speed" role="group" aria-label="Velocidad del juego">
+                  <span className="label">Velocidad</span>
+                  <div className="topbar__speed-options">
+                    {SPEED_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`chip chip--filter${speed === option.id ? " chip--on" : ""}`}
+                        aria-pressed={speed === option.id}
+                        onClick={() => onSpeedChange(option.id)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="topbar__speed-hint">{SPEED_OPTIONS.find((option) => option.id === speed)?.hint}</p>
+                </div>
+              )}
               <Button icon="back" onClick={onHome}>
                 Volver al inicio
               </Button>

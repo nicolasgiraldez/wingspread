@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useGameSpeed } from "../../gameSpeed";
+import type { GameSpeed } from "../../gameSpeed";
 
-const DURATION_MS = 600;
+const DURATION_MS: Record<GameSpeed, number> = { normal: 600, fast: 300, instant: 150 };
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -10,13 +12,14 @@ const prefersReducedMotion = () =>
  * Los lectores de pantalla leen siempre el valor final; con movimiento reducido no cuenta, salta.
  */
 export function CountUp({ value }: { value: number }) {
+  const speed = useGameSpeed();
   const [shown, setShown] = useState(value);
   const current = useRef(value);
 
   useEffect(() => {
     if (current.current === value) return;
     const from = current.current;
-    const duration = prefersReducedMotion() ? 0 : DURATION_MS;
+    const duration = prefersReducedMotion() ? 0 : DURATION_MS[speed];
     const start = performance.now();
     let frame = 0;
     const step = (now: number) => {
@@ -28,7 +31,7 @@ export function CountUp({ value }: { value: number }) {
     };
     frame = window.requestAnimationFrame(step);
     return () => window.cancelAnimationFrame(frame);
-  }, [value]);
+  }, [value, speed]);
 
   return (
     <>
