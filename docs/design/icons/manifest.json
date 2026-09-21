@@ -1,0 +1,20 @@
+{
+  "seed": "Semilla",
+  "fruit": "Fruta",
+  "insect": "Insecto",
+  "fish": "Pez",
+  "rodent": "Roedor",
+  "wild": "Comodín",
+  "bowl": "Copa",
+  "cavity": "Cavidad",
+  "platform": "Plataforma",
+  "ground": "Suelo",
+  "nestwild": "Comodín",
+  "forest": "Bosque",
+  "grass": "Pradera",
+  "river": "Río",
+  "activate": "Activar",
+  "between": "Entre turnos",
+  "play": "Jugar",
+  "egg": "Huevo"
+}
