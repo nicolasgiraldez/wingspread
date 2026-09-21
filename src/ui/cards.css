@@ -183,7 +183,10 @@
   overflow: hidden;
   font-family: var(--font-display);
   font-size: var(--card-name);
-  line-height: 1.05;
+  /* El overflow del line-clamp recorta en el borde de la línea: con 1.05 se cortan los descendentes (g, p, q, y, j).
+     DM Serif Display baja 0.24em de la base y necesita >= 1.2; el margen negativo devuelve el aire para no mover el layout. */
+  line-height: 1.25;
+  margin-block: -0.1em;
 }
 
 .bird-card--full .bird-card__name {
@@ -206,6 +209,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-style: italic;
+  /* Con overflow hidden, el descendente de la p/g cursiva quedaba justo al borde de la línea. */
+  padding-bottom: 0.15em;
+  margin-bottom: -0.15em;
 }
 
 .bird-card__span {
