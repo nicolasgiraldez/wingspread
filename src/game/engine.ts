@@ -618,13 +618,21 @@ function takeDieFromFeeder(state: GameState): ResourceFace | undefined {
 }
 
 /**
- * Saca del comedero un dado que muestre `res` (la cara comodín insecto/semilla vale como cualquiera de
- * los dos si no hay un dado exacto). Devuelve false, sin tocar nada, si no hay ninguno. Si el comedero
- * queda vacío se relanzan los 5 dados, como en cualquier otra toma.
+ * Posición en el comedero de un dado que dé `res`, o -1. Un dado exacto va primero; la cara comodín
+ * (insecto/semilla) sirve como insecto o como semilla cuando no hay uno exacto, como en las reglas.
+ */
+function findFeederDie(feeder: ResourceFace[], res: ResourceFace): number {
+  const exact = feeder.indexOf(res);
+  if (exact !== -1) return exact;
+  return res === "insect" || res === "seed" ? feeder.indexOf("wild") : -1;
+}
+
+/**
+ * Saca del comedero un dado que dé `res`. Devuelve false, sin tocar nada, si no hay ninguno. Si el
+ * comedero queda vacío se relanzan los 5 dados, como en cualquier otra toma.
  */
 function takeMatchingDieFromFeeder(state: GameState, res: ResourceFace): boolean {
-  let index = state.feeder.indexOf(res);
-  if (index === -1 && (res === "insect" || res === "seed")) index = state.feeder.indexOf("wild");
+  const index = findFeederDie(state.feeder, res);
   if (index === -1) return false;
   state.feeder.splice(index, 1);
   if (state.feeder.length === 0) state.feeder = rollInitialFeeder(5);
@@ -812,15 +820,16 @@ export function resolvePower(
     }
     if (power.from === "feeder") {
       // Si el tipo principal no está en el comedero, probamos con el alternativo (si existe).
+      // La cara comodín (insecto/semilla) cuenta como insecto y como semilla (ver findFeederDie).
       let res = power.resource ?? "seed";
-      if (!state.feeder.includes(res) && power.resourceAlt && state.feeder.includes(power.resourceAlt)) {
+      if (findFeederDie(state.feeder, res) === -1 && power.resourceAlt && findFeederDie(state.feeder, power.resourceAlt) !== -1) {
         res = power.resourceAlt;
       }
 
       if (power.gainAllMatching) {
         let count = 0;
-        while (state.feeder.includes(res)) {
-          state.feeder.splice(state.feeder.indexOf(res), 1);
+        for (let index = findFeederDie(state.feeder, res); index !== -1; index = findFeederDie(state.feeder, res)) {
+          state.feeder.splice(index, 1);
           count += 1;
         }
         if (count > 0) {
@@ -834,7 +843,7 @@ export function resolvePower(
           }
         }
       } else {
-        const dieIdx = state.feeder.indexOf(res);
+        const dieIdx = findFeederDie(state.feeder, res);
         if (dieIdx !== -1) {
           state.feeder.splice(dieIdx, 1);
           player.resources[res] = (player.resources[res] ?? 0) + power.amount;

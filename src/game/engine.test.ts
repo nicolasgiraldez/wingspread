@@ -2435,3 +2435,73 @@ describe("poderes de cartas reales que dependían de una elección o de un dado 
     });
   });
 });
+
+describe("la cara comodín (insecto/semilla) del comedero sirve como insecto y como semilla", () => {
+  const stateWithFeederPower = (
+    power: Extract<GameState["cards"][string]["powers"][number], { kind: "gainResource" }>,
+    feeder: GameState["feeder"],
+  ) => {
+    const state = createTestState({ mode: "solo" });
+    state.players.nico.board.forest[0].cardId = "acornJay";
+    state.cards.acornJay = { ...state.cards.acornJay, powers: [power] };
+    state.players.nico.resources = {};
+    state.players.bot.actionCubesAvailable = 0; // el rival no toca el comedero durante la aserción
+    state.feeder = feeder;
+    return state;
+  };
+  const take = (state: GameState) => applyMove(state, "nico", { type: "gainFood", dieIndexes: [0] });
+  const power = (over: object) =>
+    ({ id: "test.wild", timing: "onActivate", kind: "gainResource", amount: 1, from: "feeder", ...over }) as never;
+
+  it("\"Obtené 1 insecto del comedero\" toma la cara comodín si no hay un insecto exacto", () => {
+    const next = take(stateWithFeederPower(power({ resource: "insect" }), ["fish", "wild", "fish", "fish", "fish"]));
+    expect(next.players.nico.resources.insect).toBe(1);
+    expect(next.feeder).not.toContain("wild");
+    expect(next.feeder).toHaveLength(3);
+  });
+
+  it("también sirve como semilla", () => {
+    const next = take(stateWithFeederPower(power({ resource: "seed" }), ["fish", "wild", "fish", "fish", "fish"]));
+    expect(next.players.nico.resources.seed).toBe(1);
+    expect(next.feeder).not.toContain("wild");
+  });
+
+  it("si hay un dado exacto, lo usa y deja la cara comodín en el comedero", () => {
+    const next = take(stateWithFeederPower(power({ resource: "insect" }), ["fish", "wild", "insect", "fish", "fish"]));
+    expect(next.players.nico.resources.insect).toBe(1);
+    expect(next.feeder).toContain("wild");
+    expect(next.feeder).not.toContain("insect");
+  });
+
+  it("no sirve como pez, fruta ni roedor: ahí no toma nada", () => {
+    for (const resource of ["fish", "fruit", "rodent"] as const) {
+      const next = take(stateWithFeederPower(power({ resource }), ["seed", "wild", "seed", "seed", "seed"]));
+      expect(next.players.nico.resources[resource] ?? 0, resource).toBe(0);
+      expect(next.feeder, resource).toContain("wild");
+    }
+  });
+
+  it("el recurso alternativo también puede salir de la cara comodín cuando falta el principal", () => {
+    const next = take(
+      stateWithFeederPower(power({ resource: "fruit", resourceAlt: "seed" }), ["fish", "wild", "fish", "fish", "fish"]),
+    );
+    expect(next.players.nico.resources.seed).toBe(1);
+    expect(next.players.nico.resources.fruit ?? 0).toBe(0);
+  });
+
+  it("\"TODOS los insectos\" cuenta también las caras comodín, y cada una da 1", () => {
+    const next = take(
+      stateWithFeederPower(power({ resource: "insect", gainAllMatching: true }), ["fish", "insect", "wild", "seed", "wild"]),
+    );
+    expect(next.players.nico.resources.insect).toBe(3);
+    expect(next.feeder).toEqual(["seed"]);
+  });
+
+  it("la cara comodín no cuenta como insecto para poderes que toman TODOS los peces", () => {
+    const next = take(
+      stateWithFeederPower(power({ resource: "fish", gainAllMatching: true }), ["seed", "fish", "wild", "fish", "fish"]),
+    );
+    expect(next.players.nico.resources.fish).toBe(3);
+    expect(next.feeder).toContain("wild");
+  });
+});
