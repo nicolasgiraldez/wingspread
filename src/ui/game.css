@@ -201,21 +201,58 @@
 
 .cubes {
   display: flex;
+  align-items: flex-end;
   gap: 6px;
   margin-bottom: 8px;
 }
 
+/* Cubo de acción: tres caras con el color del jugador (mostaza, tomate o petróleo, como su símbolo). */
 .cube {
-  width: 20px;
-  height: 20px;
-  background: var(--c-petroleo);
-  border: var(--stroke) solid var(--c-carbon);
-  border-radius: 50%;
+  flex: none;
+  display: block;
 }
 
-.cube--spent {
-  background: transparent;
-  border-style: dashed;
+.cube--0 {
+  --cube-top: var(--c-mostaza-l);
+  --cube-left: var(--c-mostaza);
+  --cube-right: var(--c-mostaza-d);
+}
+
+.cube--1 {
+  --cube-top: color-mix(in srgb, var(--c-tomate) 70%, var(--c-crema));
+  --cube-left: var(--c-tomate);
+  --cube-right: var(--c-tomate-d);
+}
+
+.cube--2 {
+  --cube-top: var(--c-petroleo-l);
+  --cube-left: var(--c-petroleo);
+  --cube-right: var(--c-petroleo-d);
+}
+
+.cube__face {
+  stroke: var(--c-carbon);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.cube__top {
+  fill: var(--cube-top);
+}
+
+.cube__left {
+  fill: var(--cube-left);
+}
+
+.cube__right {
+  fill: var(--cube-right);
+}
+
+/* Gastado: cubo vacío con contorno punteado, igual que los huecos del tablero */
+.cube--spent .cube__face {
+  fill: var(--c-crema);
+  stroke: var(--c-muted);
+  stroke-dasharray: 2.2 2.2;
 }
 
 .reserve {

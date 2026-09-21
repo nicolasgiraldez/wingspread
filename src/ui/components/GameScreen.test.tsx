@@ -110,6 +110,46 @@ describe("GameSidebar", () => {
     expect(screen.getByRole("log")).toHaveAttribute("aria-live", "polite");
   });
 
+  it("los cubos de acción son 8 cubos del color del jugador en turno; los gastados van vacíos y punteados", () => {
+    const played = structuredClone(state);
+    played.players.nico.actionCubesAvailable = 5;
+    const { container, unmount } = render(
+      <GameSidebar
+        gameState={played}
+        localPlayerId="nico"
+        activeTab="nico"
+        onSelectPlayer={() => {}}
+        selectedCard={null}
+        playBlockedReason={null}
+        onPlayCard={() => {}}
+      />,
+    );
+    const cubes = container.querySelectorAll(".cubes svg.cube");
+    expect(cubes).toHaveLength(8);
+    expect(container.querySelectorAll(".cubes .cube--spent")).toHaveLength(3);
+    // Nico es el 1.º jugador: mostaza. Los gastados se ven igual de quién son por su lugar en la fila.
+    expect(container.querySelectorAll(".cubes .cube--0")).toHaveLength(8);
+    // Son decorativos: la información está en el texto.
+    expect(container.querySelector(".cubes")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText("Lucía: 5 restantes")).toBeInTheDocument();
+    unmount();
+
+    const rivalTurn = structuredClone(state);
+    rivalTurn.currentPlayerId = "bot";
+    render(
+      <GameSidebar
+        gameState={rivalTurn}
+        localPlayerId="nico"
+        activeTab="nico"
+        onSelectPlayer={() => {}}
+        selectedCard={null}
+        playBlockedReason={null}
+        onPlayCard={() => {}}
+      />,
+    );
+    expect(document.querySelectorAll(".cubes .cube--1")).toHaveLength(8); // 2.º jugador: tomate
+  });
+
   it("los bloques compartidos por los dos jugadores están marcados para el e2e", () => {
     setup();
     expect(document.querySelectorAll("[data-fingerprint]").length).toBeGreaterThanOrEqual(3);
