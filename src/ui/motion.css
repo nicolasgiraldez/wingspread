@@ -1,0 +1,193 @@
+/* ==========================================================================
+   Animaciones de la mesa: se disparan solo con lo que cambió en la última jugada (ver
+   boardChanges.ts) y nunca al cambiar de pestaña o reanudar. Sombras planas, sin blur.
+   Todo va dentro de prefers-reduced-motion: no-preference.
+   ========================================================================== */
+
+/* ---- Keyframes ------------------------------------------------------------------------ */
+
+/* Ave nueva en el tablero: cae con rebote. */
+@keyframes bird-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-28px) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Aro mostaza que se apaga: marca lo último que cambió. */
+@keyframes new-ring {
+  from {
+    box-shadow: 0 0 0 5px var(--c-mostaza);
+  }
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* Carta que llega a la mano o al mercado: sube desde abajo. */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Huevo recién puesto. */
+@keyframes egg-pop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Dado que sale del comedero: sube, se apaga y cierra el hueco que deja. */
+@keyframes die-away {
+  0% {
+    width: var(--die-w);
+    margin-right: 0;
+    opacity: 1;
+    transform: none;
+  }
+  45% {
+    width: var(--die-w);
+    margin-right: 0;
+    opacity: 0;
+    transform: translateY(-20px) scale(0.8);
+  }
+  100% {
+    width: 0;
+    margin-right: -12px;
+    opacity: 0;
+    transform: translateY(-20px) scale(0.8);
+  }
+}
+
+/* Dado relanzado: cae girando. */
+@keyframes die-roll {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px) rotate(-24deg) scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) rotate(8deg) scale(1.04);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Alimento o huevos que aumentaron en la reserva. */
+@keyframes tile-bump {
+  0% {
+    transform: none;
+  }
+  40% {
+    transform: translateY(-5px) scale(1.06);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Cubo que se acaba de gastar. */
+@keyframes cube-spend {
+  0% {
+    transform: translateY(-6px) scale(1.25) rotate(-10deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* El chip de turno "salta" al cambiar de dueño. */
+@keyframes chip-pop {
+  0% {
+    transform: scale(0.85);
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---- Uso ------------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: no-preference) {
+  .slot--new {
+    animation: bird-drop var(--dur-base) var(--ease-pop) backwards;
+  }
+
+  .slot--new .bird-card {
+    animation: new-ring 2.4s ease-out backwards;
+  }
+
+  .bird-card-wrap--enter {
+    animation: card-enter var(--dur-base) var(--ease-out) backwards;
+  }
+
+  .egg-pop {
+    animation: egg-pop var(--dur-base) var(--ease-pop) backwards;
+  }
+
+  .egg-pop:nth-child(2) {
+    animation-delay: 0.08s;
+  }
+
+  .egg-pop:nth-child(3) {
+    animation-delay: 0.16s;
+  }
+
+  .egg-pop:nth-child(n + 4) {
+    animation-delay: 0.24s;
+  }
+
+  .die-token--ghost {
+    --die-w: 76px;
+    overflow: hidden;
+    pointer-events: none;
+    animation: die-away var(--dur-slow) var(--ease-out) forwards;
+  }
+
+  .die-token--ghost.die-wild {
+    --die-w: 92px;
+  }
+
+  .die-token--rolled {
+    animation: die-roll var(--dur-slow) var(--ease-out) backwards;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+
+  .reserve__tile--bump {
+    animation: tile-bump var(--dur-base) var(--ease-out);
+  }
+
+  .cube--just-spent {
+    animation: cube-spend var(--dur-base) var(--ease-pop);
+  }
+
+  .topbar__turn {
+    animation: chip-pop var(--dur-fast) var(--ease-pop);
+  }
+}
+
+/* Con movimiento reducido el dado que sale simplemente no se dibuja. */
+@media (prefers-reduced-motion: reduce) {
+  .die-token--ghost {
+    display: none;
+  }
+}

@@ -36,6 +36,10 @@ interface BirdCardProps {
   onClick?: () => void;
   /** Huevos puestos (los de la capacidad se dibujan llenos o vacíos). */
   eggs?: number;
+  /** De los huevos puestos, cuántos son de la última jugada: hacen una animación al aparecer. */
+  newEggs?: number;
+  /** La carta acaba de llegar (a la mano o al mercado): entra con una animación. */
+  entering?: boolean;
   cached?: ResourceFace[];
   tucked?: string[];
   /** Muestra el coste aunque el modo lo oculte (board y mini). */
@@ -80,6 +84,8 @@ export const BirdCard: React.FC<BirdCardProps> = ({
   lifted = false,
   onClick,
   eggs = 0,
+  newEggs = 0,
+  entering = false,
   cached = [],
   tucked = [],
   showCost,
@@ -170,7 +176,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
       )}
       <span className="bird-card__eggs" title={`Capacidad: ${card.eggCapacity} ${card.eggCapacity === 1 ? "huevo" : "huevos"}`}>
         {Array.from({ length: card.eggCapacity }, (_, i) => (
-          <Icon key={i} name="egg" size={m.egg} empty={i >= eggs} />
+          <Icon key={i} name="egg" size={m.egg} empty={i >= eggs} className={i < eggs && i >= eggs - newEggs ? "egg-pop" : undefined} />
         ))}
       </span>
     </span>
@@ -277,7 +283,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
     .join(" ");
 
   return (
-    <div className="bird-card-wrap" style={{ width: m.w }}>
+    <div className={`bird-card-wrap${entering ? " bird-card-wrap--enter" : ""}`} style={{ width: m.w }}>
       {onClick ? (
         <button type="button" className={classes} style={style} aria-label={label} aria-pressed={selected} onClick={onClick}>
           {body}

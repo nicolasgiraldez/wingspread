@@ -12,13 +12,16 @@ import {
   resourceLabels,
 } from "../labels";
 import logoUrl from "../assets/logo.svg";
+import { resourceKey } from "../boardChanges";
 import { classifyLog } from "../logEvents";
+import { useBoardChanges } from "../useBoardChanges";
 import type { LogKind } from "../logEvents";
 import { LogText } from "./LogText";
 import { ActionCube } from "./ActionCube";
 import { playerSymbol, playerSymbolName } from "./playerSymbols";
 import { Banner } from "./ui/Banner";
 import { Button } from "./ui/Button";
+import { CountUp } from "./ui/CountUp";
 import { Icon } from "./ui/Icon";
 import type { IconName } from "./ui/iconNames";
 import { RichText } from "./ui/RichText";
@@ -88,7 +91,7 @@ const Scoreboard: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" 
                 )}
               </span>
               <span className="score__points">
-                {scorePlayerDetails(gameState, id).total}
+                <CountUp value={scorePlayerDetails(gameState, id).total} />
                 <span className="sr-only"> puntos</span>
               </span>
             </button>
@@ -105,6 +108,7 @@ const Scoreboard: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" 
 );
 
 const ActionCubes: React.FC<{ gameState: GameState }> = ({ gameState }) => {
+  const { spentCube } = useBoardChanges();
   const current = gameState.players[gameState.currentPlayerId];
   const left = current?.actionCubesAvailable ?? 0;
   // Los cubos son del color del jugador en turno, el mismo de su símbolo en el marcador.
@@ -116,7 +120,12 @@ const ActionCubes: React.FC<{ gameState: GameState }> = ({ gameState }) => {
       </h2>
       <div className="cubes" aria-hidden="true">
         {Array.from({ length: 8 }, (_, i) => (
-          <ActionCube key={i} owner={owner} spent={i >= left} />
+          <ActionCube
+            key={i}
+            owner={owner}
+            spent={i >= left}
+            justSpent={spentCube?.playerId === gameState.currentPlayerId && spentCube.index === i}
+          />
         ))}
       </div>
       <p className="side-block__text">
@@ -131,8 +140,10 @@ const Reserve: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" | "
   localPlayerId,
   activeTab,
 }) => {
+  const changes = useBoardChanges();
   const viewed = gameState.players[activeTab];
   if (!viewed) return null;
+  const eggsGained = [...changes.eggs.keys()].some((key) => key.startsWith(`${activeTab}:`));
   const eggs = (["forest", "grassland", "wetland"] as HabitatId[]).reduce(
     (sum, hab) => sum + viewed.board[hab].reduce((acc, slot) => acc + (slot.cardId ? slot.eggs : 0), 0),
     0,
@@ -144,12 +155,16 @@ const Reserve: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" | "
       </h2>
       <ul className="reserve">
         {RESERVE_ORDER.map((res) => (
-          <li key={res} className="reserve__tile" title={resourceLabels[res]}>
+          <li
+            key={res}
+            className={`reserve__tile${changes.resources.has(resourceKey(activeTab, res)) ? " reserve__tile--bump" : ""}`}
+            title={resourceLabels[res]}
+          >
             <Icon name={costIcon(res)} size={28} label={resourceLabels[res]} />
             <span className="reserve__count">{viewed.resources?.[res] ?? 0}</span>
           </li>
         ))}
-        <li className="reserve__tile" title="Huevos en el tablero">
+        <li className={`reserve__tile${eggsGained ? " reserve__tile--bump" : ""}`} title="Huevos en el tablero">
           <Icon name="egg" size={28} label="Huevos en el tablero" />
           <span className="reserve__count">{eggs}</span>
         </li>

@@ -3,6 +3,7 @@ import { canRerollFeeder } from "../../game";
 import type { ResourceFace } from "../../game";
 import { resourceIcons, resourceLabels } from "../labels";
 import { capitalize, countOf, plural, pressVerb } from "../text";
+import { useBoardChanges } from "../useBoardChanges";
 import { Button } from "./ui/Button";
 import { Icon } from "./ui/Icon";
 import { Modal } from "./ui/Modal";
@@ -19,6 +20,23 @@ interface BirdFeederProps {
   /** Nombre de quien tiene el turno cuando no es el tuyo: se muestra como chip en el encabezado. */
   waitingFor?: string;
 }
+
+/** Contenido de un dado: su ícono (o los dos de la cara comodín) y su nombre. */
+const DieFace: React.FC<{ face: ResourceFace }> = ({ face }) => (
+  <>
+    <span className="die-icon">
+      {face === "wild" ? (
+        <>
+          <Icon name="insect" size={26} />
+          <Icon name="seed" size={26} />
+        </>
+      ) : (
+        <Icon name={resourceIcons[face]} size={40} />
+      )}
+    </span>
+    <span className="die-label">{face === "wild" ? "Elegir" : capitalize(resourceLabels[face])}</span>
+  </>
+);
 
 /** Elección de alimento al tomar un dado "wild" (insecto o semilla). */
 const WildChoiceModal: React.FC<{
@@ -55,8 +73,24 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
   waitingFor,
 }) => {
   const [wildPending, setWildPending] = useState<number | null>(null);
+  const changes = useBoardChanges();
+  const { taken, rolled } = changes.feeder;
   const canReroll = canRerollFeeder(feeder);
   const empty = feeder.length === 0;
+
+  // Los dados que quedan, con un lugar para cada dado que acaba de salir en su posición de antes.
+  const dieSlots: ({ ghost: true; face: ResourceFace; position: number } | { ghost: false; face: ResourceFace; idx: number })[] = [];
+  const ghosts = new Map(taken.map((die) => [die.index, die.face]));
+  let idx = 0;
+  for (let position = 0; position < feeder.length + taken.length; position += 1) {
+    const ghost = ghosts.get(position);
+    if (ghost) {
+      dieSlots.push({ ghost: true, face: ghost, position });
+    } else if (idx < feeder.length) {
+      dieSlots.push({ ghost: false, face: feeder[idx], idx });
+      idx += 1;
+    }
+  }
 
   const handleDieClick = (idx: number) => {
     if (disabled) return;
@@ -111,32 +145,34 @@ export const BirdFeeder: React.FC<BirdFeederProps> = ({
           {empty ? (
             <span className="die-token die-token--hole" aria-hidden="true" />
           ) : (
-            feeder.map((face, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className={`die-token${face === "wild" ? " die-wild" : ""}`}
-                onClick={() => handleDieClick(idx)}
-                disabled={disabled}
-                title={
-                  face === "wild"
-                    ? "Dado comodín: elegí entre insecto o semilla"
-                    : `Tomar 1 ${resourceLabels[face]}`
-                }
-              >
-                <span className="die-icon">
-                  {face === "wild" ? (
-                    <>
-                      <Icon name="insect" size={26} />
-                      <Icon name="seed" size={26} />
-                    </>
-                  ) : (
-                    <Icon name={resourceIcons[face]} size={40} />
-                  )}
+            dieSlots.map((slot) =>
+              slot.ghost ? (
+                // Dado que acaba de salir: se despide en su lugar y deja el hueco cerrándose.
+                <span
+                  key={`ghost-${changes.id}-${slot.position}`}
+                  className={`die-token die-token--ghost${slot.face === "wild" ? " die-wild" : ""}`}
+                  aria-hidden="true"
+                >
+                  <DieFace face={slot.face} />
                 </span>
-                <span className="die-label">{face === "wild" ? "Elegir" : capitalize(resourceLabels[face])}</span>
-              </button>
-            ))
+              ) : (
+                <button
+                  key={rolled ? `roll-${changes.id}-${slot.idx}` : slot.idx}
+                  type="button"
+                  className={`die-token${slot.face === "wild" ? " die-wild" : ""}${rolled ? " die-token--rolled" : ""}`}
+                  style={rolled ? ({ "--i": slot.idx } as React.CSSProperties) : undefined}
+                  onClick={() => handleDieClick(slot.idx)}
+                  disabled={disabled}
+                  title={
+                    slot.face === "wild"
+                      ? "Dado comodín: elegí entre insecto o semilla"
+                      : `Tomar 1 ${resourceLabels[slot.face]}`
+                  }
+                >
+                  <DieFace face={slot.face} />
+                </button>
+              ),
+            )
           )}
 
           {canReroll && (

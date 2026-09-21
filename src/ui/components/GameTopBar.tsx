@@ -62,7 +62,7 @@ export const GameTopBar: React.FC<GameTopBarProps> = ({ round, ended, isMyTurn, 
 
       <div className="topbar__end">
         {!ended && (
-          <span className={`chip topbar__turn${isMyTurn ? " chip--on" : " topbar__turn--rival"}`}>
+          <span key={isMyTurn ? "mine" : "rival"} className={`chip topbar__turn${isMyTurn ? " chip--on" : " topbar__turn--rival"}`}>
             {isMyTurn ? "Tu turno" : `Turno de ${currentName}`}
             {!isMyTurn && <ThinkingDots />}
           </span>
