@@ -14,6 +14,7 @@ import logoUrl from "../assets/logo.svg";
 import { classifyLog } from "../logEvents";
 import type { LogKind } from "../logEvents";
 import { LogText } from "./LogText";
+import { ActionCube } from "./ActionCube";
 import { playerSymbol, playerSymbolName } from "./playerSymbols";
 import { Banner } from "./ui/Banner";
 import { Button } from "./ui/Button";
@@ -99,6 +100,8 @@ const Scoreboard: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" 
 const ActionCubes: React.FC<{ gameState: GameState }> = ({ gameState }) => {
   const current = gameState.players[gameState.currentPlayerId];
   const left = current?.actionCubesAvailable ?? 0;
+  // Los cubos son del color del jugador en turno, el mismo de su símbolo en el marcador.
+  const owner = Math.max(0, gameState.playerOrder.indexOf(gameState.currentPlayerId));
   return (
     <section className="side-block" aria-labelledby="side-cubes" data-fingerprint>
       <h2 id="side-cubes" className="label side-block__title">
@@ -106,7 +109,7 @@ const ActionCubes: React.FC<{ gameState: GameState }> = ({ gameState }) => {
       </h2>
       <div className="cubes" aria-hidden="true">
         {Array.from({ length: 8 }, (_, i) => (
-          <span key={i} className={`cube${i >= left ? " cube--spent" : ""}`} />
+          <ActionCube key={i} owner={owner} spent={i >= left} />
         ))}
       </div>
       <p className="side-block__text">
