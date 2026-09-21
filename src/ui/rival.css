@@ -211,3 +211,42 @@
   align-items: center;
   min-height: 56px;
 }
+
+/* ---- Velocidad del juego (en el menú de la partida) --------------------------------------- */
+.topbar__speed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: var(--stroke) dotted var(--c-muted);
+}
+
+.topbar__speed-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.topbar__speed-hint {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-muted);
+}
+
+/* Animaciones más cortas a velocidades altas; las pausas del rival las maneja pacing.ts. */
+.game[data-speed="fast"] {
+  --dur-fast: 0.1s;
+  --dur-base: 0.22s;
+  --dur-slow: 0.38s;
+}
+
+.game[data-speed="instant"] {
+  --dur-fast: 0.08s;
+  --dur-base: 0.15s;
+  --dur-slow: 0.2s;
+}
+
+/* Las tres opciones caben en una fila en el menú. */
+.topbar__speed-options .chip--filter {
+  padding: 0 12px;
+}

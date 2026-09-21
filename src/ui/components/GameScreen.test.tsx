@@ -23,6 +23,30 @@ describe("GameTopBar", () => {
     expect(container.querySelector(".topbar__turn--rival .dots")).toHaveAttribute("aria-hidden", "true");
   });
 
+  it("el menú deja elegir la velocidad: opciones con su estado, y lo elegido se avisa", async () => {
+    const user = userEvent.setup();
+    const onSpeedChange = vi.fn();
+    render(<GameTopBar round={1} ended={false} isMyTurn onHome={() => {}} currentName="Rival" speed="fast" onSpeedChange={onSpeedChange} />);
+    await user.click(screen.getByRole("button", { name: "Menú de la partida" }));
+
+    const group = screen.getByRole("group", { name: "Velocidad del juego" });
+    expect(within(group).getByRole("button", { name: "Rápida" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(group).getByRole("button", { name: "Normal" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(group).getByText("Pausas y animaciones más cortas.")).toBeInTheDocument();
+
+    await user.click(within(group).getByRole("button", { name: "Sin pausas" }));
+    expect(onSpeedChange).toHaveBeenCalledWith("instant");
+    // Elegir no cierra el menú: se ve el cambio y se puede seguir tocando.
+    expect(screen.getByRole("group", { name: "Velocidad del juego" })).toBeInTheDocument();
+  });
+
+  it("sin manejador de velocidad el menú no la ofrece", async () => {
+    const user = userEvent.setup();
+    render(<GameTopBar round={1} ended={false} isMyTurn onHome={() => {}} currentName="Rival" />);
+    await user.click(screen.getByRole("button", { name: "Menú de la partida" }));
+    expect(screen.queryByRole("group", { name: "Velocidad del juego" })).toBeNull();
+  });
+
   it("el menú se abre con el botón, se cierra con Esc devolviendo el foco y vuelve al inicio", async () => {
     const user = userEvent.setup();
     const onHome = vi.fn();

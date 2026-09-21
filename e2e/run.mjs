@@ -108,7 +108,7 @@ const waitStatus = (player, text, timeout = 30_000) =>
 /** Lo que ven los dos por igual: ronda, dados, turno, puntuación y registro (sin las vistas personales). */
 const fingerprint = (player) =>
   player.page.evaluate(() => {
-    const dice = [...document.querySelectorAll(".die-token")].map((button) => button.title).join("|");
+    const dice = [...document.querySelectorAll("button.die-token")].map((button) => button.title).join("|");
     const round = document.body.innerText.match(/Ronda\s*(\d)\s*de 4/)?.[1] ?? "?";
     // Los bloques que ven los dos por igual (ronda, marcador, cubos y registro) llevan data-fingerprint.
     const cards = [...document.querySelectorAll("[data-fingerprint]")]
@@ -131,17 +131,17 @@ async function sameState(label, timeout = 15_000) {
 }
 
 async function takeADie(player) {
-  const normal = player.page.locator(".die-token:not(.die-wild)");
+  const normal = player.page.locator("button.die-token:not(.die-wild)");
   if ((await normal.count()) > 0) {
     await normal.first().click();
   } else {
-    await player.page.locator(".die-token").first().click();
+    await player.page.locator("button.die-token").first().click();
     await player.page.getByTitle("Tomar 1 insecto/gusano").click();
   }
 }
 
 async function canMove(player) {
-  const die = player.page.locator(".die-token").first();
+  const die = player.page.locator("button.die-token").first();
   return (await die.count()) > 0 && (await die.isEnabled());
 }
 
