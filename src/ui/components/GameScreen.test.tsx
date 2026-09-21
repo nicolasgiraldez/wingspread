@@ -16,6 +16,13 @@ describe("GameTopBar", () => {
     expect(screen.getByText("(Terminada)")).toBeInTheDocument();
   });
 
+  it("en el turno del rival el chip lo dice con puntos animados decorativos; en el tuyo no", () => {
+    const { container, rerender } = render(<GameTopBar round={1} ended={false} isMyTurn onHome={() => {}} currentName="Rival" />);
+    expect(container.querySelector(".topbar__turn .dots")).toBeNull();
+    rerender(<GameTopBar round={1} ended={false} isMyTurn={false} onHome={() => {}} currentName="Rival" />);
+    expect(container.querySelector(".topbar__turn--rival .dots")).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("el menú se abre con el botón, se cierra con Esc devolviendo el foco y vuelve al inicio", async () => {
     const user = userEvent.setup();
     const onHome = vi.fn();
@@ -64,6 +71,17 @@ describe("GameSidebar", () => {
     expect(screen.getByText("(Vos)")).toBeInTheDocument();
     expect(screen.getByText("1.º")).toBeInTheDocument();
     expect(screen.getByText("Turno")).toBeInTheDocument();
+  });
+
+  it("en el turno del rival, su fila del marcador se marca como jugando", () => {
+    const rivalTurn = structuredClone(state);
+    rivalTurn.phase = "round";
+    rivalTurn.currentPlayerId = "bot";
+    setup({ gameState: rivalTurn });
+    const rows = document.querySelectorAll(".score--rival");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain("Rival (IA)");
+    expect(rows[0].querySelector(".dots")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("cambiar de jugador desde el marcador avisa cuál se pidió", async () => {

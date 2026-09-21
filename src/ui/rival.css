@@ -1,0 +1,207 @@
+/* ==========================================================================
+   Turno del rival: indicador de que está jugando y panel con lo que hizo
+   ========================================================================== */
+
+/* ---- Puntos "está jugando…" ---------------------------------------------------------- */
+.dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.dots__dot {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+@keyframes dots-pulse {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dots__dot {
+    animation: dots-pulse 1.2s ease-in-out infinite;
+  }
+
+  .dots__dot:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .dots__dot:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+}
+
+/* ---- Indicadores de turno del rival --------------------------------------------------- */
+.topbar__turn--rival {
+  background: var(--c-menta);
+}
+
+@keyframes turn-breathe {
+  from {
+    box-shadow: 0 0 0 var(--c-carbon);
+  }
+  to {
+    box-shadow: var(--shadow-press-sm);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .score--rival {
+    animation: turn-breathe 0.8s ease-in-out infinite alternate;
+  }
+}
+
+/* ---- Panel de acción del rival -------------------------------------------------------- */
+.rival-region {
+  position: fixed;
+  top: 84px;
+  right: 0;
+  left: 280px;
+  z-index: 35;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.rival-panel {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(560px, 100%);
+  padding: 14px 8px 20px 14px;
+  overflow: hidden;
+  background: var(--c-crema);
+  color: var(--c-carbon);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-press);
+  pointer-events: auto;
+}
+
+.rival-panel__tile {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--c-crema-2);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: 9px;
+}
+
+.rival-panel__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rival-panel__headline {
+  margin: 0;
+  font-size: var(--fs-lead);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.rival-panel__details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 8px 0 0;
+  list-style: none;
+  border-top: var(--stroke) dotted var(--c-muted);
+}
+
+.rival-panel__detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--fs-small);
+  line-height: 1.3;
+}
+
+.rival-panel__close {
+  flex: none;
+  margin-top: -8px;
+  background: transparent;
+  border-color: transparent;
+}
+
+.rival-panel__bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: var(--c-carbon);
+  transform-origin: left center;
+}
+
+@keyframes rival-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes rival-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rival-panel {
+    animation: rival-in 0.18s ease-out;
+  }
+
+  .rival-panel__bar {
+    animation: rival-progress var(--hold, 3s) linear forwards;
+  }
+}
+
+@media (max-width: 1023px) {
+  .rival-region {
+    top: 80px;
+    left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .rival-region {
+    top: 100px;
+    padding: 0 12px;
+  }
+
+  /* Deja lugar a los puntos: el chip del rival dice "Turno de …" y suele ser más largo que "Tu turno". */
+  .topbar__turn.topbar__turn--rival {
+    max-width: 62vw;
+  }
+}

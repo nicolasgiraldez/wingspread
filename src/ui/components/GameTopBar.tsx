@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import logoUrl from "../assets/logo.svg";
 import { Button } from "./ui/Button";
+import { ThinkingDots } from "./ui/ThinkingDots";
 
 interface GameTopBarProps {
   round: number;
@@ -61,8 +62,9 @@ export const GameTopBar: React.FC<GameTopBarProps> = ({ round, ended, isMyTurn, 
 
       <div className="topbar__end">
         {!ended && (
-          <span className={`chip topbar__turn${isMyTurn ? " chip--on" : ""}`}>
+          <span className={`chip topbar__turn${isMyTurn ? " chip--on" : " topbar__turn--rival"}`}>
             {isMyTurn ? "Tu turno" : `Turno de ${currentName}`}
+            {!isMyTurn && <ThinkingDots />}
           </span>
         )}
         <div className="topbar__menu">

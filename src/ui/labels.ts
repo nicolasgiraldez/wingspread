@@ -21,6 +21,9 @@ export const habitatLabels: Record<HabitatId, string> = {
   wetland: "Río",
 };
 
+/** Artículo de cada hábitat: "el Bosque", "la Pradera", "el Río". */
+export const habitatArticle: Record<HabitatId, string> = { forest: "el", grassland: "la", wetland: "el" };
+
 export const habitatIcons: Record<HabitatId, IconName> = {
   forest: "forest",
   grassland: "grass",

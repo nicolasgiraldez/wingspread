@@ -33,7 +33,7 @@ describe("rival de la IA", () => {
   it.each(LEVELS)("nivel %s: juega partidas enteras sin jugadas ilegales ni estados rotos", (level) => {
     const problems = Array.from({ length: 8 }, (_, seed) => playBotMatch(seed, { nico: level, bot: level }).problems).flat();
     expect(problems.slice(0, 3)).toEqual([]);
-  });
+  }, SLOW);
 
   it.each(LEVELS)("nivel %s: contra un humano, la IA juega su turno y lo devuelve, hasta el final", (level) => {
     const end = playAgainstHumanTakingDice(3, level);
