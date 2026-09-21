@@ -45,6 +45,7 @@ import { bonusNameTags } from "./labels";
 import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./network/hostGame";
 import { classifyLog } from "./logEvents";
 import { countOf, pressVerb } from "./text";
+import { BoardChangesContext, useBoardChangeTracker } from "./useBoardChanges";
 import { useBotTurns } from "./useBotTurns";
 import { useToasts } from "./useToasts";
 import {
@@ -176,6 +177,9 @@ export const App: React.FC = () => {
 
   // En solitario la IA juega de a una jugada, con pausas, y cada una se anuncia en el panel del rival.
   const { action: rivalAction, dismiss: dismissRivalAction } = useBotTurns(gameState, commitGameState);
+
+  // Lo que cambió en la última jugada (aves, huevos, cartas, dados…), para animar solo eso.
+  const boardChanges = useBoardChangeTracker(gameState);
 
   // ── Crear o reanudar una sala como anfitrión ──────────────────────────────
   const startHosting = (code: string, state: GameState, resume: boolean) => {
@@ -551,259 +555,268 @@ export const App: React.FC = () => {
       : undefined;
 
   return (
-    <div className="game">
-      <GameTopBar
-        round={gameState.round}
-        ended={gameState.phase === "gameEnd"}
-        isMyTurn={isMyTurn}
-        currentName={getDisplayName(gameState, gameState.currentPlayerId)}
-        onHome={handleGoHome}
-      />
-
-      <div className="game__body">
-        <GameSidebar
-          gameState={gameState}
-          localPlayerId={localPlayerId}
-          activeTab={activeTab}
-          onSelectPlayer={setActiveTab}
-          selectedCard={selectedHandCard}
-          playBlockedReason={playBlockedReason}
-          onPlayCard={() => selectedHandCard && setSelectedCardForPlay(selectedHandCard)}
+    <BoardChangesContext.Provider value={boardChanges}>
+      <div className="game">
+        <GameTopBar
+          round={gameState.round}
+          ended={gameState.phase === "gameEnd"}
+          isMyTurn={isMyTurn}
+          currentName={getDisplayName(gameState, gameState.currentPlayerId)}
+          onHome={handleGoHome}
         />
 
-        <main className="table">
-          {saveBlocked && (
-            <Banner tone="warn" icon="alert" title="Partida sin guardar · almacenamiento bloqueado">
-              No se pudo guardar la partida en este navegador. El almacenamiento está lleno o bloqueado (modo privado). Podés seguir
-              jugando, pero no vas a poder reanudarla si cerrás la pestaña.
-            </Banner>
-          )}
-
-          {/* Online connection bar */}
-          {gameState.gameMode === "online" && (
-            <ConnectionStatusBar
-              roomCode={roomCode}
-              isHost={isHost}
-              status={connectionStatus}
-              statusMessage={connectionMessage}
-              localPlayerName={getDisplayName(gameState, localPlayerId)}
-            />
-          )}
-
-          {/* Turno del rival */}
-          {!isMyTurn && gameState.phase === "round" && (
-            <Banner tone="info" icon="hourglass" className="banner--rival">
-              <strong>Turno de {getDisplayName(gameState, gameState.currentPlayerId)}</strong>
-              {gameState.gameMode === "online" ? " · Esperando su jugada en tiempo real" : " · Está jugando"}
-              <ThinkingDots />
-            </Banner>
-          )}
-
-          <RoundGoalsMat gameState={gameState} />
-
-          <BirdFeeder
-            feeder={gameState.feeder}
-            onTakeDie={handleGainFood}
-            onReroll={handleRerollFeeder}
-            disabled={!isControlsActive}
-            disabledReason={feederReason}
-            waitingFor={!isMyTurn && gameState.phase === "round" ? getDisplayName(gameState, gameState.currentPlayerId) : undefined}
+        <div className="game__body">
+          <GameSidebar
+            gameState={gameState}
+            localPlayerId={localPlayerId}
+            activeTab={activeTab}
+            onSelectPlayer={setActiveTab}
+            selectedCard={selectedHandCard}
+            playBlockedReason={playBlockedReason}
+            onPlayCard={() => selectedHandCard && setSelectedCardForPlay(selectedHandCard)}
           />
 
-          <BirdMarket
-            marketCardIds={gameState.market}
-            cardsCatalog={gameState.cards}
-            deckCount={gameState.deck.length}
-            onDrawMarketCard={handleDrawFromMarket}
-            onDrawFromDeck={handleDrawFromDeck}
-            disabled={!isControlsActive}
-            disabledReason={playBlockedReason ?? undefined}
-            highlightNameTags={myNameTags}
-          />
+          <main className="table">
+            {saveBlocked && (
+              <Banner tone="warn" icon="alert" title="Partida sin guardar · almacenamiento bloqueado">
+                No se pudo guardar la partida en este navegador. El almacenamiento está lleno o bloqueado (modo privado). Podés seguir
+                jugando, pero no vas a poder reanudarla si cerrás la pestaña.
+              </Banner>
+            )}
 
-          {viewedPlayer && (
-            <PlayerBoard
-              player={viewedPlayer}
-              gameState={gameState}
-              isOwner={activeTab === localPlayerId}
-              highlightNameTags={activeTab === localPlayerId ? myNameTags : undefined}
-              onOpenLayEggsModal={handleOpenLayEggs}
-              isCurrentPlayerTurn={isControlsActive && activeTab === localPlayerId}
+            {/* Online connection bar */}
+            {gameState.gameMode === "online" && (
+              <ConnectionStatusBar
+                roomCode={roomCode}
+                isHost={isHost}
+                status={connectionStatus}
+                statusMessage={connectionMessage}
+                localPlayerName={getDisplayName(gameState, localPlayerId)}
+              />
+            )}
+
+            {/* De quién es el turno. Siempre ocupa el mismo lugar y alto: si apareciera y desapareciera, todo
+                lo de abajo (los dados, el mercado) saltaría justo cuando te devuelven el turno. */}
+            {gameState.phase === "round" &&
+              (isMyTurn ? (
+                <Banner tone="warn" icon="star" className="banner--turn">
+                  <strong>Tu turno</strong> · Elegí una acción
+                </Banner>
+              ) : (
+                <Banner tone="info" icon="hourglass" className="banner--turn">
+                  <strong>Turno de {getDisplayName(gameState, gameState.currentPlayerId)}</strong>
+                  {gameState.gameMode === "online" ? " · Esperando su jugada" : " · Está jugando"}
+                  <ThinkingDots />
+                </Banner>
+              ))}
+
+            <RoundGoalsMat gameState={gameState} />
+
+            <BirdFeeder
+              feeder={gameState.feeder}
+              onTakeDie={handleGainFood}
+              onReroll={handleRerollFeeder}
+              disabled={!isControlsActive}
+              disabledReason={feederReason}
+              waitingFor={!isMyTurn && gameState.phase === "round" ? getDisplayName(gameState, gameState.currentPlayerId) : undefined}
             />
-          )}
 
-          {/* Mano del rival: cartas ocultas (boca abajo) */}
-          {activeTab !== localPlayerId && viewedPlayer && (
-            <section className="hand hand--hidden" aria-labelledby="rival-hand-title">
-              <div className="hand__head">
-                <h2 id="rival-hand-title" className="label">
-                  Mano de {getDisplayName(gameState, viewedPlayer.id)} · {countOf(viewedPlayer.hand.length, "carta oculta", "cartas ocultas")}
-                </h2>
-                <span className="hand__hint">Las cartas de la mano del rival permanecen en secreto</span>
-              </div>
-              {viewedPlayer.hand.length > 0 ? (
-                <div className="hand__cards">
-                  {viewedPlayer.hand.map((_, i) => (
-                    <CardBack key={i} title="Carta oculta en la mano del oponente" />
-                  ))}
+            <BirdMarket
+              marketCardIds={gameState.market}
+              cardsCatalog={gameState.cards}
+              deckCount={gameState.deck.length}
+              onDrawMarketCard={handleDrawFromMarket}
+              onDrawFromDeck={handleDrawFromDeck}
+              disabled={!isControlsActive}
+              disabledReason={playBlockedReason ?? undefined}
+              highlightNameTags={myNameTags}
+            />
+
+            {viewedPlayer && (
+              <PlayerBoard
+                player={viewedPlayer}
+                gameState={gameState}
+                isOwner={activeTab === localPlayerId}
+                highlightNameTags={activeTab === localPlayerId ? myNameTags : undefined}
+                onOpenLayEggsModal={handleOpenLayEggs}
+                isCurrentPlayerTurn={isControlsActive && activeTab === localPlayerId}
+              />
+            )}
+
+            {/* Mano del rival: cartas ocultas (boca abajo) */}
+            {activeTab !== localPlayerId && viewedPlayer && (
+              <section className="hand hand--hidden" aria-labelledby="rival-hand-title">
+                <div className="hand__head">
+                  <h2 id="rival-hand-title" className="label">
+                    Mano de {getDisplayName(gameState, viewedPlayer.id)} · {countOf(viewedPlayer.hand.length, "carta oculta", "cartas ocultas")}
+                  </h2>
+                  <span className="hand__hint">Las cartas de la mano del rival permanecen en secreto</span>
                 </div>
-              ) : (
-                <p className="hand__empty">{getDisplayName(gameState, viewedPlayer.id)} no tiene cartas en su mano actualmente.</p>
-              )}
-            </section>
-          )}
+                {viewedPlayer.hand.length > 0 ? (
+                  <div className="hand__cards">
+                    {viewedPlayer.hand.map((_, i) => (
+                      <CardBack key={i} title="Carta oculta en la mano del oponente" />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="hand__empty">{getDisplayName(gameState, viewedPlayer.id)} no tiene cartas en su mano actualmente.</p>
+                )}
+              </section>
+            )}
 
-          {/* Tu mano */}
-          {localPlayer && (
-            <section className="hand" aria-labelledby="hand-title">
-              <div className="hand__head">
-                <h2 id="hand-title" className="label">
-                  Tu mano · {countOf(localPlayer.hand.length, "carta", "cartas")}
-                </h2>
-                <span className="hand__hint">{pressVerb()} "Jugar esta ave" para colocarla en tu tablero</span>
-              </div>
-
-              {localPlayer.hand.length > 0 ? (
-                <div className="hand__cards">
-                  {localPlayer.hand.map((cardId) => {
-                    const card = gameState.cards[cardId];
-                    if (!card) return null;
-                    const isChosen = selectedHandCard?.id === cardId;
-                    return (
-                      <BirdCard
-                        key={cardId}
-                        card={card}
-                        mode="hand"
-                        highlightNameTags={myNameTags}
-                        selected={isChosen}
-                        lifted={isChosen}
-                        onClick={() => setSelectedHandId(isChosen ? null : cardId)}
-                      />
-                    );
-                  })}
+            {/* Tu mano */}
+            {localPlayer && (
+              <section className="hand" aria-labelledby="hand-title">
+                <div className="hand__head">
+                  <h2 id="hand-title" className="label">
+                    Tu mano · {countOf(localPlayer.hand.length, "carta", "cartas")}
+                  </h2>
+                  <span className="hand__hint">{pressVerb()} "Jugar esta ave" para colocarla en tu tablero</span>
                 </div>
-              ) : (
-                <div className="hand__empty">
-                  <p>Tu mano está vacía. Robá cartas del mercado o del mazo para jugar más aves.</p>
-                  <Button
-                    icon="stack"
-                    onClick={() => document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  >
-                    Ir al mercado
-                  </Button>
-                </div>
-              )}
-            </section>
-          )}
-        </main>
-      </div>
 
-      <RivalActionPanel action={rivalAction} onDismiss={dismissRivalAction} />
-      <ToastRegion toasts={toasts} onDismiss={dismissToast} />
+                {localPlayer.hand.length > 0 ? (
+                  <div className="hand__cards">
+                    {localPlayer.hand.map((cardId) => {
+                      const card = gameState.cards[cardId];
+                      if (!card) return null;
+                      const isChosen = selectedHandCard?.id === cardId;
+                      return (
+                        <BirdCard
+                          key={cardId}
+                          card={card}
+                          mode="hand"
+                          entering={boardChanges.cards.has(cardId)}
+                          highlightNameTags={myNameTags}
+                          selected={isChosen}
+                          lifted={isChosen}
+                          onClick={() => setSelectedHandId(isChosen ? null : cardId)}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="hand__empty">
+                    <p>Tu mano está vacía. Robá cartas del mercado o del mazo para jugar más aves.</p>
+                    <Button
+                      icon="stack"
+                      onClick={() => document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    >
+                      Ir al mercado
+                    </Button>
+                  </div>
+                )}
+              </section>
+            )}
+          </main>
+        </div>
 
-      {/* ── Modals ───────────────────────────────────────────────────────── */}
-      {selectedCardForPlay && gameState.players[localPlayerId] && (
-        <PlayBirdModal
-          card={selectedCardForPlay}
-          player={gameState.players[localPlayerId]}
-          gameState={gameState}
-          onConfirmPlay={handleConfirmPlayBird}
-          onClose={() => setSelectedCardForPlay(null)}
-        />
-      )}
+        <RivalActionPanel action={rivalAction} onDismiss={dismissRivalAction} />
+        <ToastRegion toasts={toasts} onDismiss={dismissToast} />
 
-      {layEggsModalOpen && gameState.players[localPlayerId] && (
-        <LayEggsModal
-          player={gameState.players[localPlayerId]}
-          gameState={gameState}
-          initialBird={layEggsInitialBird}
-          onConfirmLayEggs={handleConfirmLayEggs}
-          onClose={() => {
-            setLayEggsModalOpen(false);
-            setLayEggsInitialBird(undefined);
-          }}
-        />
-      )}
-
-      {pendingGainFood && gameState.players[localPlayerId] && (
-        <HabitatPowersModal
-          title="Confirmar: Obtener comida"
-          subtitle="Tenés aves con poderes opcionales en el bosque. Elegí cuáles activar antes de confirmar."
-          habitat="forest"
-          player={gameState.players[localPlayerId]}
-          gameState={gameState}
-          onConfirm={handleConfirmGainFood}
-          onClose={() => setPendingGainFood(null)}
-        />
-      )}
-
-      {pendingDraw && gameState.players[localPlayerId] && (
-        <HabitatPowersModal
-          title="Confirmar: Robar cartas"
-          subtitle="Tenés aves con poderes opcionales en el río. Elegí cuáles activar antes de confirmar."
-          habitat="wetland"
-          player={gameState.players[localPlayerId]}
-          gameState={gameState}
-          onConfirm={handleConfirmDraw}
-          onClose={() => setPendingDraw(null)}
-        />
-      )}
-
-      {/* Preparación inicial: elegir aves, alimento y bonificación (o esperar a los demás). */}
-      {gameState.phase === "setup" &&
-        gameState.players[localPlayerId] &&
-        (gameState.players[localPlayerId].pendingStartingHand ? (
-          <StartingHandModal
+        {/* ── Modals ───────────────────────────────────────────────────────── */}
+        {selectedCardForPlay && gameState.players[localPlayerId] && (
+          <PlayBirdModal
+            card={selectedCardForPlay}
             player={gameState.players[localPlayerId]}
             gameState={gameState}
-            onConfirm={(move) => executeSetupMove(move)}
-          />
-        ) : (
-          <ChooseBonusCardModal
-            playerName={getDisplayName(gameState, localPlayerId)}
-            options={[]}
-            onChoose={() => {}}
-            waiting={{
-              title: "Preparación lista",
-              text: "Esperando a que el resto de los jugadores termine la suya para empezar la Ronda 1...",
-            }}
-          />
-        ))}
-
-      {/* Carta de bonificación revelada por un poder de ave: hay que elegir cuál conservar. */}
-      {gameState.phase !== "setup" &&
-        gameState.players[localPlayerId] &&
-        playersChoosingBonus(gameState).includes(localPlayerId) && (
-          <ChooseBonusCardModal
-            playerName={getDisplayName(gameState, localPlayerId)}
-            options={
-              (gameState.players[localPlayerId].pendingBonusChoice ?? [])
-                .map((id) => gameState.bonusCardsCatalog?.[id])
-                .filter((b): b is BonusCard => !!b)
-            }
-            onChoose={(bonusCardId) => executeSetupMove({ type: "chooseBonusCard", bonusCardId })}
+            onConfirmPlay={handleConfirmPlayBird}
+            onClose={() => setSelectedCardForPlay(null)}
           />
         )}
 
-      {/* El resultado final espera a que se resuelvan las bonificaciones que quedaron por elegir. */}
-      {gameState.phase === "gameEnd" &&
-        (playersChoosingBonus(gameState).length === 0 ? (
-          <GameOverModal gameState={gameState} onRestart={handleGoHome} />
-        ) : (
-          !playersChoosingBonus(gameState).includes(localPlayerId) && (
+        {layEggsModalOpen && gameState.players[localPlayerId] && (
+          <LayEggsModal
+            player={gameState.players[localPlayerId]}
+            gameState={gameState}
+            initialBird={layEggsInitialBird}
+            onConfirmLayEggs={handleConfirmLayEggs}
+            onClose={() => {
+              setLayEggsModalOpen(false);
+              setLayEggsInitialBird(undefined);
+            }}
+          />
+        )}
+
+        {pendingGainFood && gameState.players[localPlayerId] && (
+          <HabitatPowersModal
+            title="Confirmar: Obtener comida"
+            subtitle="Tenés aves con poderes opcionales en el bosque. Elegí cuáles activar antes de confirmar."
+            habitat="forest"
+            player={gameState.players[localPlayerId]}
+            gameState={gameState}
+            onConfirm={handleConfirmGainFood}
+            onClose={() => setPendingGainFood(null)}
+          />
+        )}
+
+        {pendingDraw && gameState.players[localPlayerId] && (
+          <HabitatPowersModal
+            title="Confirmar: Robar cartas"
+            subtitle="Tenés aves con poderes opcionales en el río. Elegí cuáles activar antes de confirmar."
+            habitat="wetland"
+            player={gameState.players[localPlayerId]}
+            gameState={gameState}
+            onConfirm={handleConfirmDraw}
+            onClose={() => setPendingDraw(null)}
+          />
+        )}
+
+        {/* Preparación inicial: elegir aves, alimento y bonificación (o esperar a los demás). */}
+        {gameState.phase === "setup" &&
+          gameState.players[localPlayerId] &&
+          (gameState.players[localPlayerId].pendingStartingHand ? (
+            <StartingHandModal
+              player={gameState.players[localPlayerId]}
+              gameState={gameState}
+              onConfirm={(move) => executeSetupMove(move)}
+            />
+          ) : (
             <ChooseBonusCardModal
-              playerName=""
+              playerName={getDisplayName(gameState, localPlayerId)}
               options={[]}
               onChoose={() => {}}
               waiting={{
-                title: "Conteo final en pausa",
-                text: `Esperando a que ${playersChoosingBonus(gameState)
-                  .map((id) => getDisplayName(gameState, id))
-                  .join(" y ")} elija su carta de bonificación...`,
+                title: "Preparación lista",
+                text: "Esperando a que el resto de los jugadores termine la suya para empezar la Ronda 1...",
               }}
             />
-          )
-        ))}
-    </div>
+          ))}
+
+        {/* Carta de bonificación revelada por un poder de ave: hay que elegir cuál conservar. */}
+        {gameState.phase !== "setup" &&
+          gameState.players[localPlayerId] &&
+          playersChoosingBonus(gameState).includes(localPlayerId) && (
+            <ChooseBonusCardModal
+              playerName={getDisplayName(gameState, localPlayerId)}
+              options={
+                (gameState.players[localPlayerId].pendingBonusChoice ?? [])
+                  .map((id) => gameState.bonusCardsCatalog?.[id])
+                  .filter((b): b is BonusCard => !!b)
+              }
+              onChoose={(bonusCardId) => executeSetupMove({ type: "chooseBonusCard", bonusCardId })}
+            />
+          )}
+
+        {/* El resultado final espera a que se resuelvan las bonificaciones que quedaron por elegir. */}
+        {gameState.phase === "gameEnd" &&
+          (playersChoosingBonus(gameState).length === 0 ? (
+            <GameOverModal gameState={gameState} onRestart={handleGoHome} />
+          ) : (
+            !playersChoosingBonus(gameState).includes(localPlayerId) && (
+              <ChooseBonusCardModal
+                playerName=""
+                options={[]}
+                onChoose={() => {}}
+                waiting={{
+                  title: "Conteo final en pausa",
+                  text: `Esperando a que ${playersChoosingBonus(gameState)
+                    .map((id) => getDisplayName(gameState, id))
+                    .join(" y ")} elija su carta de bonificación...`,
+                }}
+              />
+            )
+          ))}
+      </div>
+    </BoardChangesContext.Provider>
   );
 };

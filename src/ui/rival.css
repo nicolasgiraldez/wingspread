@@ -205,3 +205,9 @@
     max-width: 62vw;
   }
 }
+
+/* Banner de turno (el tuyo o el del rival): mismo alto en los dos casos para que la mesa no salte. */
+.banner--turn {
+  align-items: center;
+  min-height: 56px;
+}

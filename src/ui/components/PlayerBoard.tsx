@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { getHabitatActionAllowance, getHabitatActiveColumn } from "../../game";
 import type { GameState, HabitatId, NameTag, PlayerState } from "../../game";
+import { slotKey } from "../boardChanges";
 import { habitatIcons, habitatLabels, playerNames } from "../labels";
 import { countOf } from "../text";
+import { useBoardChanges } from "../useBoardChanges";
 import { useMediaQuery } from "../useMediaQuery";
 import { BirdCard } from "./BirdCard";
 import { Button } from "./ui/Button";
@@ -43,6 +45,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
   isCurrentPlayerTurn,
 }) => {
   const narrow = useMediaQuery("(max-width: 640px)");
+  const changes = useBoardChanges();
   const [mobileHabitat, setMobileHabitat] = useState<HabitatId>("forest");
   const displayName = player.name || playerNames[player.id] || player.id;
   const grasslandAllowance = getHabitatActionAllowance(player, "grassland");
@@ -149,12 +152,17 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                   !!card && isOwner && slot.eggs < card.eggCapacity && isCurrentPlayerTurn && !!onOpenLayEggsModal;
 
                 if (card) {
+                  const key = slotKey(player.id, hab, sIdx);
                   return (
-                    <div key={sIdx} className={`slot slot--filled${isActiveCol ? " slot--active" : ""}`}>
+                    <div
+                      key={sIdx}
+                      className={`slot slot--filled${isActiveCol ? " slot--active" : ""}${changes.birds.has(key) ? " slot--new" : ""}`}
+                    >
                       <BirdCard
                         card={card}
                         highlightNameTags={highlightNameTags}
                         eggs={slot.eggs}
+                        newEggs={changes.eggs.get(key)}
                         cached={slot.cached}
                         tucked={slot.tucked}
                         mode={narrow ? "mini" : "board"}

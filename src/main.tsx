@@ -10,6 +10,7 @@ import "./ui/game.css";
 import "./ui/panels.css";
 import "./ui/feedback.css";
 import "./ui/rival.css";
+import "./ui/motion.css";
 import "./ui/styles.css";
 
 createRoot(document.getElementById("root")!).render(

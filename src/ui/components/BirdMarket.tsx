@@ -1,6 +1,7 @@
 import React from "react";
 import type { CardId, NameTag, SpeciesCard } from "../../game";
 import { countOf } from "../text";
+import { useBoardChanges } from "../useBoardChanges";
 import { BirdCard } from "./BirdCard";
 import { CardBack } from "./CardBack";
 import { Button } from "./ui/Button";
@@ -29,6 +30,7 @@ export const BirdMarket: React.FC<BirdMarketProps> = ({
   disabledReason,
   highlightNameTags,
 }) => {
+  const changes = useBoardChanges();
   const deckEmpty = deckCount === 0;
   const visible = marketCardIds.map((id) => cardsCatalog[id]).filter((card): card is SpeciesCard => !!card);
   const holes = Math.max(0, MARKET_SLOTS - visible.length);
@@ -70,6 +72,7 @@ export const BirdMarket: React.FC<BirdMarketProps> = ({
             key={card.id}
             card={card}
             mode="hand"
+            entering={changes.cards.has(card.id)}
             highlightNameTags={highlightNameTags}
             actionLabel="Robar esta ave"
             actionDisabled={disabled}
