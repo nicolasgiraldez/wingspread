@@ -129,9 +129,6 @@ describe("lateral", () => {
     localPlayerId: "nico",
     activeTab,
     onSelectPlayer: () => {},
-    selectedCard: null,
-    playBlockedReason: null,
-    onPlayCard: () => {},
   });
 
   it("la reserva marca el alimento que subió y los huevos puestos, del jugador que se está viendo", () => {

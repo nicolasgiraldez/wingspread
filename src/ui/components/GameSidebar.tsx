@@ -1,16 +1,7 @@
 import React from "react";
 import { scorePlayerDetails } from "../../game";
-import type { GameState, HabitatId, PlayerId, ResourceFace, SpeciesCard } from "../../game";
-import {
-  costIcon,
-  describePower,
-  describePowerText,
-  habitatArticle,
-  habitatIcons,
-  habitatLabels,
-  powerTimingLabels,
-  resourceLabels,
-} from "../labels";
+import type { GameState, HabitatId, PlayerId, ResourceFace } from "../../game";
+import { costIcon, resourceLabels } from "../labels";
 import logoUrl from "../assets/logo.svg";
 import { resourceKey } from "../boardChanges";
 import { classifyLog } from "../logEvents";
@@ -20,11 +11,9 @@ import { LogText } from "./LogText";
 import { ActionCube } from "./ActionCube";
 import { playerSymbol, playerSymbolName } from "./playerSymbols";
 import { Banner } from "./ui/Banner";
-import { Button } from "./ui/Button";
 import { CountUp } from "./ui/CountUp";
 import { Icon } from "./ui/Icon";
 import type { IconName } from "./ui/iconNames";
-import { RichText } from "./ui/RichText";
 import { ThinkingDots } from "./ui/ThinkingDots";
 
 const RESERVE_ORDER: ResourceFace[] = ["seed", "fruit", "insect", "fish", "rodent"];
@@ -36,11 +25,6 @@ interface GameSidebarProps {
   /** Jugador cuyo tablero se está viendo. */
   activeTab: PlayerId;
   onSelectPlayer: (id: PlayerId) => void;
-  /** Carta de tu mano elegida para jugar, si hay. */
-  selectedCard: SpeciesCard | null;
-  /** Motivo por el que no se puede jugar ahora (null = se puede). */
-  playBlockedReason: string | null;
-  onPlayCard: () => void;
 }
 
 const displayName = (state: GameState, id: PlayerId) => state.players[id]?.name || id;
@@ -211,69 +195,6 @@ const BonusPanel: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" 
   );
 };
 
-const SelectedCard: React.FC<Pick<GameSidebarProps, "selectedCard" | "playBlockedReason" | "onPlayCard">> = ({
-  selectedCard,
-  playBlockedReason,
-  onPlayCard,
-}) => (
-  <section className="selected-card" aria-labelledby="side-selected" data-selected-card>
-    <h2 id="side-selected" className="selected-card__label">
-      Carta seleccionada
-    </h2>
-    {selectedCard ? (
-      <>
-        <h3 className="selected-card__name">{selectedCard.name}</h3>
-        <p className="selected-card__habitats">
-          <span className="selected-card__habitat-icons">
-            {selectedCard.habitats.map((hab) => (
-              <span key={hab} className="selected-card__hab">
-                <Icon name={habitatIcons[hab]} size={20} />
-              </span>
-            ))}
-          </span>
-          Se juega en {selectedCard.habitats.map((hab) => `${habitatArticle[hab]} ${habitatLabels[hab]}`).join(" o ")}
-        </p>
-        <p className="selected-card__cost" title="Coste">
-          {Object.entries(selectedCard.cost).flatMap(([res, count]) =>
-            Array.from({ length: count ?? 0 }, (_, i) => (
-              <Icon key={`${res}${i}`} name={costIcon(res as ResourceFace)} size={24} label={resourceLabels[res as ResourceFace]} />
-            )),
-          )}
-          {(selectedCard.costAnyOf ?? []).map((res, i) => (
-            <React.Fragment key={res}>
-              {i > 0 && "/"}
-              <Icon name={costIcon(res)} size={24} label={resourceLabels[res]} />
-            </React.Fragment>
-          ))}
-          {Object.keys(selectedCard.cost).length === 0 && !(selectedCard.costAnyOf?.length ?? 0) && "Gratis"}
-        </p>
-        {selectedCard.powers.length > 0 ? (
-          <ul className="selected-card__powers">
-            {selectedCard.powers.map((p) => (
-              <li key={p.id} title={describePowerText(p)}>
-                <strong>{powerTimingLabels[p.timing]}.</strong> <RichText text={describePower(p)} size={16} ink="var(--c-crema)" />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="selected-card__none">Sin poder</p>
-        )}
-        <Button
-          variant="primary"
-          size="lg"
-          disabled={!!playBlockedReason}
-          disabledText={playBlockedReason ?? undefined}
-          onClick={onPlayCard}
-        >
-          Jugar esta ave
-        </Button>
-      </>
-    ) : (
-      <p className="selected-card__none">Elegí un ave de tu mano para ver sus detalles y jugarla.</p>
-    )}
-  </section>
-);
-
 const ActionLog: React.FC<{ gameState: GameState }> = ({ gameState }) => (
   <section className="side-block" aria-labelledby="side-log" data-fingerprint>
     <h2 id="side-log" className="label side-block__title">
@@ -306,7 +227,7 @@ const ActionLog: React.FC<{ gameState: GameState }> = ({ gameState }) => (
   </section>
 );
 
-/** Columna izquierda: marcador, cubos, reserva, bonificación, carta seleccionada y registro. */
+/** Columna izquierda: marcador, cubos, reserva, bonificación y registro. */
 export const GameSidebar: React.FC<GameSidebarProps> = (props) => (
   <aside className="sidebar" aria-label="Estado de la partida">
     <Scoreboard {...props} />
@@ -314,6 +235,5 @@ export const GameSidebar: React.FC<GameSidebarProps> = (props) => (
     <Reserve {...props} />
     <BonusPanel {...props} />
     <ActionLog gameState={props.gameState} />
-    <SelectedCard {...props} />
   </aside>
 );

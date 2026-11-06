@@ -105,8 +105,6 @@ export const App: React.FC = () => {
   };
 
   const [selectedCardForPlay, setSelectedCardForPlay] = useState<SpeciesCard | null>(null);
-  // Carta de la mano elegida en el tablero (se muestra en la columna lateral con el botón "Jugar esta ave").
-  const [selectedHandId, setSelectedHandId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PlayerId>("nico");
 
   const [layEggsModalOpen, setLayEggsModalOpen] = useState<boolean>(false);
@@ -564,8 +562,6 @@ export const App: React.FC = () => {
     gameState.phase === "round";
 
   const localPlayer = gameState.players[localPlayerId];
-  const selectedHandCard =
-    selectedHandId && localPlayer?.hand.includes(selectedHandId) ? (gameState.cards[selectedHandId] ?? null) : null;
   const playBlockedReason = !isMyTurn ? "No es tu turno" : !isControlsActive ? "Sin acciones disponibles" : null;
   const feederReason = !isMyTurn
     ? "Todavía no es tu turno. Los dados se activan cuando te toque jugar."
@@ -593,9 +589,6 @@ export const App: React.FC = () => {
               localPlayerId={localPlayerId}
               activeTab={activeTab}
               onSelectPlayer={setActiveTab}
-              selectedCard={selectedHandCard}
-              playBlockedReason={playBlockedReason}
-              onPlayCard={() => selectedHandCard && setSelectedCardForPlay(selectedHandCard)}
             />
 
             <main className="table">
@@ -693,7 +686,7 @@ export const App: React.FC = () => {
                     <h2 id="hand-title" className="label">
                       Tu mano · {countOf(localPlayer.hand.length, "carta", "cartas")}
                     </h2>
-                    <span className="hand__hint">{pressVerb()} "Jugar esta ave" para colocarla en tu tablero</span>
+                    <span className="hand__hint">{pressVerb()} un ave para jugarla</span>
                   </div>
 
                   {localPlayer.hand.length > 0 ? (
@@ -701,7 +694,7 @@ export const App: React.FC = () => {
                       {localPlayer.hand.map((cardId) => {
                         const card = gameState.cards[cardId];
                         if (!card) return null;
-                        const isChosen = selectedHandCard?.id === cardId;
+                        const isChosen = selectedCardForPlay?.id === cardId;
                         return (
                           <BirdCard
                             key={cardId}
@@ -711,7 +704,7 @@ export const App: React.FC = () => {
                             highlightNameTags={myNameTags}
                             selected={isChosen}
                             lifted={isChosen}
-                            onClick={() => setSelectedHandId(isChosen ? null : cardId)}
+                            onClick={() => setSelectedCardForPlay(card)}
                           />
                         );
                       })}
@@ -741,6 +734,7 @@ export const App: React.FC = () => {
               card={selectedCardForPlay}
               player={gameState.players[localPlayerId]}
               gameState={gameState}
+              blockedReason={playBlockedReason}
               onConfirmPlay={handleConfirmPlayBird}
               onClose={() => setSelectedCardForPlay(null)}
             />

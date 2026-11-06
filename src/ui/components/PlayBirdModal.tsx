@@ -113,6 +113,8 @@ interface PlayBirdModalProps {
   card: SpeciesCard;
   player: PlayerState;
   gameState: GameState;
+  /** Motivo por el que no se puede jugar ahora (no es tu turno, sin cubos); la carta se puede mirar igual. */
+  blockedReason?: string | null;
   onConfirmPlay: (move: Extract<Move, { type: "playBird" }>) => void;
   onClose: () => void;
 }
@@ -121,6 +123,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
   card,
   player,
   gameState,
+  blockedReason,
   onConfirmPlay,
   onClose,
 }) => {
@@ -347,9 +350,11 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
     ...(Object.keys(activePowerEggChoices).length > 0 ? { powerEggChoices: activePowerEggChoices } : {}),
   };
 
-  const isMoveValid = isSlotAvailable && isEggCostValid && isPaymentValid && isLegalMove(gameState, player.id, move);
+  const isMoveValid = !blockedReason && isSlotAvailable && isEggCostValid && isPaymentValid && isLegalMove(gameState, player.id, move);
 
-  const invalidReason = !isSlotAvailable
+  const invalidReason = blockedReason
+    ? `${blockedReason}.`
+    : !isSlotAvailable
     ? "No hay una columna libre en este hábitat."
     : !isPaymentValid
       ? "Falta pagar el coste en alimentos."

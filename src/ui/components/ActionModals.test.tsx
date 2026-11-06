@@ -29,6 +29,26 @@ describe("LayEggsModal", () => {
 });
 
 describe("PlayBirdModal", () => {
+  it("si no se puede jugar ahora, muestra la carta igual pero el botón no confirma y dice el motivo", async () => {
+    const onConfirmPlay = vi.fn();
+    const card = state.cards[state.players.nico.hand[0]];
+    render(
+      <PlayBirdModal
+        card={card}
+        player={state.players.nico}
+        gameState={state}
+        blockedReason="No es tu turno"
+        onConfirmPlay={onConfirmPlay}
+        onClose={() => {}}
+      />,
+    );
+    const confirm = screen.getByRole("button", { name: "Confirmar y Jugar Ave" });
+    expect(confirm).toHaveAttribute("aria-disabled", "true");
+    expect(confirm).toHaveAccessibleDescription("No es tu turno.");
+    await userEvent.click(confirm);
+    expect(onConfirmPlay).not.toHaveBeenCalled();
+  });
+
   it("es un diálogo con los pasos numerados y un botón de confirmar que dice por qué está deshabilitado", () => {
     const card = state.cards[state.players.nico.hand[0]];
     render(

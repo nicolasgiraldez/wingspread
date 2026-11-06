@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { createInitialState, speciesCards } from "../../game";
+import { createInitialState } from "../../game";
 import { GameSidebar } from "./GameSidebar";
 import { GameTopBar } from "./GameTopBar";
 
@@ -78,9 +78,6 @@ describe("GameSidebar", () => {
       localPlayerId: "nico",
       activeTab: "nico",
       onSelectPlayer: vi.fn(),
-      selectedCard: null,
-      playBlockedReason: null,
-      onPlayCard: vi.fn(),
       ...over,
     };
     render(<GameSidebar {...props} />);
@@ -114,39 +111,6 @@ describe("GameSidebar", () => {
     expect(props.onSelectPlayer).toHaveBeenCalledWith("bot");
   });
 
-  it("sin carta elegida lo dice; con carta muestra sus datos y el botón Jugar esta ave", async () => {
-    const { unmount } = render(
-      <GameSidebar
-        gameState={state}
-        localPlayerId="nico"
-        activeTab="nico"
-        onSelectPlayer={() => {}}
-        selectedCard={null}
-        playBlockedReason={null}
-        onPlayCard={() => {}}
-      />,
-    );
-    expect(screen.getByText(/Elegí un ave de tu mano/)).toBeInTheDocument();
-    unmount();
-
-    const onPlayCard = vi.fn();
-    setup({ selectedCard: speciesCards.baldEagle, onPlayCard });
-    const panel = document.querySelector("[data-selected-card]") as HTMLElement;
-    expect(within(panel).getByText(speciesCards.baldEagle.name)).toBeInTheDocument();
-    expect(within(panel).getByText(/Se juega en el Río/)).toBeInTheDocument();
-    await userEvent.click(within(panel).getByRole("button", { name: "Jugar esta ave" }));
-    expect(onPlayCard).toHaveBeenCalledTimes(1);
-  });
-
-  it("si no se puede jugar, el botón dice el motivo y no dispara nada", async () => {
-    const onPlayCard = vi.fn();
-    setup({ selectedCard: speciesCards.baldEagle, playBlockedReason: "No es tu turno", onPlayCard });
-    const button = screen.getByRole("button", { name: "No es tu turno" });
-    expect(button).toHaveAttribute("aria-disabled", "true");
-    await userEvent.click(button);
-    expect(onPlayCard).not.toHaveBeenCalled();
-  });
-
   it("el registro es un log que anuncia jugadas y muestra los nombres de aves sin corchetes", () => {
     setup();
     expect(screen.getByRole("log")).toHaveAttribute("aria-live", "polite");
@@ -161,9 +125,6 @@ describe("GameSidebar", () => {
         localPlayerId="nico"
         activeTab="nico"
         onSelectPlayer={() => {}}
-        selectedCard={null}
-        playBlockedReason={null}
-        onPlayCard={() => {}}
       />,
     );
     const cubes = container.querySelectorAll(".cubes svg.cube");
@@ -184,9 +145,6 @@ describe("GameSidebar", () => {
         localPlayerId="nico"
         activeTab="nico"
         onSelectPlayer={() => {}}
-        selectedCard={null}
-        playBlockedReason={null}
-        onPlayCard={() => {}}
       />,
     );
     expect(document.querySelectorAll(".cubes .cube--1")).toHaveLength(8); // 2.º jugador: tomate
