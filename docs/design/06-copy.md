@@ -56,7 +56,7 @@ Tras la conversión los `{ícono}` van como marcadores de `RichText` (ver `04-ic
 | 512, 555, 585 | `(Tú)` | `(Vos)` |
 | 710 | `⏳ Turno de {nombre}... Esperando su jugada` | `Turno de {nombre} · Esperando su jugada` (sin emoji, con ícono `hourglass`; es el **banner de turno**, que ahora también existe en solitario y en tu turno: ver abajo) |
 | 899 | `Tu Mano ({nombre}) — {n} carta(s)` | `Tu mano · {n} cartas` (etiqueta de sección, 13px mayúsculas) |
-| 904 | `Haz clic en "Jugar esta ave" para colocarla en tu tablero` | `Hacé clic en "Jugar esta ave" para colocarla en tu tablero` (en pantallas táctiles: `Tocá "Jugar esta ave"…`) |
+| 904 | `Haz clic en "Jugar esta ave" para colocarla en tu tablero` | `Hacé clic en un ave para jugarla` (en pantallas táctiles: `Tocá un ave…`) |
 | 932 | `Tu mano está vacía. Roba cartas del mercado o del mazo para jugar más aves.` | `Tu mano está vacía. Robá cartas del mercado o del mazo para jugar más aves.` |
 | 343, 966, 978, 1003, 1035 | ya en voseo ("Reintentá", "Tenés…", "Elegí") | sin cambio |
 

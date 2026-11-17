@@ -13,12 +13,11 @@ Componente: `App.tsx` (layout general), `PlayerBoard.tsx`, sección "Tu mano".
 ### Escritorio
 
 - **Barra superior** (carbón, 68px): logo + "Wingspread" (DM Serif 34px, crema) a la izquierda; al centro "Ronda 2 de 4" con **4 píldoras** de progreso (llenas mostaza las rondas jugadas/en curso, vacías con borde); a la derecha chip mostaza "Tu turno" (en el turno del rival, chip **menta** "Turno de {nombre}" con puntos animados; ver §9) y botón de menú (44×44, borde crema) que abre el menú de la partida, con el selector de velocidad. **[DIFIERE]** hoy no hay barra superior; la ronda está en el panel lateral y el turno en "Turno Actual".
-- **Barra lateral izquierda** (280px, fondo crema-2, borde derecho 2px): tres bloques.
+- **Barra lateral izquierda** (280px, fondo crema-2, borde derecho 2px): marcador, reserva y los bloques de la tabla de abajo (cubos, bonificación, registro).
   1. **Marcador**: una fila por jugador con su símbolo (círculo / triángulo / cuadrado), nombre y puntaje en DM Serif; el jugador **en turno** va con fondo mostaza y, si es el rival, con la marca "Turno •••" y una leve "respiración" (§9). Los puntajes **cuentan** hacia el valor nuevo. **[DIFIERE]** reemplaza "Puntuación en Vivo".
   2. **Tu reserva**: 6 fichas de 2 columnas (semilla, fruta, insecto, pez, roedor, huevo) con ícono + cantidad en DM Serif. **[DIFIERE]** hoy es "Recursos de X".
-  3. **Carta seleccionada** (panel petróleo abajo): nombre, "Se juega en el Río", costes en una fichita crema, texto del poder ("Entre turnos. …") y botón primario **"Jugar esta ave"**. **[NUEVO]** como panel; hoy el botón "Jugar esta ave" vive dentro de cada carta de la mano.
 - **Área de juego** (fondo crema): tres **filas de hábitat**, una por hábitat (Bosque, Pradera, Río). Cada fila es un contenedor crema-2 de radio 20 con: a la izquierda un **panel de hábitat** de 240px de ancho (fondo del color del hábitat, ficha con el ícono, chip "3 de 5 aves", nombre en DM Serif 30px y la acción del hábitat: "Obtené alimento del comedero" / "Poné huevos en tus nidos" / "Robá nuevas cartas de ave"), y a la derecha **5 casillas** de carta modo `board` (132×200). Las casillas vacías son rectángulos con borde punteado y un "+" (ver estados en §7).
-- **Tu mano · 4 cartas**: fila de cartas modo `hand` (192×290) debajo del tablero. La carta seleccionada va **levantada** (ver `03-cards.md` §Estados). Si la carta no se puede jugar, el botón "Jugar esta ave" del panel queda deshabilitado con el motivo en texto (ej. "Sin alimento suficiente"). **[Propuesta: el tablero solo muestra el caso habilitado]**
+- **Tu mano · 4 cartas**: fila de cartas modo `hand` (192×290) debajo del tablero. Hacer clic en una carta la deja **levantada** (ver `03-cards.md` §Estados) y abre directamente el modal **Jugar ave** (§6), con la carta en grande, el hábitat y el pago. Si ahora no se puede jugar (no es tu turno, sin cubos), el modal se abre igual para mirar la carta, pero "Confirmar y Jugar Ave" queda deshabilitado con el motivo en texto (ej. "No es tu turno."). No hay panel ni popup intermedio de carta seleccionada.
 
 ### Móvil
 
@@ -28,7 +27,7 @@ Componente: `App.tsx` (layout general), `PlayerBoard.tsx`, sección "Tu mano".
 - **Grilla de 3 columnas** con cartas `board`; la última celda es una tarjeta del color del hábitat con "3 de 5 aves" y la acción ("Obtené alimento del comedero").
 - **Reserva** en una franja horizontal con los 6 recursos.
 - **Tu mano**: carrusel horizontal de cartas `hand`; la seleccionada, levantada.
-- **Botón "Jugar esta ave"** fijo abajo, ancho completo, 56px.
+- Tocar una carta abre directamente el modal **Jugar ave**, igual que en escritorio (no hay botón fijo abajo).
 
 ### Diferencias importantes con la app actual (decisiones a tomar al implementar)
 
