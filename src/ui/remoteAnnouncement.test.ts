@@ -57,7 +57,10 @@ describe("describeRemoteStep", () => {
 
     // Con aves en el río se roban 2: una del mercado y otra del mazo.
     const wetland = onlineRound();
-    const [a, b] = wetland.players.santi.hand;
+    // Aves sin poderes: una al azar podría robar o solapar cartas al activarse y cambiar la cuenta del mazo.
+    const [a, b] = Object.values(wetland.cards)
+      .filter((card) => card.powers.length === 0 && !wetland.market.includes(card.id))
+      .map((card) => card.id);
     wetland.players.santi.board.wetland[0].cardId = a;
     wetland.players.santi.board.wetland[1].cardId = b;
     const wetlandMarket = wetland.market[0];
