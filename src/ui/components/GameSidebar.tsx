@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { scorePlayerDetails } from "../../game";
 import type { GameState, HabitatId, PlayerId, ResourceFace } from "../../game";
 import { costIcon, resourceLabels } from "../labels";
@@ -17,7 +17,7 @@ import type { IconName } from "./ui/iconNames";
 import { ThinkingDots } from "./ui/ThinkingDots";
 
 const RESERVE_ORDER: ResourceFace[] = ["seed", "fruit", "insect", "fish", "rodent"];
-const LOG_LIMIT = 6;
+const LOG_LIMIT = 50;
 
 interface GameSidebarProps {
   gameState: GameState;
@@ -195,37 +195,51 @@ const BonusPanel: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" 
   );
 };
 
-const ActionLog: React.FC<{ gameState: GameState }> = ({ gameState }) => (
-  <section className="side-block" aria-labelledby="side-log" data-fingerprint>
-    <h2 id="side-log" className="label side-block__title">
-      Registro de acciones
-    </h2>
-    <ul className="log" role="log" aria-live="polite">
-      {gameState.log.slice(-LOG_LIMIT).map((entry, idx) => {
-        const event = classifyLog(entry);
-        const special = LOG_ICON[event.kind];
-        const playerIndex = entry.playerId ? gameState.playerOrder.indexOf(entry.playerId) : -1;
-        return (
-          <li key={idx} className="log__entry">
-            <span className="log__tile">
-              {special ? (
-                <Icon name={special.icon} size={20} label={special.label} />
-              ) : event.kind === "move" && playerIndex >= 0 ? (
-                <Icon name={playerSymbol(playerIndex)} size={20} label={`Símbolo: ${playerSymbolName(playerIndex)}`} />
-              ) : (
-                <img src={logoUrl} alt="Sistema" width={20} height={20} />
-              )}
-            </span>
-            <span className="log__text">
-              {entry.playerId ? <strong>{displayName(gameState, entry.playerId)}: </strong> : null}
-              <LogText text={entry.message} />
-            </span>
-          </li>
-        );
-      })}
-    </ul>
-  </section>
-);
+const ActionLog: React.FC<{ gameState: GameState }> = ({ gameState }) => {
+  const listRef = useRef<HTMLUListElement>(null);
+  // Si estabas al pie del registro, cada jugada nueva lo baja; si subiste a leer, no te mueve.
+  const atBottom = useRef(true);
+  const entries = gameState.log.length;
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (list && atBottom.current) list.scrollTop = list.scrollHeight;
+  }, [entries]);
+  const handleScroll = () => {
+    const list = listRef.current;
+    if (list) atBottom.current = list.scrollHeight - list.scrollTop - list.clientHeight < 24;
+  };
+  return (
+    <section className="side-block side-block--log" aria-labelledby="side-log" data-fingerprint>
+      <h2 id="side-log" className="label side-block__title">
+        Registro de acciones
+      </h2>
+      <ul ref={listRef} className="log" role="log" aria-live="polite" onScroll={handleScroll}>
+        {gameState.log.slice(-LOG_LIMIT).map((entry, idx, shown) => {
+          const event = classifyLog(entry);
+          const special = LOG_ICON[event.kind];
+          const playerIndex = entry.playerId ? gameState.playerOrder.indexOf(entry.playerId) : -1;
+          return (
+            <li key={entries - shown.length + idx} className="log__entry">
+              <span className="log__tile">
+                {special ? (
+                  <Icon name={special.icon} size={20} label={special.label} />
+                ) : event.kind === "move" && playerIndex >= 0 ? (
+                  <Icon name={playerSymbol(playerIndex)} size={20} label={`Símbolo: ${playerSymbolName(playerIndex)}`} />
+                ) : (
+                  <img src={logoUrl} alt="Sistema" width={20} height={20} />
+                )}
+              </span>
+              <span className="log__text">
+                {entry.playerId ? <strong>{displayName(gameState, entry.playerId)}: </strong> : null}
+                <LogText text={entry.message} />
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+};
 
 /** Columna izquierda: marcador, cubos, reserva, bonificación y registro. */
 export const GameSidebar: React.FC<GameSidebarProps> = (props) => (
