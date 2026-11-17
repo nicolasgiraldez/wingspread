@@ -15,6 +15,9 @@ vi.mock("./network/peerManager", async (importOriginal) => ({
     initGuest: vi.fn(),
     cleanup: vi.fn(),
     sendMessage: vi.fn(() => true),
+    sendTo: vi.fn(() => true),
+    connectedSeats: vi.fn((): string[] => []),
+    getSeatTokens: vi.fn((): Record<string, string> => ({})),
     isConnected: vi.fn(() => false),
   },
 }));

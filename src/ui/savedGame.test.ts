@@ -53,6 +53,23 @@ describe("partida guardada", () => {
     expect(loaded!.state).toEqual(state);
   });
 
+  it("guarda una sala de 5 jugadores con el token de cada asiento y descarta los que no son de la partida", () => {
+    const state = createInitialState({ mode: "online", playerIds: ["nico", "santi", "p3", "p4", "p5"] });
+    saveGame({
+      kind: "online-host",
+      state,
+      roomCode: "tucan-205",
+      savedAt: 3000,
+      seatTokens: { santi: "a", p5: "e", fantasma: "x", p3: "" },
+    });
+
+    const loaded = loadSavedGame();
+    expect(loaded).toMatchObject({ kind: "online-host", roomCode: "tucan-205", seatTokens: { santi: "a", p5: "e" } });
+    expect(Object.keys((loaded as { seatTokens: object }).seatTokens)).toEqual(["santi", "p5"]);
+    expect(loaded!.state.playerOrder).toHaveLength(5);
+    expect(summarizeSavedGame(loaded!).playerCount).toBe(5);
+  });
+
   it("no guarda los catálogos de cartas (son estáticos y pesados)", () => {
     saveGame({ kind: "solo", state: midGame("solo", 10), savedAt: 1 });
     const raw = localStorage.getItem(STORAGE_KEY)!;
@@ -144,6 +161,7 @@ describe("resumen para la pantalla de inicio", () => {
     expect(summarizeSavedGame({ kind: "solo", state, savedAt: 5 })).toEqual({
       kind: "solo",
       roomCode: undefined,
+      playerCount: 2,
       round: 1,
       savedAt: 5,
     });

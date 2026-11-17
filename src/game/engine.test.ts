@@ -361,6 +361,84 @@ describe("motor de reglas expandido de wingspread", () => {
     expect(state.currentPlayerId).toBe("santi");
   });
 
+  describe("objetivos de ronda con 3 a 5 jugadores", () => {
+    const seats = ["nico", "santi", "p3", "p4", "p5"];
+
+    /** Partida de N jugadores donde cada uno tiene `eggs[i]` huevos en la pradera (objetivo de la ronda). */
+    function withGrasslandEggs(eggs: number[], round: 1 | 2 | 3 | 4 = 1) {
+      const state = createTestState({ mode: "online", playerIds: seats.slice(0, eggs.length) });
+      state.round = round;
+      state.roundGoals[round - 1] = roundGoalPool.find((goal) => goal.id === "eggsInGrassland")!;
+      eggs.forEach((count, index) => {
+        const slot = state.players[seats[index]].board.grassland[0];
+        slot.cardId = "meadowSparrow";
+        slot.eggs = count;
+      });
+      return state;
+    }
+    const scores = (state: ReturnType<typeof withGrasslandEggs>, round = 1) =>
+      state.playerOrder.map((id) => state.roundGoalResults![round][id]);
+
+    it("crea partidas de hasta 5 jugadores, cada uno con su mano, su comida y sus bonificaciones", () => {
+      const state = createInitialState({ mode: "online", playerIds: seats });
+      expect(state.playerOrder).toEqual(seats);
+      for (const id of seats) {
+        expect(state.players[id].hand).toHaveLength(5);
+        expect(state.players[id].pendingBonusChoice).toHaveLength(2);
+      }
+      const dealt = seats.flatMap((id) => state.players[id].hand);
+      expect(new Set([...dealt, ...state.market, ...state.deck]).size).toBe(dealt.length + state.market.length + state.deck.length);
+      expect(() => createTestState({ mode: "online", playerIds: [...seats, "p6"] })).toThrow(/hasta 5/);
+      expect(() => createTestState({ mode: "online", playerIds: ["nico", "nico"] })).toThrow(/repetirse/);
+    });
+
+    it("premia al 1.º, 2.º y 3.º; del 4.º en adelante no se puntúa", () => {
+      const state = withGrasslandEggs([5, 4, 3, 2, 1], 2);
+      resolveRoundEnd(state);
+      expect(scores(state, 2)).toEqual([5, 2, 1, 0, 0]);
+    });
+
+    it("en la ronda 1 el tercer puesto vale 0", () => {
+      const state = withGrasslandEggs([3, 2, 1]);
+      resolveRoundEnd(state);
+      expect(scores(state)).toEqual([4, 1, 0]);
+    });
+
+    it("los empatados se reparten los puestos que ocupan, redondeando hacia abajo", () => {
+      // Tres empatados en el 1.º puesto de la ronda 4: (7 + 4 + 3) / 3 = 4. El siguiente ya es 4.º.
+      const first = withGrasslandEggs([2, 2, 2, 1], 4);
+      resolveRoundEnd(first);
+      expect(scores(first, 4)).toEqual([4, 4, 4, 0]);
+
+      // Dos empatados en el 2.º puesto de la ronda 3: (3 + 2) / 2 = 2.
+      const second = withGrasslandEggs([4, 2, 2, 1], 3);
+      resolveRoundEnd(second);
+      expect(scores(second, 3)).toEqual([6, 2, 2, 0]);
+    });
+
+    it("quien no tiene nada del objetivo no puntúa aunque quede en un puesto con premio", () => {
+      const state = withGrasslandEggs([3, 0, 0], 4);
+      resolveRoundEnd(state);
+      expect(scores(state, 4)).toEqual([7, 0, 0]);
+    });
+
+    it("el turno recorre a todos los jugadores y el primer jugador rota cada ronda", () => {
+      const state = withGrasslandEggs([0, 0, 0, 0]);
+      expect(state.phase).toBe("round");
+      let next = state;
+      const order: string[] = [];
+      for (let i = 0; i < 5; i += 1) {
+        order.push(next.currentPlayerId);
+        next.feeder = ["seed", "fruit", "insect", "fish", "rodent"];
+        next = applyMove(next, next.currentPlayerId, { type: "gainFood", dieIndexes: [0] });
+      }
+      expect(order).toEqual(["nico", "santi", "p3", "p4", "nico"]);
+
+      resolveRoundEnd(state);
+      expect(state.firstPlayerId).toBe("santi");
+    });
+  });
+
   it("calcula la puntuación detallada incluyendo bonificaciones, huevos y cartas solapadas", () => {
     const state = createTestState(["nico", "santi"]);
     const slot = state.players.nico.board.wetland[0];

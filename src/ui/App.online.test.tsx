@@ -10,6 +10,9 @@ const network = vi.hoisted(() => ({
   initGuest: vi.fn(),
   cleanup: vi.fn(),
   sendMessage: vi.fn(() => true),
+  sendTo: vi.fn(() => true),
+  connectedSeats: vi.fn((): string[] => []),
+  getSeatTokens: vi.fn((): Record<string, string> => ({})),
   isConnected: vi.fn(() => false),
 }));
 vi.mock("./network/peerManager", async (importOriginal) => ({
@@ -54,9 +57,43 @@ describe("invitado en una partida online", () => {
     await user.click(screen.getByRole("button", { name: /Unirse/ }));
 
     const handlers = network.initGuest.mock.calls[0][1] as { onMessage: (msg: NetworkMessage) => void };
-    const hostSends = (state: GameState) => act(() => handlers.onMessage({ type: "SYNC_STATE", state }));
+    const hostSends = (state: GameState, extra: Partial<Extract<NetworkMessage, { type: "SYNC_STATE" }>> = {}) =>
+      act(() => handlers.onMessage({ type: "SYNC_STATE", state, ...extra }));
     return { hostSends };
   }
+
+  it("en una sala de 4 juega en el asiento que le asigna la anfitriona y ve quién falta conectarse", async () => {
+    const { hostSends } = await joinAsMateo();
+    const state = createInitialState({
+      mode: "online",
+      playerIds: ["nico", "santi", "p3", "p4"],
+      customPlayerNames: { nico: "Lucía", santi: "Sol", p3: "Jugador 3", p4: "Jugador 4" },
+      firstPlayerId: "p3",
+    });
+    state.phase = "round";
+    for (const player of Object.values(state.players)) {
+      player.pendingStartingHand = undefined;
+      player.pendingBonusChoice = undefined;
+    }
+    await hostSends(state, { yourPlayerId: "p3", connectedPlayerIds: ["nico", "santi", "p3"] });
+
+    // Es el tercer asiento: su nombre reemplaza al provisorio y el turno (de p3) es suyo.
+    const scores = [...document.querySelectorAll(".score-list .score")].map((el) => el.textContent ?? "");
+    expect(scores).toHaveLength(4);
+    expect(scores[2]).toContain("Mateo");
+    expect(scores[2]).toContain("(Vos)");
+    expect(scores[2]).not.toContain("Sin conexión");
+    expect(scores[3]).toContain("Jugador 4");
+    expect(scores[3]).toContain("Sin conexión");
+    expect(document.querySelector(".banner--turn")).toHaveTextContent("Tu turno");
+    expect(screen.getByText("3 de 4")).toBeInTheDocument();
+    // Cada jugador tiene su propio símbolo.
+    expect(new Set([...document.querySelectorAll(".score-list .score svg[aria-label^='Símbolo']")].map((el) => el.getAttribute("aria-label"))).size).toBe(4);
+
+    // Sus jugadas van a la anfitriona, que es quien las aplica.
+    await userEvent.click(document.querySelector("button.die-token") as HTMLElement);
+    expect(network.sendMessage).toHaveBeenCalledWith(expect.objectContaining({ type: "APPLY_MOVE", playerId: "p3" }));
+  });
 
   it("cuando llega la jugada de la anfitriona, un panel cuenta qué hizo y no hay avisos repetidos", async () => {
     const { hostSends } = await joinAsMateo();

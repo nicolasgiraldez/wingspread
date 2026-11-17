@@ -12,6 +12,9 @@ const network = vi.hoisted(() => ({
   initGuest: vi.fn(),
   cleanup: vi.fn(),
   sendMessage: vi.fn(() => true),
+  sendTo: vi.fn(() => true),
+  connectedSeats: vi.fn((): string[] => []),
+  getSeatTokens: vi.fn((): Record<string, string> => ({})),
   isConnected: vi.fn(() => false),
 }));
 vi.mock("./network/peerManager", async (importOriginal) => ({
@@ -76,7 +79,35 @@ describe("reanudar una partida guardada", () => {
 
     expect(await screen.findByText("Mercado de Aves")).toBeTruthy();
     expect(network.initHost).toHaveBeenCalledTimes(1);
-    expect(network.initHost).toHaveBeenCalledWith("halcon-482", expect.any(Object), { resume: true });
+    expect(network.initHost).toHaveBeenCalledWith(
+      "halcon-482",
+      expect.any(Object),
+      expect.objectContaining({ resume: true, guestSeats: ["santi"] }),
+    );
+  });
+
+  it("al reanudar una sala de varios jugadores cada invitado conserva su asiento", async () => {
+    const state = withSeededRandom(5, () =>
+      createInitialState({ mode: "online", playerIds: ["nico", "santi", "p3", "p4"], customPlayerNames: { nico: "Lucía" } }),
+    );
+    saveGame({
+      kind: "online-host",
+      state,
+      roomCode: "garza-311",
+      savedAt: Date.now(),
+      seatTokens: { santi: "token-mateo", p4: "token-sol", intruso: "x" },
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.getByText(/Partida de 4 jugadores/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+
+    expect(network.initHost).toHaveBeenCalledWith("garza-311", expect.any(Object), {
+      resume: true,
+      guestSeats: ["santi", "p3", "p4"],
+      seatTokens: { santi: "token-mateo", p4: "token-sol" },
+    });
   });
 
   it("descartar borra la partida guardada y oculta la tarjeta", async () => {

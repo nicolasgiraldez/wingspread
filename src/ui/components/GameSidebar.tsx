@@ -25,6 +25,8 @@ interface GameSidebarProps {
   /** Jugador cuyo tablero se está viendo. */
   activeTab: PlayerId;
   onSelectPlayer: (id: PlayerId) => void;
+  /** Partida online: jugadores que ahora mismo no están conectados a la sala. */
+  offlinePlayerIds?: PlayerId[];
 }
 
 const displayName = (state: GameState, id: PlayerId) => state.players[id]?.name || id;
@@ -36,12 +38,9 @@ const LOG_ICON: Partial<Record<LogKind, { icon: IconName; label: string }>> = {
   eggs: { icon: "egg", label: "Huevos" },
 };
 
-const Scoreboard: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" | "activeTab" | "onSelectPlayer">> = ({
-  gameState,
-  localPlayerId,
-  activeTab,
-  onSelectPlayer,
-}) => (
+const Scoreboard: React.FC<
+  Pick<GameSidebarProps, "gameState" | "localPlayerId" | "activeTab" | "onSelectPlayer" | "offlinePlayerIds">
+> = ({ gameState, localPlayerId, activeTab, onSelectPlayer, offlinePlayerIds = [] }) => (
   <section className="side-block" aria-labelledby="side-score" data-fingerprint>
     <h2 id="side-score" className="label side-block__title">
       Marcador
@@ -67,6 +66,12 @@ const Scoreboard: React.FC<Pick<GameSidebarProps, "gameState" | "localPlayerId" 
                 {isBot && <Icon name="bot" size={18} />}
                 {id === localPlayerId && <span className="score__mark">(Vos)</span>}
                 {gameState.firstPlayerId === id && <span className="score__mark">1.º</span>}
+                {offlinePlayerIds.includes(id) && (
+                  <span className="score__mark score__mark--off">
+                    <Icon name="wifioff" size={16} />
+                    Sin conexión
+                  </span>
+                )}
                 {inTurn && (
                   <span className="score__mark score__mark--turn">
                     Turno

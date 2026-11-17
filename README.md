@@ -84,8 +84,10 @@ El rival (`src/game/bot.ts`) no tiene reglas propias: en cada turno genera jugad
 
 ## Multijugador: conexión y reconexión
 
-- El anfitrión (`nico`) es la única fuente de verdad: valida cada jugada del invitado (`santi`) y le reenvía el estado.
-- Si el invitado recarga la página o pierde la conexión, se reconecta solo (reintenta ~47 s) y recupera su asiento; el anfitrión lo reconoce por un token de sesión.
+- Las salas son de **2 a 5 jugadores**: el anfitrión elige la cantidad al crear la sala y todos los invitados entran con el mismo enlace. Cada uno ocupa un asiento (`santi`, `p3`, `p4`, `p5`) y la partida arranca cuando todos eligieron su mano inicial.
+- El anfitrión (`nico`) es la única fuente de verdad: valida cada jugada de cada invitado (según el asiento de su conexión) y reenvía el estado a todos.
+- Los objetivos de ronda premian al 1.º, 2.º y 3.º puesto (4/1/0, 5/2/1, 6/3/2 y 7/4/3 puntos según la ronda); los empates se reparten redondeando hacia abajo.
+- Si el invitado recarga la página o pierde la conexión, se reconecta solo (reintenta ~47 s) y recupera su asiento; el anfitrión lo reconoce por un token de sesión. El marcador muestra quién está sin conexión.
 - La partida solitaria y la sala del anfitrión se guardan en el navegador tras cada jugada. Si recargas o cierras la pestaña, la pantalla de inicio ofrece **Continuar partida**: la sala se reabre con el mismo código y el invitado se reconecta. Solo se guarda una partida a la vez y se borra al terminar.
 - PeerJS ya incluye un STUN de Google y TURN públicos de peerjs.com. Son compartidos y "best effort": si tus jugadores están tras redes muy restrictivas puedes añadir un TURN propio con la variable `VITE_ICE_SERVERS` (JSON), que se **suma** a los anteriores:
 

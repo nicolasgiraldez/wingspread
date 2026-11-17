@@ -46,7 +46,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ gameState, onResta
       icon={<Icon name="trophy" size={56} />}
       iconStyle="round"
       align="center"
-      width={800}
+      width={players.length > 3 ? 960 : 800}
       className="modal--over"
       footer={
         <Button variant="primary" size="lg" icon="refresh" onClick={onRestart}>
@@ -65,7 +65,8 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ gameState, onResta
         </Banner>
       )}
 
-      <table className="score-table">
+      <div className="score-table-wrap">
+      <table className={`score-table${players.length > 3 ? " score-table--many" : ""}`}>
         <caption className="sr-only">Puntuación final por categoría</caption>
         <thead>
           <tr>
@@ -112,6 +113,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ gameState, onResta
           </tr>
         </tfoot>
       </table>
+      </div>
     </Modal>
   );
 };

@@ -3,6 +3,7 @@ import { speciesCards } from "../../game";
 import type { BotDifficulty } from "../../game";
 import logoUrl from "../assets/logo.svg";
 import { difficultyLabels } from "../labels";
+import { MAX_ONLINE_PLAYERS, MIN_ONLINE_PLAYERS } from "../network/hostGame";
 import { extractRoomCode, generateRoomCode } from "../network/peerManager";
 import { formatSavedAgo } from "../savedGame";
 import type { SavedGameSummary } from "../savedGame";
@@ -15,7 +16,8 @@ import type { IconName } from "./ui/iconNames";
 export interface HomePageConfig {
   mode: "solo" | "online-host" | "online-join";
   playerName: string;
-  opponentName?: string;
+  /** Al crear una sala: cuántos jugadores tendrá la partida (de 2 a 5, contando al anfitrión). */
+  playerCount?: number;
   botDifficulty?: BotDifficulty;
   roomCode?: string;
 }
@@ -30,6 +32,11 @@ interface HomePageProps {
 }
 
 type Section = "welcome" | "solo" | "online";
+
+const PLAYER_COUNTS = Array.from(
+  { length: MAX_ONLINE_PLAYERS - MIN_ONLINE_PLAYERS + 1 },
+  (_, i) => MIN_ONLINE_PLAYERS + i,
+);
 
 /** Escena de la portada: bosque, sol y colina con tres cartas reales abiertas en abanico (decorativa). */
 const WelcomeArt: React.FC = () => (
@@ -96,7 +103,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const [section, setSection] = useState<Section>(defaultJoinCode ? "online" : "welcome");
   const [playerName, setPlayerName] = useState("");
-  const [opponentName, setOpponentName] = useState("");
+  const [playerCount, setPlayerCount] = useState(MIN_ONLINE_PLAYERS);
   const [difficulty, setDifficulty] = useState<BotDifficulty>("normal");
   const [joinCode, setJoinCode] = useState(defaultJoinCode);
   const [joinError, setJoinError] = useState("");
@@ -130,7 +137,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     onStart({
       mode: "online-host",
       playerName: playerName.trim(),
-      opponentName: opponentName.trim() || undefined,
+      playerCount,
       roomCode: code,
     });
   };
@@ -196,7 +203,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
                 {savedGame.kind === "online-host" && (
                   <div className="saved__meta">
-                    Al continuar se reabre la sala: tu invitado se reconecta solo o con el mismo enlace.
+                    {savedGame.playerCount > 2
+                      ? `Partida de ${savedGame.playerCount} jugadores. Al continuar se reabre la sala: tus invitados se reconectan solos o con el mismo enlace.`
+                      : "Al continuar se reabre la sala: tu invitado se reconecta solo o con el mismo enlace."}
                   </div>
                 )}
               </div>
@@ -246,7 +255,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               variant="online"
               icon="globe"
               title="Multijugador Online"
-              description="Creá o unite a una sala en tiempo real"
+              description="De 2 a 5 jugadores: creá o unite a una sala en tiempo real"
               disabled={!validName}
               describedBy={hintId}
               onClick={() => goTo("online")}
@@ -338,7 +347,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </span>
           <div>
             <h1 className="setup-card__title">Multijugador Online</h1>
-            <p className="setup-card__sub">Jugá con un amigo en tiempo real vía P2P</p>
+            <p className="setup-card__sub">Jugá con hasta 4 amigos en tiempo real vía P2P</p>
           </div>
         </header>
 
@@ -357,14 +366,28 @@ export const HomePage: React.FC<HomePageProps> = ({
             <Icon name="plus" size={22} />
             Crear nueva sala
           </h2>
-          <Field
-            label="Nombre de tu oponente (opcional)"
-            icon="user"
-            value={opponentName}
-            onChange={(e) => setOpponentName(e.target.value)}
-            placeholder="Nombre de tu amigo... (o dejalo en blanco)"
-            maxLength={24}
-          />
+          <fieldset className="options options--row">
+            <legend className="label">Cantidad de jugadores</legend>
+            {PLAYER_COUNTS.map((count) => (
+              <label key={count} className={`option${playerCount === count ? " option--on" : ""}`}>
+                <input
+                  type="radio"
+                  className="sr-only"
+                  name="playerCount"
+                  value={count}
+                  checked={playerCount === count}
+                  onChange={() => setPlayerCount(count)}
+                  aria-label={`${count} jugadores`}
+                />
+                <span aria-hidden="true">{count}</span>
+              </label>
+            ))}
+          </fieldset>
+          <p className="setup-card__note">
+            {playerCount === 2
+              ? "Vos y 1 invitado. La partida empieza cuando se conecta y ambos eligen su mano inicial."
+              : `Vos y ${playerCount - 1} invitados. Compartí el mismo enlace con todos: la partida empieza cuando están los ${playerCount} y cada uno eligió su mano inicial.`}
+          </p>
           <Button
             variant="primary"
             size="lg"

@@ -11,6 +11,8 @@ interface ConnectionStatusBarProps {
   status: ConnectionStatus;
   statusMessage?: string;
   localPlayerName: string;
+  /** Jugadores conectados a la sala sobre el total de la partida (si se conoce). */
+  seats?: { connected: number; total: number };
 }
 
 type Tone = "ok" | "warn" | "info" | "error";
@@ -29,6 +31,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
   status,
   statusMessage,
   localPlayerName,
+  seats,
 }) => {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -65,6 +68,11 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
             <span className="chip">
               Rol: <strong>{`${localPlayerName} (${isHost ? "Host" : "Invitado"})`}</strong>
             </span>
+            {seats && (
+              <span className="chip">
+                Jugadores conectados: <strong>{`${seats.connected} de ${seats.total}`}</strong>
+              </span>
+            )}
           </div>
           {statusMessage && <div className="conn__msg">{statusMessage}</div>}
         </div>
@@ -73,7 +81,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
       <div className="conn__side">
         <span className="chip conn__chip" role="status">
           <Icon name={state.icon} size={18} />
-          {state.text}
+          {status === "waiting_for_opponent" && seats && seats.total > 2 ? "Esperando jugadores..." : state.text}
         </span>
         <Button size="sm" icon={copied ? "check" : "copy"} onClick={handleCopyLink}>
           {copied ? "¡Enlace copiado!" : "Copiar enlace de sala"}

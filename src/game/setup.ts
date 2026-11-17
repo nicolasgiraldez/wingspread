@@ -13,6 +13,9 @@ import type {
 
 const habitats: HabitatId[] = ["forest", "grassland", "wetland"];
 
+/** Máximo de jugadores de una partida, como en el juego de mesa. */
+export const MAX_PLAYERS = 5;
+
 export const standardDieFaces: ResourceFace[] = [
   "seed",
   "fruit",
@@ -152,6 +155,12 @@ export function createInitialState(
   if (playerIds.length < 2) {
     throw new Error("Wingspread requiere al menos 2 jugadores.");
   }
+  if (playerIds.length > MAX_PLAYERS) {
+    throw new Error(`Wingspread admite hasta ${MAX_PLAYERS} jugadores.`);
+  }
+  if (new Set(playerIds).size !== playerIds.length) {
+    throw new Error("Los jugadores de una partida no pueden repetirse.");
+  }
 
   const defaultNames: Record<string, string> = {
     nico: "Nico",
@@ -198,7 +207,10 @@ export function createInitialState(
     bonusDeck,
     bonusDiscard: [],
     log: [{
-      message: mode === "solo" ? `Partida iniciada contra un rival de la IA (${botDifficulty}).` : "Partida Multijugador Online iniciada.",
+      message:
+        mode === "solo"
+          ? `Partida iniciada contra un rival de la IA (${botDifficulty}).`
+          : `Partida Multijugador Online iniciada (${playerIds.length} jugadores).`,
     }],
   };
 }

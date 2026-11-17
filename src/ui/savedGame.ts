@@ -1,5 +1,5 @@
-import { bonusCardsCatalog, speciesCards } from "../game";
-import type { BonusCard, GameState } from "../game";
+import { bonusCardsCatalog, MAX_PLAYERS, speciesCards } from "../game";
+import type { BonusCard, GameState, PlayerId } from "../game";
 
 /**
  * Partida guardada en el navegador para poder continuarla tras recargar o cerrar la pestaña.
@@ -8,7 +8,14 @@ import type { BonusCard, GameState } from "../game";
  */
 export type SavedGame =
   | { kind: "solo"; state: GameState; savedAt: number }
-  | { kind: "online-host"; state: GameState; roomCode: string; savedAt: number };
+  | {
+      kind: "online-host";
+      state: GameState;
+      roomCode: string;
+      savedAt: number;
+      /** Token del invitado de cada asiento, para que al reanudar cada uno recupere el suyo. */
+      seatTokens?: Record<PlayerId, string>;
+    };
 
 const STORAGE_KEY = "wingspread.savedGame.v2";
 /** Versión anterior (partidas con el Automa y la preparación antigua): incompatible, se descarta. */
@@ -104,6 +111,8 @@ export function restoreGame(value: unknown): SavedGame | null {
   if (
     !isRecord(players) ||
     !isArray(raw.playerOrder) ||
+    raw.playerOrder.length < 2 ||
+    raw.playerOrder.length > MAX_PLAYERS ||
     !raw.playerOrder.every((id) => typeof id === "string" && isRecord(players[id])) ||
     !["setup", "round"].includes(raw.phase as string) ||
     ![1, 2, 3, 4].includes(raw.round as number) ||
@@ -150,15 +159,24 @@ export function restoreGame(value: unknown): SavedGame | null {
     player.bonusCards = bonusCards;
   }
 
-  return kind === "solo"
-    ? { kind, state, savedAt: value.savedAt }
-    : { kind, state, savedAt: value.savedAt, roomCode: value.roomCode as string };
+  if (kind === "solo") return { kind, state, savedAt: value.savedAt };
+
+  // Solo se conservan los tokens de asientos que existen en la partida.
+  const seatTokens: Record<PlayerId, string> = {};
+  if (isRecord(value.seatTokens)) {
+    for (const id of state.playerOrder) {
+      const token = value.seatTokens[id];
+      if (typeof token === "string" && token !== "") seatTokens[id] = token;
+    }
+  }
+  return { kind, state, savedAt: value.savedAt, roomCode: value.roomCode as string, seatTokens };
 }
 
 /** Datos mínimos para mostrar la tarjeta "Continuar partida" en la pantalla de inicio. */
 export type SavedGameSummary = {
   kind: SavedGame["kind"];
   roomCode?: string;
+  playerCount: number;
   round: number;
   savedAt: number;
 };
@@ -167,6 +185,7 @@ export function summarizeSavedGame(game: SavedGame): SavedGameSummary {
   return {
     kind: game.kind,
     roomCode: game.kind === "online-host" ? game.roomCode : undefined,
+    playerCount: game.state.playerOrder.length,
     round: game.state.round,
     savedAt: game.savedAt,
   };

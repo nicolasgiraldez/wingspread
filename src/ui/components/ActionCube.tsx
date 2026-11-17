@@ -1,7 +1,8 @@
 import React from "react";
+import { PLAYER_SYMBOL_COUNT } from "./playerSymbols";
 
 interface ActionCubeProps {
-  /** Índice del jugador dueño del cubo: define su color (mostaza, tomate, petróleo), como su símbolo. */
+  /** Índice del jugador dueño del cubo: define su color (mostaza, tomate, petróleo, menta, pizarra), como su símbolo. */
   owner: number;
   /** Gastado: cubo vacío con contorno punteado (no depende del color). */
   spent?: boolean;
@@ -13,7 +14,7 @@ interface ActionCubeProps {
 /** Cubo isométrico de tres caras (arriba clara, izquierda base, derecha oscura). Decorativo: el texto dice cuántos quedan. */
 export const ActionCube: React.FC<ActionCubeProps> = ({ owner, spent = false, justSpent = false, size = 24 }) => (
   <svg
-    className={`cube cube--${owner % 3}${spent ? " cube--spent" : ""}${justSpent ? " cube--just-spent" : ""}`}
+    className={`cube cube--${owner % PLAYER_SYMBOL_COUNT}${spent ? " cube--spent" : ""}${justSpent ? " cube--just-spent" : ""}`}
     width={size}
     height={Math.round((size * 26) / 24)}
     viewBox="0 0 24 26"

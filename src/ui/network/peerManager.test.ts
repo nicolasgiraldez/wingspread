@@ -295,7 +295,7 @@ describe("NetworkManager", () => {
 
       // Al intruso se le avisa (no queda colgado) y no insiste en reintentar por su cuenta.
       expect(intruderLog.last()).toBe("error");
-      expect(intruderLog.texts[intruderLog.texts.length - 1]).toContain("otro invitado");
+      expect(intruderLog.texts[intruderLog.texts.length - 1]).toContain("La sala ya está completa");
       const statusesAfterError = intruderLog.statuses.length;
       await advance(60_000);
       expect(intruderLog.statuses.length).toBe(statusesAfterError);
@@ -318,6 +318,167 @@ describe("NetworkManager", () => {
       await advance(5_000);
 
       expect(net.peers.size).toBe(2); // solo el anfitrión y el invitado original
+    });
+  });
+
+  describe("salas de 3 a 5 jugadores", () => {
+    const SEATS = ["santi", "p3", "p4", "p5"];
+
+    /** Mensajes que recibe el anfitrión, con el asiento del que llegó cada uno. */
+    function hostRecorder() {
+      const log = recorder();
+      const from: (string | undefined)[] = [];
+      const peers: string[][] = [];
+      return {
+        ...log,
+        from,
+        peers,
+        callbacks: {
+          ...log.callbacks,
+          onMessage: (message: NetworkMessage, seat?: string) => {
+            log.messages.push(message);
+            from.push(seat);
+          },
+          onPeersChange: (seats: string[]) => peers.push(seats),
+        },
+      };
+    }
+
+    /** Un invitado desde "otro navegador": con su propio token de sesión. */
+    async function joinAs() {
+      sessionStorage.clear();
+      const guest = manager();
+      const log = recorder();
+      guest.initGuest("sala-1", log.callbacks);
+      await advance();
+      return { guest, log };
+    }
+
+    async function hostWith(seats: string[], seatTokens?: Record<string, string>) {
+      const host = manager();
+      const hostLog = hostRecorder();
+      host.initHost("sala-1", hostLog.callbacks, { guestSeats: seats, seatTokens });
+      await advance();
+      return { host, hostLog };
+    }
+
+    it("sienta a cuatro invitados en asientos distintos y recién entonces la sala está completa", async () => {
+      const { host, hostLog } = await hostWith(SEATS);
+      expect(hostLog.last()).toBe("waiting_for_opponent");
+
+      const guests = [];
+      for (let i = 0; i < 4; i += 1) {
+        guests.push(await joinAs());
+        expect(host.connectedSeats()).toEqual(SEATS.slice(0, i + 1));
+        expect(hostLog.last()).toBe(i < 3 ? "waiting_for_opponent" : "connected");
+      }
+      expect(hostLog.peers[hostLog.peers.length - 1]).toEqual(SEATS);
+      expect(hostLog.texts.some((text) => text.includes("2 de 4 invitados conectados"))).toBe(true);
+      expect(guests.every(({ log }) => log.last() === "connected")).toBe(true);
+
+      // El anfitrión sabe de qué asiento viene cada mensaje, diga lo que diga el mensaje.
+      guests[2].guest.sendMessage({ type: "APPLY_MOVE", move: { type: "rerollFeeder" }, playerId: "nico" });
+      await advance();
+      expect(hostLog.from).toEqual(["p4"]);
+    });
+
+    it("sendMessage llega a todos y sendTo solo al asiento indicado", async () => {
+      const { host } = await hostWith(SEATS.slice(0, 2));
+      const a = await joinAs();
+      const b = await joinAs();
+
+      expect(host.sendMessage(toGuest)).toBe(true);
+      const onlyB: NetworkMessage = { type: "SYNC_STATE", state: { round: 2 } as unknown as GameState, yourPlayerId: "p3" };
+      expect(host.sendTo("p3", onlyB)).toBe(true);
+      expect(host.sendTo("p5", onlyB)).toBe(false);
+      await advance();
+
+      expect(a.log.messages).toEqual([toGuest]);
+      expect(b.log.messages).toEqual([toGuest, onlyB]);
+    });
+
+    it("con la sala completa, un jugador más queda afuera con un aviso", async () => {
+      const { host } = await hostWith(SEATS.slice(0, 2));
+      await joinAs();
+      await joinAs();
+      const extra = await joinAs();
+      await advance(1000);
+
+      expect(extra.log.last()).toBe("error");
+      expect(extra.log.texts[extra.log.texts.length - 1]).toContain("La sala ya está completa");
+      expect(host.connectedSeats()).toEqual(["santi", "p3"]);
+    });
+
+    it("quien se cae vuelve a SU asiento, aunque haya otros libres", async () => {
+      const { host, hostLog } = await hostWith(SEATS.slice(0, 3));
+      const a = await joinAs(); // santi
+      const b = await joinAs(); // p3
+      expect(host.connectedSeats()).toEqual(["santi", "p3"]);
+
+      // Se cae el primero y vuelve solo: p4 nunca se ocupó, pero le corresponde "santi".
+      a.guest.cleanup();
+      await advance();
+      expect(host.connectedSeats()).toEqual(["p3"]);
+      expect(hostLog.texts[hostLog.texts.length - 1]).toContain("se desconectó");
+
+      const tokens = host.getSeatTokens();
+      sessionStorage.setItem("wingspread.guest.sala-1", tokens.santi);
+      const back = manager();
+      const backLog = recorder();
+      back.initGuest("sala-1", backLog.callbacks);
+      await advance();
+      expect(host.connectedSeats()).toEqual(["santi", "p3"]);
+
+      back.sendMessage(toHost);
+      b.guest.sendMessage(toHost);
+      await advance();
+      expect(hostLog.from).toEqual(["santi", "p3"]);
+
+      // Y uno nuevo ocupa el asiento que seguía sin dueño.
+      await joinAs();
+      expect(host.connectedSeats()).toEqual(["santi", "p3", "p4"]);
+      expect(Object.keys(host.getSeatTokens()).sort()).toEqual(["p3", "p4", "santi"]);
+    });
+
+    it("al reanudar con los tokens guardados cada invitado recupera su asiento, entre en el orden que entre", async () => {
+      const { host, hostLog } = await hostWith(SEATS.slice(0, 3), { santi: "tok-a", p3: "tok-b", p4: "tok-c" });
+
+      for (const token of ["tok-c", "tok-a", "tok-b"]) {
+        sessionStorage.setItem("wingspread.guest.sala-1", token);
+        const guest = manager();
+        guest.initGuest("sala-1", recorder().callbacks);
+        await advance();
+        guest.sendMessage(toHost);
+        await advance();
+      }
+      expect(hostLog.from).toEqual(["p4", "santi", "p3"]);
+      expect(host.connectedSeats()).toEqual(["santi", "p3", "p4"]);
+    });
+
+    it("un jugador nuevo puede ocupar el lugar de quien se fue si no queda ninguno sin dueño", async () => {
+      const { host } = await hostWith(SEATS.slice(0, 2));
+      const a = await joinAs();
+      await joinAs();
+      a.guest.cleanup();
+      await advance();
+
+      const replacement = await joinAs();
+      expect(replacement.log.last()).toBe("connected");
+      expect(host.connectedSeats()).toEqual(["santi", "p3"]);
+    });
+
+    it("dos invitados que entran a la vez no terminan en el mismo asiento", async () => {
+      const { host } = await hostWith(SEATS.slice(0, 2));
+      sessionStorage.clear();
+      const a = manager();
+      a.initGuest("sala-1", recorder().callbacks);
+      sessionStorage.clear();
+      const b = manager();
+      b.initGuest("sala-1", recorder().callbacks);
+      await advance();
+
+      expect(host.connectedSeats()).toEqual(["santi", "p3"]);
+      expect(a.isConnected() && b.isConnected()).toBe(true);
     });
   });
 
