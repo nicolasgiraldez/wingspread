@@ -572,7 +572,7 @@ describe("motor de reglas expandido de wingspread", () => {
     // Debe haber registrado la activación del poder de acornJay
     const powerLogs = next.log.filter((l) => l.message.includes("Arrendajo Bellotero"));
     expect(powerLogs.length).toBeGreaterThan(0);
-    expect(powerLogs[0].message).toContain("almacenó 1 seed");
+    expect(powerLogs[0].message).toContain("almacenó 1 semilla");
   });
 
   it("activa poderes rosas (entre turnos) del oponente cuando se detona la acción correspondiente", () => {
@@ -2480,7 +2480,7 @@ describe("poderes de cartas reales que dependían de una elección o de un dado 
       const next = take(woodpeckerState(["fish", "fish", "fish", "fish", "fish"]));
       expect(next.players.nico.board.forest[0].cached).toEqual([]);
       expect(next.feeder).toHaveLength(4);
-      expect(next.log.some((entry) => /no había seed en el comedero/.test(entry.message))).toBe(true);
+      expect(next.log.some((entry) => /no había semilla en el comedero/.test(entry.message))).toBe(true);
     });
 
     it("la cara comodín (insecto/semilla) sirve como semilla", () => {

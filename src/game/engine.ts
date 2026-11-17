@@ -108,6 +108,17 @@ const RESOURCE_IDS: readonly unknown[] = ["seed", "fruit", "insect", "fish", "ro
 
 const FOOD_FACES: readonly unknown[] = ["seed", "fruit", "insect", "fish", "rodent"];
 const isFoodFace = (value: unknown): value is ResourceFace => FOOD_FACES.includes(value);
+
+/** Nombre de cada alimento para los mensajes del registro (que se muestran tal cual en pantalla). */
+const FOOD_NAMES: Record<ResourceFace, string> = {
+  seed: "semilla",
+  fruit: "fruta",
+  insect: "insecto",
+  fish: "pez",
+  rodent: "roedor",
+  wild: "comodín",
+};
+const foodName = (res: ResourceFace): string => FOOD_NAMES[res] ?? res;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const isAbsent = (value: unknown) => value === undefined || value === null;
@@ -813,7 +824,7 @@ export function resolvePower(
         player.resources[die] = (player.resources[die] ?? 0) + power.amount;
         state.log.push({
           playerId: player.id,
-          message: `Poder de [${birdName}]: tomó 1 ${die} del comedero${eggNote}.`,
+          message: `Poder de [${birdName}]: tomó 1 ${foodName(die)} del comedero${eggNote}.`,
         });
       }
       return;
@@ -836,7 +847,7 @@ export function resolvePower(
           player.resources[res] = (player.resources[res] ?? 0) + count;
           state.log.push({
             playerId: player.id,
-            message: `Poder de [${birdName}]: tomó ${count} ${res} del comedero (todos los disponibles)${eggNote}.`,
+            message: `Poder de [${birdName}]: tomó ${count} ${foodName(res)} del comedero (todos los disponibles)${eggNote}.`,
           });
           if (state.feeder.length === 0) {
             state.feeder = rollInitialFeeder(5);
@@ -849,7 +860,7 @@ export function resolvePower(
           player.resources[res] = (player.resources[res] ?? 0) + power.amount;
           state.log.push({
             playerId: player.id,
-            message: `Poder de [${birdName}]: tomó 1 ${res} del comedero${eggNote}.`,
+            message: `Poder de [${birdName}]: tomó 1 ${foodName(res)} del comedero${eggNote}.`,
           });
           if (state.feeder.length === 0) {
             state.feeder = rollInitialFeeder(5);
@@ -865,7 +876,7 @@ export function resolvePower(
       player.resources[res] = (player.resources[res] ?? 0) + power.amount;
       state.log.push({
         playerId: player.id,
-        message: `Poder de [${birdName}]: obtuvo ${power.amount} ${res} de la reserva${eggNote}.`,
+        message: `Poder de [${birdName}]: obtuvo ${power.amount} ${foodName(res)} de la reserva${eggNote}.`,
       });
     }
     return;
@@ -1008,7 +1019,7 @@ export function resolvePower(
           const picked = cardChoices?.[tuckGainChoiceKey(power.id)];
           const gained = options.find((res) => res === picked) ?? power.thenGainResource;
           player.resources[gained] = (player.resources[gained] ?? 0) + 1;
-          msg += ` Y ganó 1 ${gained} de la reserva.`;
+          msg += ` Y ganó 1 ${foodName(gained)} de la reserva.`;
         }
         state.log.push({ playerId: player.id, message: msg });
       }
@@ -1025,21 +1036,21 @@ export function resolvePower(
         if (!takeMatchingDieFromFeeder(state, res)) {
           state.log.push({
             playerId: player.id,
-            message: `Poder de [${birdName}]: no había ${res} en el comedero para almacenar.`,
+            message: `Poder de [${birdName}]: no había ${foodName(res)} en el comedero para almacenar.`,
           });
           return;
         }
         currentSlot.cached.push(res);
         state.log.push({
           playerId: player.id,
-          message: `Poder de [${birdName}]: tomó 1 ${res} del comedero y lo almacenó en su carta.`,
+          message: `Poder de [${birdName}]: tomó 1 ${foodName(res)} del comedero y lo almacenó en su carta.`,
         });
         return;
       }
       currentSlot.cached.push(res);
       state.log.push({
         playerId: player.id,
-        message: `Poder de [${birdName}]: almacenó 1 ${res} de la reserva en su carta.`,
+        message: `Poder de [${birdName}]: almacenó 1 ${foodName(res)} de la reserva en su carta.`,
       });
     }
     return;
@@ -1087,7 +1098,7 @@ export function resolvePower(
       currentSlot.cached.push(power.resource);
       state.log.push({
         playerId: player.id,
-        message: `Depredador [${birdName}]: ¡Caza exitosa! Relanzó ${diceOutside} dado(s) fuera del comedero y obtuvo ${power.resource}, que quedó cacheado en la carta.`,
+        message: `Depredador [${birdName}]: ¡Caza exitosa! Relanzó ${diceOutside} dado(s) fuera del comedero y obtuvo ${foodName(power.resource)}, que quedó cacheado en la carta.`,
       });
       triggerPinkPowers(state, player.id, { type: "predatorSuccess" });
     } else {
@@ -1118,7 +1129,7 @@ export function resolvePower(
     }
     state.log.push({
       playerId: player.id,
-      message: `Poder de [${birdName}]: todos los jugadores obtuvieron 1 ${res} de la reserva.`,
+      message: `Poder de [${birdName}]: todos los jugadores obtuvieron 1 ${foodName(res)} de la reserva.`,
     });
     return;
   }

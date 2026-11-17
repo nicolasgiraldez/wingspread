@@ -37,6 +37,11 @@
   cursor: pointer;
 }
 
+/* En una fila, cada carta mide lo que la más alta: así los botones y rótulos de debajo quedan alineados. */
+.bird-card-wrap > .bird-card {
+  flex: 1 0 auto;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .bird-card {
     transition: transform 0.12s ease;

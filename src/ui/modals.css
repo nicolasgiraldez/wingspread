@@ -42,6 +42,10 @@
 }
 
 /* Descartada: desaturada y con poco contraste, siempre con el texto "Se descarta" debajo. */
+.pick > .bird-card-wrap {
+  flex: 1 0 auto;
+}
+
 .pick--out .bird-card {
   filter: grayscale(0.9);
   opacity: 0.6;
