@@ -10,8 +10,8 @@ export const ICON_NAMES = [
   "activate", "between", "play", "egg",
   // Timing de poder sin círculo (bandas de la carta)
   "glyph-activate", "glyph-between", "glyph-play",
-  // Símbolo de jugador: 1.º círculo mostaza, 2.º triángulo tomate, 3.º cuadrado petróleo
-  "circulo-mostaza", "triangulo-tomate", "cuadrado-petroleo",
+  // Símbolo de jugador: 1.º círculo mostaza, 2.º triángulo tomate, 3.º cuadrado petróleo, 4.º rombo menta, 5.º hexágono pizarra
+  "circulo-mostaza", "triangulo-tomate", "cuadrado-petroleo", "rombo-menta", "hexagono-pizarra",
   // Interfaz
   "alert", "back", "bird", "bot", "check", "chev", "clock", "close", "copy", "globe", "hourglass",
   "login", "minus", "plus", "plus2", "refresh", "send", "spinner", "stack", "star", "target",

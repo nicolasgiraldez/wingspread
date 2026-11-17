@@ -267,6 +267,8 @@ export type SimulationOptions = {
   difficulty?: BotDifficulty;
   /** Recorta el mazo inicial para forzar que se agote (y se barajen los descartes) durante la partida. */
   deckSize?: number;
+  /** Cantidad de jugadores humanos en el modo "online" (de 2 a 5; por defecto 2). */
+  players?: number;
 };
 
 export type SimulationResult = {
@@ -317,12 +319,15 @@ export function playBotMatch(seed: number, levels: Record<PlayerId, BotDifficult
   });
 }
 
-export function playGame({ seed, mode, difficulty = "normal", deckSize }: SimulationOptions): SimulationResult {
+/** Ids de los asientos de una partida online, en orden (los mismos que usa la interfaz). */
+const ONLINE_SEATS: PlayerId[] = ["nico", "santi", "p3", "p4", "p5"];
+
+export function playGame({ seed, mode, difficulty = "normal", deckSize, players = 2 }: SimulationOptions): SimulationResult {
   return withSeededRandom(seed, () => {
     let state = createInitialState(
       mode === "solo"
         ? { mode: "solo", botDifficulty: difficulty, playerIds: ["nico", "bot"] }
-        : { mode: "online", playerIds: ["nico", "santi"] },
+        : { mode: "online", playerIds: ONLINE_SEATS.slice(0, players) },
     );
     if (deckSize !== undefined) state = { ...state, deck: state.deck.slice(0, deckSize) };
     const problems: string[] = [];

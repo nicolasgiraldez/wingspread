@@ -42,7 +42,14 @@ import { PlayBirdModal } from "./components/PlayBirdModal";
 import { PlayerBoard } from "./components/PlayerBoard";
 import { RoundGoalsMat } from "./components/RoundGoalsMat";
 import { bonusNameTags } from "./labels";
-import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./network/hostGame";
+import {
+  applyGuestMove,
+  defaultSeatName,
+  GUEST_PLAYER_ID,
+  guestSeatsOf,
+  HOST_PLAYER_ID,
+  seatsFor,
+} from "./network/hostGame";
 import { classifyLog } from "./logEvents";
 import { countOf, pressVerb } from "./text";
 import { GameSpeedContext, loadSpeed, saveSpeed } from "./gameSpeed";
@@ -70,6 +77,12 @@ function playersChoosingBonus(state: GameState): PlayerId[] {
   return state.playerOrder.filter((id) => (state.players[id]?.pendingBonusChoice?.length ?? 0) > 0);
 }
 
+/** "Ana", "Ana y Luis", "Ana, Luis y Sol". */
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "los demás jugadores";
+  return `${names.slice(0, -1).join(", ")} y ${names[names.length - 1]}`;
+}
+
 // Helper: get display name from game state
 function getDisplayName(state: GameState, playerId: PlayerId): string {
   return state.players[playerId]?.name || playerId;
@@ -93,6 +106,11 @@ export const App: React.FC = () => {
   const [pendingOnlineJoin, setPendingOnlineJoin] = useState<
     { roomCode: string; playerName: string } | null
   >(null);
+
+  // Partida online: quiénes tienen conexión con la sala ahora (null = no se sabe todavía).
+  const [connectedPlayerIds, setConnectedPlayerIds] = useState<PlayerId[] | null>(null);
+  // Invitado: el asiento que le asignó el anfitrión la última vez (para abrir su tablero al entrar).
+  const joinedSeat = useRef<PlayerId | null>(null);
 
   // Partida en curso guardada en el navegador (solitaria o sala del anfitrión), para reanudarla.
   const [savedGame, setSavedGame] = useState<SavedGame | null>(() => loadSavedGame());
@@ -137,9 +155,17 @@ export const App: React.FC = () => {
     } else if (gameState.gameMode === "solo") {
       saveGame({ kind: "solo", state: gameState, savedAt: Date.now() });
     } else if (isHost && roomCode) {
-      saveGame({ kind: "online-host", state: gameState, roomCode, savedAt: Date.now() });
+      // Con los tokens de cada asiento: si el anfitrión recarga, cada invitado recupera el suyo.
+      saveGame({
+        kind: "online-host",
+        state: gameState,
+        roomCode,
+        savedAt: Date.now(),
+        seatTokens: networkManager.getSeatTokens(),
+      });
     }
-  }, [gameState, isHost, roomCode]);
+    // connectedPlayerIds: al entrar un invitado nuevo cambia el reparto de asientos que se guarda.
+  }, [gameState, isHost, roomCode, connectedPlayerIds]);
 
   // Avisos por los mismos eventos que alimentan el registro: turno propio, poderes, caza y cambio de ronda.
   useEffect(() => {
@@ -153,7 +179,7 @@ export const App: React.FC = () => {
     // La primera vez (o al cargar una partida guardada) no se avisa de lo que ya pasó.
     if (!prev || gameState.log.length < prev.log) return;
 
-    // Lo que hace el rival (la IA o el oponente online) lo cuenta el panel de acciones del rival, no un aviso.
+    // Lo que hacen los rivales (la IA o los oponentes online) lo cuenta el panel de acciones del rival, no un aviso.
     const byRival = (entry: { playerId?: PlayerId }) => !!entry.playerId && entry.playerId !== localPlayerId;
     const newEntries = gameState.log.slice(prev.log);
     for (const entry of newEntries) {
@@ -198,14 +224,29 @@ export const App: React.FC = () => {
   // Lo que cambió en la última jugada (aves, huevos, cartas, dados…), para animar solo eso.
   const boardChanges = useBoardChangeTracker(gameState);
 
+  // ── Anfitrión: reparte el estado a los invitados ─────────────────────────
+  // Cada invitado recibe el estado junto con su asiento y la lista de quiénes están conectados.
+  const syncMessage = (state: GameState, code: string, seat: PlayerId): NetworkMessage => ({
+    type: "SYNC_STATE",
+    state,
+    roomCode: code,
+    yourPlayerId: seat,
+    connectedPlayerIds: [HOST_PLAYER_ID, ...networkManager.connectedSeats()],
+  });
+
+  const broadcastState = (state: GameState, code: string = roomCode) => {
+    for (const seat of networkManager.connectedSeats()) networkManager.sendTo(seat, syncMessage(state, code, seat));
+  };
+
   // ── Crear o reanudar una sala como anfitrión ──────────────────────────────
-  const startHosting = (code: string, state: GameState, resume: boolean) => {
+  const startHosting = (code: string, state: GameState, resume: boolean, seatTokens?: Record<PlayerId, string>) => {
     commitGameState(state);
     setLocalPlayerId(HOST_PLAYER_ID);
     setActiveTab(HOST_PLAYER_ID);
     setIsHost(true);
     setRoomCode(code);
     setConnectionStatus("connecting");
+    setConnectedPlayerIds([HOST_PLAYER_ID]);
 
     networkManager.initHost(
       code,
@@ -213,41 +254,45 @@ export const App: React.FC = () => {
         onStatusChange: (status, message) => {
           setConnectionStatus(status);
           if (message) setConnectionMessage(message);
-          if (status === "connected") {
-            const cur = gameStateRef.current;
-            if (cur) networkManager.sendMessage({ type: "SYNC_STATE", state: cur, roomCode: code });
-          }
         },
-        onMessage: (msg: NetworkMessage) => {
+        // Alguien entró, volvió o se fue: todos reciben el estado al día y la lista de conectados.
+        onPeersChange: (seats) => {
+          setConnectedPlayerIds([HOST_PLAYER_ID, ...seats]);
           const cur = gameStateRef.current;
-          if (!cur) return;
+          if (cur) broadcastState(cur, code);
+        },
+        onMessage: (msg: NetworkMessage, from?: PlayerId) => {
+          const cur = gameStateRef.current;
+          // El asiento lo decide la conexión por la que llegó el mensaje, no lo que diga el mensaje.
+          if (!cur || !from || !cur.players[from]) return;
 
           if (msg.type === "GUEST_JOIN") {
             // Update guest's display name if provided (viene de la red: se sanea)
             const guestName = typeof msg.guestName === "string" ? msg.guestName.trim().slice(0, 30) : "";
-            const guest = cur.players[GUEST_PLAYER_ID];
+            const guest = cur.players[from];
+            if (!guestName || guestName === guest.name) return;
             const updated: GameState = {
               ...cur,
-              players: { ...cur.players, [GUEST_PLAYER_ID]: { ...guest, name: guestName || guest.name } },
+              players: { ...cur.players, [from]: { ...guest, name: guestName } },
+              customPlayerNames: { ...cur.customPlayerNames, [from]: guestName },
             };
             commitGameState(updated);
-            networkManager.sendMessage({ type: "SYNC_STATE", state: updated, roomCode: code });
+            broadcastState(updated, code);
           }
           if (msg.type === "APPLY_MOVE") {
-            // El jugador lo decide el anfitrión (siempre el invitado), no el mensaje.
-            const result = applyGuestMove(cur, msg.move);
+            const result = applyGuestMove(cur, msg.move, from);
             if (result.ok) {
               commitGameState(result.state);
-              networkManager.sendMessage({ type: "SYNC_STATE", state: result.state, roomCode: code });
+              broadcastState(result.state, code);
             } else {
-              console.warn("Movimiento del invitado rechazado:", result.reason);
-              // Reenvía el estado real para que el invitado corrija cualquier desfase.
-              networkManager.sendMessage({ type: "SYNC_STATE", state: cur, roomCode: code });
+              console.warn(`Movimiento del invitado ${from} rechazado:`, result.reason);
+              // Reenvía el estado real para que ese invitado corrija cualquier desfase.
+              networkManager.sendTo(from, syncMessage(cur, code, from));
             }
           }
         },
       },
-      { resume },
+      { resume, guestSeats: guestSeatsOf(state), seatTokens },
     );
   };
 
@@ -261,9 +306,10 @@ export const App: React.FC = () => {
     networkManager.cleanup();
     setSelectedCardForPlay(null);
     if (saved.kind === "online-host") {
-      startHosting(saved.roomCode, saved.state, true);
+      startHosting(saved.roomCode, saved.state, true, saved.seatTokens);
     } else {
       commitGameState(saved.state);
+      setConnectedPlayerIds(null);
       setLocalPlayerId("nico");
       setActiveTab("nico");
       setIsHost(true);
@@ -301,18 +347,21 @@ export const App: React.FC = () => {
       setIsHost(true);
       setRoomCode("");
       setConnectionStatus("disconnected");
+      setConnectedPlayerIds(null);
 
     } else if (config.mode === "online-host") {
       const code = config.roomCode!;
-      const customNames: Record<string, string> = {
-        [HOST_PLAYER_ID]: config.playerName,
-        [GUEST_PLAYER_ID]: config.opponentName || "Invitado",
-      };
+      // De 2 a 5 asientos: el anfitrión y un lugar por invitado, que toma su nombre al conectarse.
+      const seats = seatsFor(config.playerCount ?? 2);
+      const customNames: Record<string, string> = Object.fromEntries(
+        seats.map((id, index) => [id, index === 0 ? config.playerName : defaultSeatName(index)]),
+      );
       const state = createInitialState({
         mode: "online",
-        playerIds: [HOST_PLAYER_ID, GUEST_PLAYER_ID],
+        playerIds: seats,
         customPlayerNames: customNames,
-        firstPlayerId: Math.random() < 0.5 ? HOST_PLAYER_ID : GUEST_PLAYER_ID,
+        // El primer jugador se sortea entre todos, como en el juego de mesa.
+        firstPlayerId: seats[Math.floor(Math.random() * seats.length)],
       });
       startHosting(code, state, false);
 
@@ -323,6 +372,8 @@ export const App: React.FC = () => {
       setIsHost(false);
       setRoomCode(code);
       setConnectionStatus("connecting");
+      setConnectedPlayerIds(null);
+      joinedSeat.current = null;
       setPendingOnlineJoin({ roomCode: code, playerName: config.playerName });
 
       networkManager.initGuest(code, {
@@ -336,16 +387,24 @@ export const App: React.FC = () => {
         },
         onMessage: (msg: NetworkMessage) => {
           if (msg.type === "SYNC_STATE") {
-            // Patch our local name in the state we receive
             const next = msg.state;
-            // Keep our entered name in santi slot
-            setGameState({
-              ...next,
-              players: {
-                ...next.players,
-                [GUEST_PLAYER_ID]: { ...next.players[GUEST_PLAYER_ID], name: config.playerName },
-              },
-            });
+            // El anfitrión dice qué asiento nos tocó (el primero libre al entrar, o el nuestro al volver).
+            const seat =
+              typeof msg.yourPlayerId === "string" && next.players[msg.yourPlayerId] ? msg.yourPlayerId : GUEST_PLAYER_ID;
+            setLocalPlayerId(seat);
+            if (joinedSeat.current !== seat) {
+              joinedSeat.current = seat;
+              setActiveTab(seat);
+            }
+            setConnectedPlayerIds(
+              Array.isArray(msg.connectedPlayerIds) ? msg.connectedPlayerIds.filter((id) => typeof id === "string") : null,
+            );
+            // Nuestro nombre se ve enseguida, aunque el anfitrión todavía no lo haya registrado.
+            setGameState(
+              next.players[seat]
+                ? { ...next, players: { ...next.players, [seat]: { ...next.players[seat], name: config.playerName } } }
+                : next,
+            );
             setPendingOnlineJoin(null);
           }
         },
@@ -359,6 +418,7 @@ export const App: React.FC = () => {
     setConnectionStatus("disconnected");
     setConnectionMessage("");
     setRoomCode("");
+    setConnectedPlayerIds(null);
   };
 
   const handleRetryJoin = () => {
@@ -381,6 +441,7 @@ export const App: React.FC = () => {
     setRoomCode("");
     setSelectedCardForPlay(null);
     setPendingOnlineJoin(null);
+    setConnectedPlayerIds(null);
   };
 
   // ── Game moves ────────────────────────────────────────────────────────────
@@ -397,7 +458,7 @@ export const App: React.FC = () => {
         if (isLegalMove(gameState, localPlayerId, move)) {
           const next = applyMove(gameState, localPlayerId, move);
           commitGameState(next);
-          networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode });
+          broadcastState(next);
         }
       } else {
         sendGuestMove(move);
@@ -433,7 +494,7 @@ export const App: React.FC = () => {
         if (isLegalMove(gameState, localPlayerId, move)) {
           const next = applyMove(gameState, localPlayerId, move);
           commitGameState(next);
-          networkManager.sendMessage({ type: "SYNC_STATE", state: next, roomCode });
+          broadcastState(next);
         }
       } else {
         sendGuestMove(move);
@@ -561,6 +622,14 @@ export const App: React.FC = () => {
     gameState.phase === "round";
 
   const localPlayer = gameState.players[localPlayerId];
+
+  // Online: quiénes no tienen conexión con la sala ahora mismo (un asiento sin ocupar también cuenta).
+  const offlinePlayerIds =
+    gameState.gameMode === "online" && connectedPlayerIds
+      ? gameState.playerOrder.filter((id) => !connectedPlayerIds.includes(id) && !gameState.players[id]?.botLevel)
+      : [];
+  const currentIsOffline = offlinePlayerIds.includes(gameState.currentPlayerId);
+  const waitingForSetup = gameState.playerOrder.filter((id) => gameState.players[id]?.pendingStartingHand);
   const playBlockedReason = !isMyTurn ? "No es tu turno" : !isControlsActive ? "Sin acciones disponibles" : null;
   const feederReason = !isMyTurn
     ? "Todavía no es tu turno. Los dados se activan cuando te toque jugar."
@@ -588,6 +657,7 @@ export const App: React.FC = () => {
               localPlayerId={localPlayerId}
               activeTab={activeTab}
               onSelectPlayer={setActiveTab}
+              offlinePlayerIds={offlinePlayerIds}
             />
 
             <main className="table">
@@ -606,6 +676,14 @@ export const App: React.FC = () => {
                   status={connectionStatus}
                   statusMessage={connectionMessage}
                   localPlayerName={getDisplayName(gameState, localPlayerId)}
+                  seats={
+                    connectedPlayerIds
+                      ? {
+                          connected: gameState.playerOrder.length - offlinePlayerIds.length,
+                          total: gameState.playerOrder.length,
+                        }
+                      : undefined
+                  }
                 />
               )}
 
@@ -619,7 +697,11 @@ export const App: React.FC = () => {
                 ) : (
                   <Banner tone="info" icon="hourglass" className="banner--turn">
                     <strong>Turno de {getDisplayName(gameState, gameState.currentPlayerId)}</strong>
-                    {gameState.gameMode === "online" ? " · Esperando su jugada" : " · Está jugando"}
+                    {gameState.gameMode !== "online"
+                      ? " · Está jugando"
+                      : currentIsOffline
+                        ? " · Sin conexión: esperando a que vuelva"
+                        : " · Esperando su jugada"}
                     <ThinkingDots />
                   </Banner>
                 ))}
@@ -792,7 +874,13 @@ export const App: React.FC = () => {
                 onChoose={() => {}}
                 waiting={{
                   title: "Preparación lista",
-                  text: "Esperando a que el resto de los jugadores termine la suya para empezar la Ronda 1...",
+                  text: `Esperando a que ${joinNames(
+                    waitingForSetup.map((id) =>
+                      offlinePlayerIds.includes(id)
+                        ? `${getDisplayName(gameState, id)} (sin conectar)`
+                        : getDisplayName(gameState, id),
+                    ),
+                  )} ${waitingForSetup.length > 1 ? "terminen" : "termine"} su preparación para empezar la Ronda 1...`,
                 }}
               />
             ))}
@@ -824,9 +912,9 @@ export const App: React.FC = () => {
                   onChoose={() => {}}
                   waiting={{
                     title: "Conteo final en pausa",
-                    text: `Esperando a que ${playersChoosingBonus(gameState)
-                      .map((id) => getDisplayName(gameState, id))
-                      .join(" y ")} elija su carta de bonificación...`,
+                    text: `Esperando a que ${joinNames(
+                      playersChoosingBonus(gameState).map((id) => getDisplayName(gameState, id)),
+                    )} ${playersChoosingBonus(gameState).length > 1 ? "elijan" : "elija"} su carta de bonificación...`,
                   }}
                 />
               )

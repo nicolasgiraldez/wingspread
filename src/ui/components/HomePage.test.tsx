@@ -37,16 +37,26 @@ describe("HomePage", () => {
     expect(onStart).toHaveBeenCalledWith({ mode: "solo", playerName: "Nico", botDifficulty: "hard" });
   });
 
-  it("crear sala usa el nombre y el oponente opcional", async () => {
+  it("crear sala usa el nombre y la cantidad de jugadores elegida (2 por defecto, hasta 5)", async () => {
     const user = userEvent.setup();
     const onStart = vi.fn();
     render(<HomePage onStart={onStart} />);
     await user.type(screen.getByPlaceholderText("Escribí tu nombre..."), "Lucía");
     await user.click(screen.getByRole("button", { name: /Multijugador Online/ }));
-    await user.type(screen.getByPlaceholderText(/Nombre de tu amigo/), "Mateo");
+
+    const group = screen.getByRole("group", { name: "Cantidad de jugadores" });
+    expect(group.querySelectorAll("input[type=radio]")).toHaveLength(4);
+    expect(screen.getByRole("radio", { name: "2 jugadores" })).toBeChecked();
     await user.click(screen.getByRole("button", { name: /Crear Sala/ }));
-    expect(onStart).toHaveBeenCalledWith(
-      expect.objectContaining({ mode: "online-host", playerName: "Lucía", opponentName: "Mateo" }),
+    expect(onStart).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mode: "online-host", playerName: "Lucía", playerCount: 2 }),
+    );
+
+    await user.click(screen.getByRole("radio", { name: "5 jugadores" }));
+    expect(screen.getByText(/Vos y 4 invitados/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Crear Sala/ }));
+    expect(onStart).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mode: "online-host", playerName: "Lucía", playerCount: 5 }),
     );
   });
 

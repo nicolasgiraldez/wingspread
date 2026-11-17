@@ -457,8 +457,16 @@ export type Move =
     };
 
 export type NetworkMessage =
-  | { type: "SYNC_STATE"; state: GameState; roomCode?: string }
+  | {
+      type: "SYNC_STATE";
+      state: GameState;
+      roomCode?: string;
+      /** Asiento que el anfitrión le asignó a quien recibe el mensaje. */
+      yourPlayerId?: PlayerId;
+      /** Jugadores con conexión abierta en este momento (el anfitrión incluido). */
+      connectedPlayerIds?: PlayerId[];
+    }
   | { type: "GUEST_JOIN"; guestName: string }
   | { type: "APPLY_MOVE"; move: Move; playerId: PlayerId }
-  /** El anfitrión rechaza a quien intenta sentarse en un asiento ya ocupado por otro invitado. */
+  /** El anfitrión rechaza a quien intenta entrar cuando todos los asientos están ocupados. */
   | { type: "ROOM_FULL" };

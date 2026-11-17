@@ -34,6 +34,23 @@ describe("simulación de partidas completas con jugador aleatorio", () => {
     expect(results.every((result) => result.finished)).toBe(true);
   }, TIMEOUT);
 
+  it.each([3, 4, 5])("modo online con %i humanos: todas las partidas terminan sin violar invariantes", (players) => {
+    const results = Array.from({ length: Math.ceil(GAMES / 2) }, (_, seed) => playGame({ seed, mode: "online", players }));
+    expect(failures(results)).toEqual([]);
+    expect(results.every((result) => result.finished)).toBe(true);
+    expect(results.every((result) => result.finalState.playerOrder.length === players)).toBe(true);
+  }, TIMEOUT);
+
+  it("con 5 jugadores y el mazo casi agotado tampoco se rompe nada", () => {
+    for (const deckSize of [4, 25]) {
+      const results = Array.from({ length: Math.ceil(GAMES / 4) }, (_, seed) =>
+        playGame({ seed, mode: "online", players: 5, deckSize }),
+      );
+      expect(failures(results), `mazo de ${deckSize}`).toEqual([]);
+      expect(results.every((result) => result.finished)).toBe(true);
+    }
+  }, TIMEOUT);
+
   it("con el mazo casi agotado (se baraja el descarte) tampoco se rompe nada", () => {
     for (const mode of modes) {
       for (const deckSize of [4, 12, 25]) {

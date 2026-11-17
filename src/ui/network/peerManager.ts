@@ -1,6 +1,6 @@
 import Peer, { util } from "peerjs";
 import type { PeerOptions } from "peerjs";
-import type { NetworkMessage } from "../../game";
+import type { NetworkMessage, PlayerId } from "../../game";
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "";
@@ -61,7 +61,10 @@ export type ConnectionStatus =
 
 export interface NetworkCallbacks {
   onStatusChange: (status: ConnectionStatus, message?: string) => void;
-  onMessage: (message: NetworkMessage) => void;
+  /** `from` es el asiento del invitado que lo envió (solo en el anfitrión). */
+  onMessage: (message: NetworkMessage, from?: PlayerId) => void;
+  /** Anfitrión: cambió qué invitados tienen la conexión abierta (alguien entró, volvió o se fue). */
+  onPeersChange?: (connectedSeats: PlayerId[]) => void;
 }
 
 // ── Lo mínimo de PeerJS que usa NetworkManager ───────────────────────────────
@@ -137,7 +140,7 @@ function newToken(): string {
 
 /**
  * Token que identifica a este invitado en una sala. Sobrevive a recargar la pestaña
- * (sessionStorage), así el anfitrión reconoce que es el mismo y le reasigna su asiento.
+ * (sessionStorage), así el anfitrión reconoce que es el mismo y le devuelve su asiento.
  */
 function getGuestToken(roomCode: string): string {
   const key = `wingspread.guest.${roomCode}`;
@@ -180,18 +183,31 @@ const HOST_RESUME_ATTEMPTS = 15;
 
 const NETWORK_ERROR_TYPES = new Set(["network", "server-error", "socket-error", "socket-closed", "webrtc"]);
 
+/** Asiento del único invitado de una sala de 2 jugadores (ver SEAT_IDS en hostGame.ts). */
+const DEFAULT_GUEST_SEATS: PlayerId[] = ["santi"];
+
 export interface HostOptions {
   /** Reanuda una sala existente (p. ej. tras recargar): reintenta si el ID sigue ocupado. */
   resume?: boolean;
+  /** Asientos que pueden ocupar los invitados, en el orden en que se reparten (por defecto, uno solo). */
+  guestSeats?: PlayerId[];
+  /** Al reanudar: qué token ocupaba cada asiento, para que cada invitado vuelva al suyo. */
+  seatTokens?: Record<PlayerId, string>;
 }
 
 export class NetworkManager {
   private peer: PeerLike | null = null;
+  /** Invitado: su conexión con el anfitrión. */
   private connection: ConnectionLike | null = null;
+  /** Anfitrión: la conexión de cada asiento de invitado (abierta o todavía abriéndose). */
+  private connections = new Map<PlayerId, ConnectionLike>();
+  private guestSeats: PlayerId[] = DEFAULT_GUEST_SEATS;
+  /** Anfitrión: token del dueño de cada asiento, para devolvérselo si recarga o pierde la red. */
+  private seatTokens = new Map<PlayerId, string>();
   private isHost = false;
   private roomCode = "";
   private callbacks: NetworkCallbacks | null = null;
-  /** Anfitrión: token del dueño del asiento de invitado. Invitado: el token propio. */
+  /** Invitado: el token propio. */
   private guestToken: string | null = null;
   /** Se incrementa al abrir/cerrar un peer para ignorar eventos tardíos de los anteriores. */
   private session = 0;
@@ -212,6 +228,11 @@ export class NetworkManager {
     this.roomCode = roomCode;
     this.callbacks = callbacks;
     this.resumeHost = options.resume ?? false;
+    this.guestSeats = options.guestSeats?.length ? [...options.guestSeats] : DEFAULT_GUEST_SEATS;
+    for (const seat of this.guestSeats) {
+      const token = options.seatTokens?.[seat];
+      if (typeof token === "string" && token !== "") this.seatTokens.set(seat, token);
+    }
     this.openHostPeer();
   }
 
@@ -237,8 +258,7 @@ export class NetworkManager {
       if (!alive()) return;
       this.peerOpen = true;
       this.attempts = 0;
-      if (this.connection?.open) return;
-      this.status("waiting_for_opponent", "Sala creada. Esperando a que el invitado se conecte...");
+      this.reportHostStatus();
     });
 
     peer.on("connection", (conn) => {
@@ -273,7 +293,7 @@ export class NetworkManager {
     peer.on("disconnected", () => {
       if (!alive()) return;
       // Sin señalización nadie nuevo puede unirse (ni reconectarse): se recupera sola.
-      if (!this.connection?.open) this.status("connecting", "Reconectando con el servidor de señalización...");
+      if (!this.allGuestsConnected()) this.status("connecting", "Reconectando con el servidor de señalización...");
       this.later(() => {
         if (!alive()) return;
         try {
@@ -285,27 +305,120 @@ export class NetworkManager {
     });
   }
 
-  private acceptGuest(conn: ConnectionLike) {
-    const token = tokenOf(conn.metadata);
-    const current = this.connection;
-    if (current?.open) {
-      if (token !== null && token === this.guestToken) {
-        // El mismo invitado volvió (recargó o perdió la red) y la conexión vieja todavía figura
-        // abierta: se reemplaza. Se suelta primero para que su cierre no dispare avisos.
-        this.connection = null;
-        current.close();
-      } else {
-        this.rejectGuest(conn);
-        return;
-      }
+  private isSeatOpen(seat: PlayerId): boolean {
+    return this.connections.get(seat)?.open ?? false;
+  }
+
+  private allGuestsConnected(): boolean {
+    return this.guestSeats.every((seat) => this.isSeatOpen(seat));
+  }
+
+  /** Invitados con la conexión abierta, en el orden de los asientos. */
+  public connectedSeats(): PlayerId[] {
+    return this.isHost ? this.guestSeats.filter((seat) => this.isSeatOpen(seat)) : [];
+  }
+
+  /** Token del dueño de cada asiento ya ocupado alguna vez (se guarda con la partida para reanudarla). */
+  public getSeatTokens(): Record<PlayerId, string> {
+    return Object.fromEntries(this.seatTokens);
+  }
+
+  /** Estado del anfitrión según cuántos invitados hay conectados. `left` = alguien acaba de irse. */
+  private reportHostStatus(left = false) {
+    if (!this.isHost || !this.peerOpen) return;
+    const total = this.guestSeats.length;
+    const connected = this.connectedSeats().length;
+    if (connected === total) {
+      this.status("connected", total === 1 ? "¡Conectado con el oponente!" : "¡Todos los jugadores están conectados!");
+      return;
     }
-    if (token !== null) this.guestToken = token;
-    this.connection = conn;
-    this.setupConnection(conn);
+    let message: string;
+    if (total === 1) {
+      message = left
+        ? "El invitado se desconectó. Esperando a que vuelva..."
+        : "Sala creada. Esperando a que el invitado se conecte...";
+    } else if (left) {
+      message = `Un jugador se desconectó (${connected} de ${total} invitados conectados). Esperando a que vuelva...`;
+    } else if (connected === 0) {
+      message = `Sala creada. Esperando a que se conecten los ${total} invitados...`;
+    } else {
+      message = `${connected} de ${total} invitados conectados. Esperando al resto...`;
+    }
+    this.status("waiting_for_opponent", message);
   }
 
   /**
-   * Rechaza a alguien que intenta sentarse en un asiento ocupado. Cerrar la conexión sin más deja
+   * Qué asiento le toca a quien se conecta: el suyo si ya tenía uno (lo reconoce por el token),
+   * si no uno que nadie ocupó todavía, y si no el de alguien que se fue. null = sala completa.
+   */
+  private pickSeat(token: string | null): PlayerId | null {
+    if (token !== null) {
+      const own = this.guestSeats.find((seat) => this.seatTokens.get(seat) === token);
+      if (own) return own;
+    }
+    const empty = this.guestSeats.filter((seat) => !this.connections.has(seat));
+    return (
+      empty.find((seat) => !this.seatTokens.has(seat)) ??
+      empty[0] ??
+      // Último recurso: un asiento cuya conexión nunca terminó de abrirse.
+      this.guestSeats.find((seat) => !this.isSeatOpen(seat)) ??
+      null
+    );
+  }
+
+  private acceptGuest(conn: ConnectionLike) {
+    const token = tokenOf(conn.metadata);
+    const seat = this.pickSeat(token);
+    if (seat === null) {
+      this.rejectGuest(conn);
+      return;
+    }
+    // Si el asiento tenía una conexión es la del mismo invitado, que volvió (recargó o perdió la
+    // red) mientras la vieja todavía figura abierta, o una que nunca abrió: se reemplaza. Se suelta
+    // primero para que su cierre no dispare avisos.
+    const previous = this.connections.get(seat);
+    if (previous) {
+      this.connections.delete(seat);
+      previous.close();
+    }
+    if (token !== null) this.seatTokens.set(seat, token);
+    this.connections.set(seat, conn);
+    this.setupHostConnection(seat, conn);
+  }
+
+  private setupHostConnection(seat: PlayerId, conn: ConnectionLike) {
+    const current = () => this.connections.get(seat) === conn;
+
+    conn.on("open", () => {
+      if (!current()) return;
+      this.everConnected = true;
+      this.callbacks?.onPeersChange?.(this.connectedSeats());
+      this.reportHostStatus();
+    });
+
+    conn.on("data", (data: unknown) => {
+      if (!current() || !this.callbacks) return;
+      const type = (data as { type?: unknown } | null)?.type;
+      if (typeof type !== "string" || !HOST_ACCEPTS.has(type as NetworkMessage["type"])) return;
+      this.callbacks.onMessage(data as NetworkMessage, seat);
+    });
+
+    conn.on("close", () => {
+      if (!current()) return;
+      this.connections.delete(seat);
+      this.callbacks?.onPeersChange?.(this.connectedSeats());
+      this.reportHostStatus(true);
+    });
+
+    conn.on("error", (err) => {
+      if (!current()) return;
+      // El canal de UN invitado falló: los demás siguen jugando. Si se cerró, "close" lo informa.
+      console.warn(`Error en el canal de datos del asiento ${seat}:`, err);
+    });
+  }
+
+  /**
+   * Rechaza a alguien que intenta entrar a una sala completa. Cerrar la conexión sin más deja
    * a esa persona colgada en "buscando sala" (el canal ni llega a abrirse): se le avisa por el
    * canal en cuanto abre y solo entonces se cierra.
    */
@@ -359,7 +472,7 @@ export class NetworkManager {
       if (!alive()) return;
       const conn = peer.connect(hostPeerId, { reliable: true, metadata: { token: this.guestToken } });
       this.connection = conn;
-      this.setupConnection(conn);
+      this.setupGuestConnection(conn);
     });
 
     peer.on("error", (err) => {
@@ -398,23 +511,20 @@ export class NetworkManager {
     this.timers.add(this.retryTimer);
   }
 
-  // ── Conexión de datos (ambos lados) ────────────────────────────────────────
-
-  private setupConnection(conn: ConnectionLike) {
+  private setupGuestConnection(conn: ConnectionLike) {
     const current = () => this.connection === conn;
 
     conn.on("open", () => {
       if (!current()) return;
       this.attempts = 0;
       this.everConnected = true;
-      this.status("connected", "¡Conectado con el oponente!");
+      this.status("connected", "¡Conectado con la sala!");
     });
 
     conn.on("data", (data: unknown) => {
       if (!current() || !this.callbacks) return;
       const type = (data as { type?: unknown } | null)?.type;
-      const accepted = this.isHost ? HOST_ACCEPTS : GUEST_ACCEPTS;
-      if (typeof type !== "string" || !accepted.has(type as NetworkMessage["type"])) return;
+      if (typeof type !== "string" || !GUEST_ACCEPTS.has(type as NetworkMessage["type"])) return;
       if (type === "ROOM_FULL") {
         this.giveUpBecauseRoomIsFull();
         return;
@@ -425,21 +535,17 @@ export class NetworkManager {
     conn.on("close", () => {
       if (!current()) return;
       this.connection = null;
-      if (this.isHost) {
-        this.status("waiting_for_opponent", "El invitado se desconectó. Esperando a que vuelva...");
-      } else {
-        this.scheduleGuestReconnect("se perdió la conexión con el anfitrión");
-      }
+      this.scheduleGuestReconnect("se perdió la conexión con el anfitrión");
     });
 
     conn.on("error", (err) => {
       if (!current()) return;
       this.status("error", `Error en el canal de datos: ${err.message}`);
-      if (!this.isHost) this.scheduleGuestReconnect(err.message);
+      this.scheduleGuestReconnect(err.message);
     });
   }
 
-  /** El anfitrión nos rechazó: reintentar no sirve (el asiento sigue ocupado), así que se corta y se avisa. */
+  /** El anfitrión nos rechazó: reintentar no sirve (la sala sigue completa), así que se corta y se avisa. */
   private giveUpBecauseRoomIsFull() {
     const callbacks = this.callbacks;
     this.session += 1;
@@ -449,12 +555,22 @@ export class NetworkManager {
     this.destroyPeer();
     callbacks?.onStatusChange(
       "error",
-      "La sala ya tiene otro invitado conectado. Si eras vos desde otra pestaña, cerrala e intentá de nuevo.",
+      "La sala ya está completa: todos sus lugares tienen un jugador conectado. Si eras vos desde otra pestaña, cerrala e intentá de nuevo.",
     );
   }
 
-  /** Devuelve false si no hay conexión abierta (el mensaje NO se envió). */
+  // ── Mensajes (ambos lados) ─────────────────────────────────────────────────
+
+  /**
+   * El invitado le escribe al anfitrión; el anfitrión, a todos los invitados conectados.
+   * Devuelve false si no había ninguna conexión abierta (el mensaje NO se envió).
+   */
   public sendMessage(msg: NetworkMessage): boolean {
+    if (this.isHost) {
+      let sent = false;
+      for (const seat of this.connectedSeats()) sent = this.sendTo(seat, msg) || sent;
+      return sent;
+    }
     if (this.connection?.open) {
       this.connection.send(msg);
       return true;
@@ -462,8 +578,16 @@ export class NetworkManager {
     return false;
   }
 
+  /** Anfitrión: le escribe solo al invitado de ese asiento. false si no está conectado. */
+  public sendTo(seat: PlayerId, msg: NetworkMessage): boolean {
+    const conn = this.connections.get(seat);
+    if (!conn?.open) return false;
+    conn.send(msg);
+    return true;
+  }
+
   public isConnected(): boolean {
-    return this.connection?.open ?? false;
+    return this.isHost ? this.connectedSeats().length > 0 : (this.connection?.open ?? false);
   }
 
   public cleanup() {
@@ -474,6 +598,8 @@ export class NetworkManager {
     this.destroyPeer();
     this.callbacks = null;
     this.guestToken = null;
+    this.guestSeats = DEFAULT_GUEST_SEATS;
+    this.seatTokens.clear();
     this.attempts = 0;
     this.everConnected = false;
     this.peerOpen = false;
@@ -493,6 +619,11 @@ export class NetworkManager {
       const conn = this.connection;
       this.connection = null;
       conn.close();
+    }
+    if (this.connections.size > 0) {
+      const open = [...this.connections.values()];
+      this.connections.clear();
+      open.forEach((conn) => conn.close());
     }
     if (this.peer) {
       this.peer.destroy();

@@ -192,6 +192,13 @@
   color: var(--c-carbon);
 }
 
+/* Jugador sin conexión con la sala: ícono + texto, no solo color */
+.score__mark--off {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .score__points {
   font-family: var(--font-display);
   font-size: 28px;
@@ -206,7 +213,7 @@
   margin-bottom: 8px;
 }
 
-/* Cubo de acción: tres caras con el color del jugador (mostaza, tomate o petróleo, como su símbolo). */
+/* Cubo de acción: tres caras con el color del jugador (mostaza, tomate, petróleo, menta o pizarra, como su símbolo). */
 .cube {
   flex: none;
   display: block;
@@ -228,6 +235,18 @@
   --cube-top: var(--c-petroleo-l);
   --cube-left: var(--c-petroleo);
   --cube-right: var(--c-petroleo-d);
+}
+
+.cube--3 {
+  --cube-top: color-mix(in srgb, var(--c-menta) 60%, var(--c-crema));
+  --cube-left: var(--c-menta);
+  --cube-right: var(--c-menta-d);
+}
+
+.cube--4 {
+  --cube-top: color-mix(in srgb, var(--c-slate) 70%, var(--c-crema));
+  --cube-left: var(--c-slate);
+  --cube-right: var(--c-muted);
 }
 
 .cube__face {

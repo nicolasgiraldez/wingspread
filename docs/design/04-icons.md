@@ -1,6 +1,6 @@
 # 04 · Íconos
 
-Referencia: `reference/IconosD.png`. Archivos: `icons/*.svg` (18 de juego), `icons/glyph/*.svg` (3 de timing sin círculo), `icons/players/*.svg` (3 símbolos de jugador), `icons/ui/*.svg` (26 de interfaz), `icons/manifest.json` (clave → nombre en español).
+Referencia: `reference/IconosD.png`. Archivos: `icons/*.svg` (18 de juego), `icons/glyph/*.svg` (3 de timing sin círculo), `icons/players/*.svg` (5 símbolos de jugador), `icons/ui/*.svg` (26 de interfaz), `icons/manifest.json` (clave → nombre en español).
 
 ## Estilo "D": color desplazado + contorno carbón
 
@@ -136,10 +136,10 @@ Además, `cards.ts` (líneas ~3560–3590) tiene descripciones de cartas de boni
 | `send` | Invitación enviada / esperando oponente |
 | `spinner` | Cargando: aplicá `animation: spin 1s linear infinite` (`@keyframes spin{to{transform:rotate(360deg)}}`, `transform-origin:50% 50%`) solo con `prefers-reduced-motion: no-preference`; con reduced-motion mostrar estático |
 
-**Símbolo de jugador** (`icons/players/*.svg`): cada jugador tiene una forma y un color propios, además del nombre, para no depender solo del color: 1.º círculo mostaza, 2.º triángulo tomate, 3.º cuadrado petróleo (20px, contorno carbón de 2px). Se usan en la barra de jugadores, el registro y el marcador. **[NUEVO]** hoy el juego no asigna forma/color por jugador; si hay más de 3 jugadores, definir formas adicionales (no hay diseño).
+**Símbolo de jugador** (`icons/players/*.svg`): cada jugador tiene una forma y un color propios, además del nombre, para no depender solo del color: 1.º círculo mostaza, 2.º triángulo tomate, 3.º cuadrado petróleo, 4.º rombo menta, 5.º hexágono pizarra (20px, contorno carbón de 2px). Se usan en la barra de jugadores, el registro y el marcador. **[NUEVO]** hoy el juego no asigna forma/color por jugador; si hay más de 3 jugadores, definir formas adicionales (no hay diseño).
 
 ## Pendientes (el diseño no cubre estos íconos)
 
 1. **Cartas de bonificación por nombre** (Fotógrafo 📷, Anatomista 🫀, Cartógrafo 🗺️, Historiador 👤): están en `labels.ts` (`nameTagBonus`) y en las descripciones de `cards.ts`. Opciones: (a) mantenerlos como texto/etiqueta sin ícono ("Fotógrafo") usando la palabra en un chip; (b) pedir al diseño que los dibuje en estilo D. Recomendado: (a) por ahora.
 2. **Candado 🔒** (mano del rival en secreto) y **ojo 👁️** (vista de solo lectura): sin ícono; usar solo el texto.
-3. **Más de 3 jugadores:** solo hay 3 símbolos de jugador.
+3. **Más de 3 jugadores:** el 4.º (rombo menta) y el 5.º (hexágono pizarra) se agregaron en código para el multijugador de hasta 5; no tienen diseño de referencia.

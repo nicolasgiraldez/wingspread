@@ -1377,12 +1377,13 @@ export function evaluateRoundGoalMetric(
 
 export function resolveRoundEnd(state: GameState) {
   const currentGoal = state.roundGoals[state.round - 1];
-  const roundPointsTable = {
-    1: [4, 1],
-    2: [5, 2],
-    3: [6, 3],
-    4: [7, 4],
-  } as const;
+  // Puntos para el 1.º, 2.º y 3.º puesto de cada ronda; del 4.º en adelante no se puntúa.
+  const roundPointsTable: Record<1 | 2 | 3 | 4, readonly number[]> = {
+    1: [4, 1, 0],
+    2: [5, 2, 1],
+    3: [6, 3, 2],
+    4: [7, 4, 3],
+  };
 
   const pointTiers = roundPointsTable[state.round];
   const scoresByPlayer: Record<PlayerId, number> = {};
@@ -1395,19 +1396,18 @@ export function resolveRoundEnd(state: GameState) {
 
     playerMetrics.sort((a, b) => b.metric - a.metric);
 
-    if (playerMetrics[0].metric > playerMetrics[1]?.metric) {
-      scoresByPlayer[playerMetrics[0].playerId] = pointTiers[0];
-      if (playerMetrics[1]) {
-        scoresByPlayer[playerMetrics[1].playerId] = playerMetrics[1].metric > 0 ? pointTiers[1] : 0;
-      }
-    } else if (playerMetrics[0].metric > 0 && playerMetrics[0].metric === playerMetrics[1]?.metric) {
-      const tiedPoints = Math.floor((pointTiers[0] + pointTiers[1]) / 2);
-      scoresByPlayer[playerMetrics[0].playerId] = tiedPoints;
-      scoresByPlayer[playerMetrics[1].playerId] = tiedPoints;
-    } else {
-      for (const p of playerMetrics) {
-        scoresByPlayer[p.playerId] = 0;
-      }
+    // Los empatados comparten los puestos que ocupan: se suman sus puntos y se reparten en partes
+    // iguales, redondeando hacia abajo. Quien no tiene nada del objetivo no puntúa.
+    let place = 0;
+    while (place < playerMetrics.length) {
+      const metric = playerMetrics[place].metric;
+      let end = place;
+      while (end < playerMetrics.length && playerMetrics[end].metric === metric) end += 1;
+      let pool = 0;
+      for (let i = place; i < end; i += 1) pool += pointTiers[i] ?? 0;
+      const share = metric > 0 ? Math.floor(pool / (end - place)) : 0;
+      for (let i = place; i < end; i += 1) scoresByPlayer[playerMetrics[i].playerId] = share;
+      place = end;
     }
   }
 

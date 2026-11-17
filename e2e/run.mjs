@@ -228,7 +228,7 @@ await step("Tras la recarga se puede seguir jugando (4 jugadas)", () => playAndC
 await step("Un intruso no puede quitarle el asiento al invitado y ve un aviso", async () => {
   const intruder = await newPlayer("intruso");
   await joinAsGuest(intruder, roomCode, "Intruso");
-  await intruder.page.getByText(/La sala ya tiene otro invitado/).waitFor({ timeout: 20_000 });
+  await intruder.page.getByText(/La sala ya está completa/).waitFor({ timeout: 20_000 });
   await sameState("con el intruso intentando entrar");
   await playMoves(1);
   await sameState("jugando con el intruso fuera");

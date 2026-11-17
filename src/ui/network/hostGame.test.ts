@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyMove, createInitialState } from "../../game";
 import type { GameState, Move } from "../../game";
 import { checkInvariants, nextActor, randomMove, withSeededRandom } from "../../game/simulation";
-import { applyGuestMove, GUEST_PLAYER_ID, HOST_PLAYER_ID } from "./hostGame";
+import { applyGuestMove, defaultSeatName, GUEST_PLAYER_ID, guestSeatsOf, HOST_PLAYER_ID, seatsFor } from "./hostGame";
 
 /** Partida online recién empezada: ambos ya eligieron su bonificación y es el turno del anfitrión. */
 function onlineState(): GameState {
@@ -49,6 +49,58 @@ describe("applyGuestMove: el anfitrión valida lo que manda el invitado", () => 
       expect(totalFood(result.state, GUEST_PLAYER_ID)).toBeGreaterThan(totalFood(state, GUEST_PLAYER_ID));
       expect(totalFood(result.state, HOST_PLAYER_ID)).toBe(totalFood(state, HOST_PLAYER_ID));
     }
+  });
+});
+
+describe("salas de 2 a 5 jugadores", () => {
+  /** Partida de N jugadores ya en la ronda 1, con el turno del anfitrión. */
+  function tableOf(count: number): GameState {
+    const seats = seatsFor(count);
+    let state = createInitialState({ mode: "online", playerIds: seats, firstPlayerId: HOST_PLAYER_ID });
+    for (const id of seats) {
+      state = applyMove(state, id, {
+        type: "chooseStart",
+        keepCards: [],
+        discardFood: [],
+        bonusCardId: state.players[id].pendingBonusChoice![0],
+      });
+    }
+    return state;
+  }
+
+  it("reparte los asientos en orden y acota la cantidad a entre 2 y 5", () => {
+    expect(seatsFor(2)).toEqual(["nico", "santi"]);
+    expect(seatsFor(5)).toEqual(["nico", "santi", "p3", "p4", "p5"]);
+    expect(seatsFor(1)).toHaveLength(2);
+    expect(seatsFor(9)).toHaveLength(5);
+    expect(seatsFor(Number.NaN)).toHaveLength(2);
+    expect(guestSeatsOf(tableOf(4))).toEqual(["santi", "p3", "p4"]);
+    expect(defaultSeatName(2)).toBe("Jugador 3");
+  });
+
+  it("cada invitado solo juega por su asiento y en su turno", () => {
+    let state = tableOf(4);
+    const die: Move = { type: "gainFood", dieIndexes: [0] };
+
+    // Turno del anfitrión: ningún invitado puede mover.
+    for (const seat of ["santi", "p3", "p4"]) expect(applyGuestMove(state, die, seat).ok).toBe(false);
+
+    state = applyMove(state, HOST_PLAYER_ID, die);
+    expect(state.currentPlayerId).toBe("santi");
+    // Le toca a "santi": los otros asientos no pueden jugar por él.
+    expect(applyGuestMove(state, die, "p3")).toEqual({ ok: false, reason: "movimiento ilegal" });
+    const result = applyGuestMove(state, die, "santi");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.state.currentPlayerId).toBe("p3");
+  });
+
+  it("rechaza asientos que no son de invitados", () => {
+    const state = tableOf(3);
+    const die: Move = { type: "gainFood", dieIndexes: [0] };
+    // Aunque sea el turno del anfitrión, nadie puede jugar por él desde la red.
+    expect(applyGuestMove(state, die, HOST_PLAYER_ID)).toEqual({ ok: false, reason: "asiento desconocido" });
+    expect(applyGuestMove(state, die, "p5")).toEqual({ ok: false, reason: "asiento desconocido" });
+    expect(applyGuestMove(state, die, "__proto__")).toEqual({ ok: false, reason: "asiento desconocido" });
   });
 });
 
