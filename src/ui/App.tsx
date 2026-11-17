@@ -526,7 +526,6 @@ export const App: React.FC = () => {
   const handleConfirmPlayBird = (move: Extract<Move, { type: "playBird" }>) => {
     executeLocalMove(move);
     setSelectedCardForPlay(null);
-    setSelectedHandId(null);
   };
 
   // ── Show HomePage / connecting screen ─────────────────────────────────────
