@@ -52,6 +52,8 @@ interface BirdCardProps {
   /** El botón de acción no se puede usar ahora; `actionDisabledText` (si hay) reemplaza su texto con el motivo. */
   actionDisabled?: boolean;
   actionDisabledText?: string;
+  /** Solo la franja con el momento del poder ("Al activar"), sin su texto: para tableros compactos con vista previa aparte. */
+  compactPowers?: boolean;
 }
 
 const TIMING_GLYPH: Record<PowerTiming, IconName> = {
@@ -94,6 +96,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
   onAction,
   actionDisabled = false,
   actionDisabledText,
+  compactPowers = false,
 }) => {
   const m = CARD_MODES[mode];
   const image = getBirdImage(card.id);
@@ -257,14 +260,19 @@ export const BirdCard: React.FC<BirdCardProps> = ({
                 />
                 <span>{powerTimingLabels[p.timing]}</span>
               </span>
-              {/* El detalle del poder (con sus costes y condiciones) se ve siempre, en todos los modos. */}
-              <span className="bird-card__power-text">
-                <RichText
-                  text={describePower(p)}
-                  size={mode === "full" ? 16 : 15}
-                  ink={p.timing === "onActivate" ? "var(--c-crema)" : undefined}
-                />
-              </span>
+              {/* El detalle del poder (con sus costes y condiciones) se ve siempre, salvo en la versión compacta,
+                  que lo deja para la vista previa de la carta (y lo lee igual un lector de pantalla). */}
+              {compactPowers ? (
+                <span className="sr-only">{describePowerText(p)}</span>
+              ) : (
+                <span className="bird-card__power-text">
+                  <RichText
+                    text={describePower(p)}
+                    size={mode === "full" ? 16 : 15}
+                    ink={p.timing === "onActivate" ? "var(--c-crema)" : undefined}
+                  />
+                </span>
+              )}
             </span>
           ))
         )}
@@ -278,6 +286,7 @@ export const BirdCard: React.FC<BirdCardProps> = ({
     onClick && "bird-card--interactive",
     selected && "is-selected",
     lifted && "is-lifted",
+    compactPowers && "bird-card--compact",
   ]
     .filter(Boolean)
     .join(" ");

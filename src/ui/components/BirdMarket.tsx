@@ -4,6 +4,7 @@ import { countOf } from "../text";
 import { useBoardChanges } from "../useBoardChanges";
 import { BirdCard } from "./BirdCard";
 import { CardBack } from "./CardBack";
+import { CardPeek } from "./CardPeek";
 import { Button } from "./ui/Button";
 
 const MARKET_SLOTS = 3;
@@ -18,6 +19,8 @@ interface BirdMarketProps {
   /** Por qué no se puede robar ahora (se muestra en el propio botón cuando `disabled`). */
   disabledReason?: string;
   highlightNameTags?: NameTag[];
+  /** Versión para la columna lateral: cartas chicas sin texto de poder (se lee en la vista previa). */
+  compact?: boolean;
 }
 
 export const BirdMarket: React.FC<BirdMarketProps> = ({
@@ -29,6 +32,7 @@ export const BirdMarket: React.FC<BirdMarketProps> = ({
   disabled = false,
   disabledReason,
   highlightNameTags,
+  compact = false,
 }) => {
   const changes = useBoardChanges();
   const deckEmpty = deckCount === 0;
@@ -50,36 +54,54 @@ export const BirdMarket: React.FC<BirdMarketProps> = ({
         </p>
       )}
 
-      <div className="market">
+      <div className={`market${compact ? " market--compact" : ""}`}>
         <div className="market__deck">
           <CardBack
-            width={192}
-            height={290}
+            width={compact ? 114 : 192}
+            height={compact ? 160 : 290}
             stack
             label={deckEmpty ? "Mazo vacío · 0 cartas" : countOf(deckCount, "carta", "cartas")}
           />
           <Button
             onClick={onDrawFromDeck}
             disabled={disabled || deckEmpty}
-            disabledText={deckEmpty ? "Mazo vacío" : disabledReason}
+            disabledText={deckEmpty ? "Mazo vacío" : compact ? undefined : disabledReason}
+            title={compact && disabled ? disabledReason : undefined}
+            size={compact ? "sm" : "md"}
           >
-            Robar Carta Oculta del Mazo
+            {compact ? "Robar del mazo" : "Robar Carta Oculta del Mazo"}
           </Button>
         </div>
 
-        {visible.map((card) => (
-          <BirdCard
-            key={card.id}
-            card={card}
-            mode="hand"
-            entering={changes.cards.has(card.id)}
-            highlightNameTags={highlightNameTags}
-            actionLabel="Robar esta ave"
-            actionDisabled={disabled}
-            actionDisabledText={disabledReason}
-            onAction={() => onDrawMarketCard(card.id)}
-          />
-        ))}
+        {visible.map((card) =>
+          compact ? (
+            <CardPeek key={card.id} card={card} highlightNameTags={highlightNameTags}>
+              <BirdCard
+                card={card}
+                mode="mini"
+                compactPowers
+                showCost
+                entering={changes.cards.has(card.id)}
+                highlightNameTags={highlightNameTags}
+                actionLabel="Robar esta ave"
+                actionDisabled={disabled}
+                onAction={() => onDrawMarketCard(card.id)}
+              />
+            </CardPeek>
+          ) : (
+            <BirdCard
+              key={card.id}
+              card={card}
+              mode="hand"
+              entering={changes.cards.has(card.id)}
+              highlightNameTags={highlightNameTags}
+              actionLabel="Robar esta ave"
+              actionDisabled={disabled}
+              actionDisabledText={disabledReason}
+              onAction={() => onDrawMarketCard(card.id)}
+            />
+          ),
+        )}
 
         {Array.from({ length: holes }, (_, i) => (
           <div key={`hole-${i}`} className="market__hole">
