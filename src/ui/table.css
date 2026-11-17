@@ -1,0 +1,650 @@
+/* ==========================================================================
+   Mesa ancha (escritorio desde 1280×640): todo a la vista sin scroll de página.
+   Lateral (marcador, reserva, registro) · centro (objetivo de la ronda, tablero, mano fija abajo)
+   · columna derecha (comedero y mercado). La activa App con la clase .game--wide.
+   ========================================================================== */
+
+.game--wide {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.game--wide .game__body {
+  grid-template-columns: 248px minmax(0, 1fr) 300px;
+  height: calc(100vh - 68px);
+  min-height: 0;
+}
+
+.game--wide .sidebar {
+  position: static;
+  height: 100%;
+  padding: 16px;
+  gap: 16px;
+}
+
+/* ---- Centro ------------------------------------------------------------------------ */
+.game--wide .table {
+  position: relative;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 12px 16px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ---- Objetivo de la ronda (franja plegable) ----------------------------------------- */
+.goals-strip {
+  position: relative;
+  z-index: 20;
+  flex: none;
+}
+
+.goals-strip__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  min-height: 48px;
+  padding: 6px 8px 6px 16px;
+  background: var(--c-crema-2);
+  border-radius: var(--radius-card);
+}
+
+.goals-strip__label {
+  margin: 0;
+}
+
+.goals-strip__name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.goals-strip__scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goals-strip__score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.goals-strip__value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.goals-strip__toggle {
+  margin-left: auto;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+/* Los 4 objetivos se despliegan por encima del tablero, sin empujarlo. */
+.goals-strip__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  padding: 12px;
+  background: var(--c-crema-2);
+  border: var(--stroke) solid var(--c-carbon);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-press);
+}
+
+.goals-strip__panel .goals {
+  margin: 0;
+}
+
+/* ---- Tablero compacto --------------------------------------------------------------- */
+.board--compact .board__head {
+  margin-bottom: 6px;
+}
+
+.board--compact .board__title {
+  font-size: 22px;
+}
+
+.board--compact .habitat-row {
+  grid-template-columns: 124px minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px;
+  border-radius: 16px;
+}
+
+.board--compact .habitat-panel {
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 0;
+  padding: 10px;
+}
+
+.board--compact .habitat-panel__top {
+  align-items: center;
+}
+
+.board--compact .habitat-panel__icon {
+  width: 36px;
+  height: 36px;
+}
+
+.board--compact .habitat-panel__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.board--compact .habitat-panel__count {
+  min-height: 26px;
+  padding: 0 8px;
+}
+
+.board--compact .habitat-panel__name {
+  font-size: 21px;
+}
+
+/* La acción del hábitat ya la dice el nombre del botón y la ayuda; en la franja angosta se oculta. */
+.board--compact .habitat-panel__action {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.board--compact .habitat-panel__next {
+  font-size: 13px;
+}
+
+.board--compact .habitat-panel .btn {
+  min-height: 36px;
+  margin-top: 2px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.board--compact .habitat-slots {
+  grid-template-columns: repeat(5, var(--slot-w));
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.board--cards-mini {
+  --slot-w: 114px;
+  --slot-h: 150px;
+}
+
+.board--cards-board {
+  --slot-w: 132px;
+  --slot-h: 180px;
+}
+
+.board--compact .slot--empty {
+  min-height: var(--slot-h);
+  padding: 6px;
+}
+
+.board--compact .slot--empty svg {
+  width: 22px;
+  height: 22px;
+}
+
+.board--compact .slot__info {
+  font-size: 12px;
+}
+
+/* Las cartas compactas: el mínimo de alto del modo se ajusta al contenido sin el texto del poder. */
+.bird-card--compact {
+  min-height: 0;
+}
+
+.bird-card--compact .bird-card__power {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+/* Poner huevos sobre un ave: botón chico encima de la ilustración (la carta entera abre la vista previa). */
+.slot__egg {
+  position: absolute;
+  top: 46px;
+  left: 6px;
+  z-index: 3;
+  gap: 1px;
+  min-height: 0;
+  width: auto;
+  height: 30px;
+  padding: 0 6px;
+  background: var(--c-mostaza);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-press-sm);
+}
+
+.board--cards-board .slot__egg {
+  top: 64px;
+}
+
+.slot__egg:hover {
+  background: var(--c-mostaza-l);
+}
+
+/* ---- Mano fija abajo ---------------------------------------------------------------- */
+.hand--dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  flex: none;
+  margin: auto -16px 0;
+  padding: 6px 16px 8px;
+  background: var(--c-crema);
+  border-top: var(--stroke) solid var(--c-carbon);
+}
+
+.hand--dock .hand__cards {
+  flex-wrap: nowrap;
+  gap: 10px;
+  padding: 16px 4px 4px;
+  overflow-x: auto;
+}
+
+.hand--dock .hand__empty {
+  flex-direction: row;
+  justify-content: center;
+  padding: 10px;
+}
+
+/* Al pasar el puntero, la carta de la mano sube un poco (la vista previa completa sale al costado). */
+@media (prefers-reduced-motion: no-preference) {
+  .hand--dock .bird-card--interactive:hover:not(.is-lifted) {
+    transform: translateY(-8px);
+  }
+}
+
+.hand--dock .is-lifted {
+  transform: translateY(-10px);
+}
+
+/* ---- Columna derecha: comedero y mercado -------------------------------------------- */
+.supply {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--c-crema-2);
+  border-left: var(--stroke) solid var(--c-carbon);
+}
+
+.supply .panel-wide {
+  padding: 0;
+  background: none;
+  border-radius: 0;
+}
+
+.supply .panel-wide__title {
+  font-size: 22px;
+}
+
+.supply .panel-wide__help {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.supply .feeder {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: var(--stroke) dashed var(--c-muted);
+}
+
+.supply .feeder__dice {
+  gap: 6px;
+}
+
+.supply .die-token {
+  width: 48px;
+  height: 56px;
+}
+
+.supply .die-token.die-wild {
+  width: 64px;
+}
+
+.supply .die-token .die-label {
+  font-size: 11px;
+}
+
+.supply .die-token svg {
+  width: 26px;
+  height: 26px;
+}
+
+.supply .die-token.die-wild svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Mercado en 2×2: mazo y tres aves. */
+.market--compact {
+  display: grid;
+  grid-template-columns: repeat(2, 114px);
+  justify-content: space-between;
+  gap: 10px 8px;
+  margin-top: 8px;
+  padding: 0;
+}
+
+.market--compact .market__deck {
+  width: 114px;
+  gap: 8px;
+}
+
+.market--compact .market__deck .btn,
+.market--compact .bird-card__action {
+  height: auto;
+  min-height: 34px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.market--compact .card-back--stack {
+  margin: 0 6px 6px 0;
+}
+
+.market--compact .market__hole {
+  width: 114px;
+  min-height: 160px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.market--compact .peek,
+.market--compact .peek > .bird-card-wrap {
+  height: 100%;
+}
+
+/* ---- Vista previa de una carta compacta ---------------------------------------------- */
+.peek {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.peek:focus-visible {
+  outline: 3px solid var(--c-petroleo);
+  outline-offset: 3px;
+  border-radius: var(--radius-btn);
+}
+
+.card-peek {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 0 color-mix(in srgb, var(--c-carbon) 35%, transparent));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card-peek {
+    animation: peek-in 0.12s ease-out;
+  }
+}
+
+@keyframes peek-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* El panel de acción del rival se centra sobre el tablero, no sobre la columna derecha. */
+.game--wide ~ .rival-region,
+.game--wide .rival-region {
+  right: 300px;
+  left: 248px;
+}
+
+/* ---- Ajuste fino de alto: tres filas de hábitat y la mano entran en 768 px de alto ------ */
+/* Cartas compactas más bajas: ventana de ilustración reducida y franja de poder de una línea. */
+.bird-card--compact.bird-card--mini {
+  --card-win: 62px !important;
+  --card-name: 12.5px !important;
+}
+
+.bird-card--compact.bird-card--board {
+  --card-win: 86px !important;
+}
+
+.bird-card--compact .bird-card__habitats {
+  gap: 2px;
+}
+
+.bird-card--compact.bird-card--mini .bird-card__habitat {
+  width: 18px;
+  height: 18px;
+}
+
+.bird-card--compact.bird-card--mini .bird-card__points {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+}
+
+.bird-card--compact .bird-card__stats {
+  min-height: 20px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.bird-card--compact .bird-card__timing {
+  gap: 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.bird-card--compact .bird-card__timing svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* El título del tablero queda para lectores de pantalla: la franja de objetivo ya encabeza la mesa. */
+.board--compact .board__head {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.board--compact .habitat-row {
+  margin-bottom: 6px;
+}
+
+.board--compact .habitat-slots {
+  padding-top: 8px;
+}
+
+.board--cards-mini {
+  --slot-h: 132px;
+}
+
+.board--cards-board {
+  --slot-h: 166px;
+}
+
+.slot__egg {
+  top: 30px;
+  height: 26px;
+}
+
+.board--cards-board .slot__egg {
+  top: 52px;
+}
+
+.board--compact .habitat-panel .btn {
+  white-space: nowrap;
+}
+
+/* Mano: encabezado en una línea chica y cartas sin margen extra arriba. */
+.hand--dock .hand__head {
+  gap: 2px 12px;
+}
+
+.hand--dock .hand__hint {
+  font-size: 13px;
+}
+
+.hand--dock .hand__cards {
+  padding-top: 12px;
+}
+
+/* ---- Ajuste para 1280×720 y 1366×768 ------------------------------------------------ */
+/* Las columnas laterales ceden ancho en pantallas de 1280 px para que entren las 5 casillas. */
+.game--wide .game__body {
+  grid-template-columns: clamp(216px, 17.5vw, 248px) minmax(0, 1fr) clamp(268px, 21.5vw, 300px);
+}
+
+.game--wide .rival-region {
+  right: clamp(268px, 21.5vw, 300px);
+  left: clamp(216px, 17.5vw, 248px);
+}
+
+.game--wide .table {
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.goals-strip__bar {
+  min-height: 44px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.board--compact .habitat-row {
+  grid-template-columns: 116px minmax(0, 1fr);
+  margin-bottom: 4px;
+  padding: 4px;
+}
+
+.board--compact .habitat-panel {
+  padding: 8px;
+}
+
+.board--compact .habitat-slots {
+  gap: 6px;
+  padding: 7px 0 0;
+}
+
+/* Mano: la etiqueta va a la izquierda de las cartas (una columna angosta) en vez de ocupar una fila. */
+.hand--dock {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  padding-top: 4px;
+  padding-bottom: 6px;
+}
+
+.hand--dock .hand__head {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.hand--dock .hand__hint {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.hand--dock .hand__cards {
+  padding-top: 10px;
+  padding-bottom: 2px;
+}
+
+.hand--dock .hand__empty {
+  justify-content: flex-start;
+}
+
+/* Lateral más denso en la mesa ancha: marcador, cubos y reserva arriba sin scroll; el registro ocupa lo que quede. */
+.game--wide .score {
+  min-height: 46px;
+}
+
+.game--wide .reserve__tile {
+  padding: 4px 10px;
+}
+
+.game--wide .reserve__count {
+  font-size: 24px;
+}
+
+.game--wide .side-block--log {
+  min-height: 140px;
+}
+
+.game--wide .table {
+  padding-top: 8px;
+}
+
+.hand--dock {
+  padding-bottom: 4px;
+}
+
+.hand--dock .hand__cards {
+  padding-top: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hand--dock .bird-card--interactive:hover:not(.is-lifted) {
+    transform: translateY(-6px);
+  }
+}
+
+.hand--dock .is-lifted {
+  transform: translateY(-6px);
+}
+
+/* El botón de poner huevos ocupa el ancho de la franja de hábitat, sin salirse. */
+.board--compact .habitat-panel .btn {
+  align-self: stretch;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 6px;
+}
+
+/* Motivo de deshabilitado del botón de huevos: corto en la franja, pero puede partirse si hace falta. */
+.board--compact .habitat-panel .btn[aria-disabled="true"] {
+  white-space: normal;
+  text-align: center;
+}
+
+/* Los 8 cubos de acción entran en la columna lateral angosta. */
+.game--wide .sidebar {
+  overflow-x: hidden;
+}
+
+.game--wide .cubes {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.game--wide .cubes {
+  gap: 2px;
+}

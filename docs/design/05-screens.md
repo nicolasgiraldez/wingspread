@@ -19,6 +19,17 @@ Componente: `App.tsx` (layout general), `PlayerBoard.tsx`, sección "Tu mano".
 - **Área de juego** (fondo crema): tres **filas de hábitat**, una por hábitat (Bosque, Pradera, Río). Cada fila es un contenedor crema-2 de radio 20 con: a la izquierda un **panel de hábitat** de 240px de ancho (fondo del color del hábitat, ficha con el ícono, chip "3 de 5 aves", nombre en DM Serif 30px y la acción del hábitat: "Obtené alimento del comedero" / "Poné huevos en tus nidos" / "Robá nuevas cartas de ave"), y a la derecha **5 casillas** de carta modo `board` (132×200). Las casillas vacías son rectángulos con borde punteado y un "+" (ver estados en §7).
 - **Tu mano · 4 cartas**: fila de cartas modo `hand` (192×290) debajo del tablero. Hacer clic en una carta la deja **levantada** (ver `03-cards.md` §Estados) y abre directamente el modal **Jugar ave** (§6), con la carta en grande, el hábitat y el pago. Si ahora no se puede jugar (no es tu turno, sin cubos), el modal se abre igual para mirar la carta, pero "Confirmar y Jugar Ave" queda deshabilitado con el motivo en texto (ej. "No es tu turno."). No hay panel ni popup intermedio de carta seleccionada.
 
+### Mesa ancha (escritorio desde 1280×640) — sin scroll de página
+
+Implementada en `App.tsx` (clase `.game--wide`) y `table.css`. Con la ventana más chica se usa la mesa apilada de arriba.
+
+- **Tres columnas**: lateral (marcador, cubos, reserva, bonificación, registro) · centro · columna derecha de ~300px con el **comedero** y el **mercado** en 2×2 (mazo + 3 aves en modo `mini`).
+- **Centro**: franja plegable con el **objetivo de la ronda en curso** y la cuenta de cada jugador; "Ver los 4 objetivos" despliega los cuatro encima del tablero (Esc o clic afuera lo cierra). Debajo, el **tablero compacto**: el panel de hábitat se reduce a una franja de ~116px (ícono, "1/5", nombre, próxima columna y, en Pradera, "3 huevos") y las cartas van en modo `mini` (`board` con 1000px de alto o más).
+- **Cartas compactas**: muestran solo la franja con el momento del poder ("Al activar"); el texto completo aparece en una **vista previa** de la carta al pasar el puntero o al enfocarla con Tab (`CardPeek`). Poner huevos en un ave es un botón chico sobre su ilustración.
+- **Mano fija abajo**, siempre visible; al tocar una carta se abre el modal **Jugar ave** como siempre.
+- Sin banner de turno: el chip de la barra superior ya lo dice.
+- Medido: entra completa en 1366×768, 1440×900 y 1920×1080. En 1280×720 el centro desplaza ~80px.
+
 ### Móvil
 
 - Barra superior (carbón, 60px): logo + nombre, chip "Ronda 2/4".

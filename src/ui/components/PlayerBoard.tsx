@@ -7,6 +7,8 @@ import { countOf } from "../text";
 import { useBoardChanges } from "../useBoardChanges";
 import { useMediaQuery } from "../useMediaQuery";
 import { BirdCard } from "./BirdCard";
+import { CardPeek } from "./CardPeek";
+import type { CardMode } from "./cardModes";
 import { Button } from "./ui/Button";
 import { Icon } from "./ui/Icon";
 
@@ -17,6 +19,13 @@ interface PlayerBoardProps {
   highlightNameTags?: NameTag[];
   onOpenLayEggsModal?: (initialBird?: { habitat: HabitatId; slotIndex: number }) => void;
   isCurrentPlayerTurn: boolean;
+  /**
+   * Tablero compacto (pantallas anchas): cartas sin el texto del poder, que se lee en una vista previa
+   * al pasar el puntero o el foco, y el panel de hábitat reducido a una franja lateral.
+   */
+  compact?: boolean;
+  /** Tamaño de las cartas del tablero compacto. */
+  compactCardMode?: CardMode;
 }
 
 const HABITATS: HabitatId[] = ["forest", "grassland", "wetland"];
@@ -43,6 +52,8 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
   highlightNameTags,
   onOpenLayEggsModal,
   isCurrentPlayerTurn,
+  compact = false,
+  compactCardMode = "mini",
 }) => {
   const narrow = useMediaQuery("(max-width: 640px)");
   const changes = useBoardChanges();
@@ -73,7 +84,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
       : undefined;
 
   return (
-    <section className="board" aria-labelledby="board-title">
+    <section className={`board${compact ? ` board--compact board--cards-${compactCardMode}` : ""}`} aria-labelledby="board-title">
       <div className="board__head">
         <h2 id="board-title" className="board__title">
           {isOwner ? "Tu tablero" : `Tablero de ${displayName}`}
@@ -112,15 +123,17 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                 <span className="habitat-panel__icon">
                   <Icon name={habitatIcons[hab]} size={34} />
                 </span>
-                <span className="chip habitat-panel__count">
-                  {birds} de 5 aves{birds === 5 ? " · lleno" : ""}
+                <span className="chip habitat-panel__count" title={`${birds} de 5 aves`}>
+                  {compact ? `${birds}/5` : `${birds} de 5 aves${birds === 5 ? " · lleno" : ""}`}
                 </span>
               </div>
               <div className="habitat-panel__bottom">
                 <h3 className="habitat-panel__name">{habitatLabels[hab]}</h3>
                 <p className="habitat-panel__action">{HABITAT_ACTION[hab]}</p>
                 {activeCol !== null && activeCol !== undefined && (
-                  <p className="habitat-panel__next">Próxima ranura: columna {activeCol + 1}</p>
+                  <p className="habitat-panel__next">
+                    {compact ? `Próxima: col. ${activeCol + 1}` : `Próxima ranura: columna ${activeCol + 1}`}
+                  </p>
                 )}
                 {hab === "grassland" && isOwner && (
                   <>
@@ -128,15 +141,22 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                       size="sm"
                       icon="egg"
                       disabled={!!eggsBlockedReason}
-                      disabledText={eggsBlockedReason}
+                      disabledText={
+                        compact && eggsBlockedReason
+                          ? !isCurrentPlayerTurn
+                            ? "No es tu turno"
+                            : "Sin espacio"
+                          : eggsBlockedReason
+                      }
                       onClick={() => onOpenLayEggsModal?.()}
+                      aria-label={compact && !eggsBlockedReason ? `Poner ${grasslandAllowance.baseAmount} huevos` : undefined}
                       title={
                         totalFreeEggSpace <= 0
                           ? "Tus aves no tienen espacio libre para huevos"
                           : `Poner hasta ${grasslandAllowance.baseAmount} huevos en tus aves`
                       }
                     >
-                      {`Poner ${grasslandAllowance.baseAmount} Huevos`}
+                      {compact ? `${grasslandAllowance.baseAmount} huevos` : `Poner ${grasslandAllowance.baseAmount} Huevos`}
                     </Button>
                   </>
                 )}
@@ -153,11 +173,47 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
 
                 if (card) {
                   const key = slotKey(player.id, hab, sIdx);
+                  const filledClasses = `slot slot--filled${isActiveCol ? " slot--active" : ""}${changes.birds.has(key) ? " slot--new" : ""}`;
+                  if (compact) {
+                    return (
+                      <CardPeek
+                        key={sIdx}
+                        card={card}
+                        eggs={slot.eggs}
+                        cached={slot.cached}
+                        tucked={slot.tucked}
+                        highlightNameTags={highlightNameTags}
+                        className={filledClasses}
+                        focusable
+                      >
+                        <BirdCard
+                          card={card}
+                          highlightNameTags={highlightNameTags}
+                          eggs={slot.eggs}
+                          newEggs={changes.eggs.get(key)}
+                          cached={slot.cached}
+                          tucked={slot.tucked}
+                          mode={compactCardMode}
+                          compactPowers
+                        />
+                        {canLay && (
+                          <button
+                            type="button"
+                            className="slot__egg"
+                            aria-label={`Poner huevos en ${card.name}`}
+                            title="Poner huevos en esta ave"
+                            onClick={() => onOpenLayEggsModal?.({ habitat: hab, slotIndex: sIdx })}
+                          >
+                            <Icon name="plus" size={12} />
+                            <Icon name="egg" size={16} />
+                          </button>
+                        )}
+                        {isActiveCol && <span className="slot__tag">Activa</span>}
+                      </CardPeek>
+                    );
+                  }
                   return (
-                    <div
-                      key={sIdx}
-                      className={`slot slot--filled${isActiveCol ? " slot--active" : ""}${changes.birds.has(key) ? " slot--new" : ""}`}
-                    >
+                    <div key={sIdx} className={filledClasses}>
                       <BirdCard
                         card={card}
                         highlightNameTags={highlightNameTags}
@@ -180,7 +236,8 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = ({
                     <Icon name="plus2" size={28} />
                     <span className="slot__col">Columna {sIdx + 1}</span>
                     <span className="slot__info">
-                      {columnReward(hab, sIdx)} · Coste: {countOf(eggCost, "huevo", "huevos")}
+                      <span className="slot__part">{columnReward(hab, sIdx)} ·</span>{" "}
+                      <span className="slot__part">Coste: {countOf(eggCost, "huevo", "huevos")}</span>
                     </span>
                     {birds === 0 && sIdx === firstEmpty && <span className="slot__first">Jugá tu primera ave acá</span>}
                     {isActiveCol && <span className="slot__tag">Activa</span>}

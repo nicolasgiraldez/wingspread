@@ -20,6 +20,7 @@ import type {
 } from "../game";
 import { BirdCard } from "./components/BirdCard";
 import { CardBack } from "./components/CardBack";
+import { CardPeek } from "./components/CardPeek";
 import { GameSidebar } from "./components/GameSidebar";
 import { LogText } from "./components/LogText";
 import { RivalActionPanel } from "./components/RivalActionPanel";
@@ -52,6 +53,7 @@ import {
 } from "./network/hostGame";
 import { classifyLog } from "./logEvents";
 import { countOf, pressVerb } from "./text";
+import { useMediaQuery } from "./useMediaQuery";
 import { GameSpeedContext, loadSpeed, saveSpeed } from "./gameSpeed";
 import type { GameSpeed } from "./gameSpeed";
 import { BoardChangesContext, useBoardChangeTracker } from "./useBoardChanges";
@@ -111,6 +113,11 @@ export const App: React.FC = () => {
   const [connectedPlayerIds, setConnectedPlayerIds] = useState<PlayerId[] | null>(null);
   // Invitado: el asiento que le asignó el anfitrión la última vez (para abrir su tablero al entrar).
   const joinedSeat = useRef<PlayerId | null>(null);
+  // Mesa de escritorio sin scroll: tablero al centro, comedero y mercado en una columna a la derecha y la
+  // mano fija abajo. Con la ventana más chica se usa la mesa apilada en una columna.
+  const wideTable = useMediaQuery("(min-width: 1280px) and (min-height: 640px)");
+  // Con alto de sobra, las cartas del tablero compacto usan el tamaño "board" en vez de "mini".
+  const tallTable = useMediaQuery("(min-height: 1000px)");
 
   // Partida en curso guardada en el navegador (solitaria o sala del anfitrión), para reanudarla.
   const [savedGame, setSavedGame] = useState<SavedGame | null>(() => loadSavedGame());
@@ -637,10 +644,165 @@ export const App: React.FC = () => {
       ? "No tenés acciones disponibles en este momento."
       : undefined;
 
+
+  // Secciones de la mesa: se ordenan distinto según el ancho de la pantalla.
+  const turnBanner = (
+    <>
+    {/* De quién es el turno. Siempre ocupa el mismo lugar y alto: si apareciera y desapareciera, todo
+        lo de abajo (los dados, el mercado) saltaría justo cuando te devuelven el turno. */}
+    {gameState.phase === "round" &&
+      (isMyTurn ? (
+        <Banner tone="warn" icon="star" className="banner--turn">
+          <strong>Tu turno</strong> · Elegí una acción
+        </Banner>
+      ) : (
+        <Banner tone="info" icon="hourglass" className="banner--turn">
+          <strong>Turno de {getDisplayName(gameState, gameState.currentPlayerId)}</strong>
+          {gameState.gameMode !== "online"
+            ? " · Está jugando"
+            : currentIsOffline
+              ? " · Sin conexión: esperando a que vuelva"
+              : " · Esperando su jugada"}
+          <ThinkingDots />
+        </Banner>
+      ))}
+    </>
+  );
+  const feederPanel = (
+    <>
+    <BirdFeeder
+      feeder={gameState.feeder}
+      onTakeDie={handleGainFood}
+      onReroll={handleRerollFeeder}
+      disabled={!isControlsActive}
+      disabledReason={feederReason}
+      waitingFor={!isMyTurn && gameState.phase === "round" ? getDisplayName(gameState, gameState.currentPlayerId) : undefined}
+    />
+    </>
+  );
+  const marketPanel = (
+    <>
+    <BirdMarket
+      marketCardIds={gameState.market}
+      cardsCatalog={gameState.cards}
+      deckCount={gameState.deck.length}
+      onDrawMarketCard={handleDrawFromMarket}
+      onDrawFromDeck={handleDrawFromDeck}
+      disabled={!isControlsActive}
+      disabledReason={playBlockedReason ?? undefined}
+      highlightNameTags={myNameTags}
+      compact={wideTable}
+    />
+    </>
+  );
+  const boardPanel = (
+    <>
+    {viewedPlayer && (
+      <PlayerBoard
+        player={viewedPlayer}
+        gameState={gameState}
+        isOwner={activeTab === localPlayerId}
+        highlightNameTags={activeTab === localPlayerId ? myNameTags : undefined}
+        onOpenLayEggsModal={handleOpenLayEggs}
+        isCurrentPlayerTurn={isControlsActive && activeTab === localPlayerId}
+        compact={wideTable}
+        compactCardMode={tallTable ? "board" : "mini"}
+      />
+    )}
+    </>
+  );
+  const rivalHand = (
+    <>
+    {/* Mano del rival: cartas ocultas (boca abajo) */}
+    {activeTab !== localPlayerId && viewedPlayer && (
+      <section className="hand hand--hidden" aria-labelledby="rival-hand-title">
+        <div className="hand__head">
+          <h2 id="rival-hand-title" className="label">
+            Mano de {getDisplayName(gameState, viewedPlayer.id)} · {countOf(viewedPlayer.hand.length, "carta oculta", "cartas ocultas")}
+          </h2>
+          <span className="hand__hint">Las cartas de la mano del rival permanecen en secreto</span>
+        </div>
+        {viewedPlayer.hand.length > 0 ? (
+          <div className="hand__cards">
+            {viewedPlayer.hand.map((_, i) => (
+              <CardBack key={i} title="Carta oculta en la mano del oponente" />
+            ))}
+          </div>
+        ) : (
+          <p className="hand__empty">{getDisplayName(gameState, viewedPlayer.id)} no tiene cartas en su mano actualmente.</p>
+        )}
+      </section>
+    )}
+    </>
+  );
+  const handPanel = (
+    <>
+    {/* Tu mano */}
+    {localPlayer && (
+      <section className={`hand${wideTable ? " hand--dock" : ""}`} aria-labelledby="hand-title">
+        <div className="hand__head">
+          <h2 id="hand-title" className="label">
+            Tu mano · {countOf(localPlayer.hand.length, "carta", "cartas")}
+          </h2>
+          <span className="hand__hint">{pressVerb()} un ave para jugarla</span>
+        </div>
+
+        {localPlayer.hand.length > 0 ? (
+          <div className="hand__cards">
+            {localPlayer.hand.map((cardId) => {
+              const card = gameState.cards[cardId];
+              if (!card) return null;
+              const isChosen = selectedCardForPlay?.id === cardId;
+              return (
+                wideTable ? (
+                  <CardPeek key={cardId} card={card} highlightNameTags={myNameTags}>
+                    <BirdCard
+                      card={card}
+                      mode={tallTable ? "board" : "mini"}
+                      compactPowers
+                      showCost
+                      entering={boardChanges.cards.has(cardId)}
+                      highlightNameTags={myNameTags}
+                      selected={isChosen}
+                      lifted={isChosen}
+                      onClick={() => setSelectedCardForPlay(card)}
+                    />
+                  </CardPeek>
+                ) : (
+                  <BirdCard
+                    key={cardId}
+                    card={card}
+                    mode="hand"
+                    entering={boardChanges.cards.has(cardId)}
+                    highlightNameTags={myNameTags}
+                    selected={isChosen}
+                    lifted={isChosen}
+                    onClick={() => setSelectedCardForPlay(card)}
+                  />
+                )
+              );
+            })}
+          </div>
+        ) : (
+          <div className="hand__empty">
+            <p>Tu mano está vacía. Robá cartas del mercado o del mazo para jugar más aves.</p>
+            <Button
+              icon="stack"
+              onClick={() => document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            >
+              Ir al mercado
+            </Button>
+          </div>
+        )}
+      </section>
+    )}
+    </>
+  );
+
   return (
     <GameSpeedContext.Provider value={speed}>
       <BoardChangesContext.Provider value={boardChanges}>
-        <div className="game" data-speed={speed}>
+        <div className={`game${wideTable ? " game--wide" : ""}`} data-speed={speed}>
           <GameTopBar
             round={gameState.round}
             ended={gameState.phase === "gameEnd"}
@@ -687,123 +849,22 @@ export const App: React.FC = () => {
                 />
               )}
 
-              {/* De quién es el turno. Siempre ocupa el mismo lugar y alto: si apareciera y desapareciera, todo
-                  lo de abajo (los dados, el mercado) saltaría justo cuando te devuelven el turno. */}
-              {gameState.phase === "round" &&
-                (isMyTurn ? (
-                  <Banner tone="warn" icon="star" className="banner--turn">
-                    <strong>Tu turno</strong> · Elegí una acción
-                  </Banner>
-                ) : (
-                  <Banner tone="info" icon="hourglass" className="banner--turn">
-                    <strong>Turno de {getDisplayName(gameState, gameState.currentPlayerId)}</strong>
-                    {gameState.gameMode !== "online"
-                      ? " · Está jugando"
-                      : currentIsOffline
-                        ? " · Sin conexión: esperando a que vuelva"
-                        : " · Esperando su jugada"}
-                    <ThinkingDots />
-                  </Banner>
-                ))}
-
-              <RoundGoalsMat gameState={gameState} />
-
-              <BirdFeeder
-                feeder={gameState.feeder}
-                onTakeDie={handleGainFood}
-                onReroll={handleRerollFeeder}
-                disabled={!isControlsActive}
-                disabledReason={feederReason}
-                waitingFor={!isMyTurn && gameState.phase === "round" ? getDisplayName(gameState, gameState.currentPlayerId) : undefined}
-              />
-
-              <BirdMarket
-                marketCardIds={gameState.market}
-                cardsCatalog={gameState.cards}
-                deckCount={gameState.deck.length}
-                onDrawMarketCard={handleDrawFromMarket}
-                onDrawFromDeck={handleDrawFromDeck}
-                disabled={!isControlsActive}
-                disabledReason={playBlockedReason ?? undefined}
-                highlightNameTags={myNameTags}
-              />
-
-              {viewedPlayer && (
-                <PlayerBoard
-                  player={viewedPlayer}
-                  gameState={gameState}
-                  isOwner={activeTab === localPlayerId}
-                  highlightNameTags={activeTab === localPlayerId ? myNameTags : undefined}
-                  onOpenLayEggsModal={handleOpenLayEggs}
-                  isCurrentPlayerTurn={isControlsActive && activeTab === localPlayerId}
-                />
-              )}
-
-              {/* Mano del rival: cartas ocultas (boca abajo) */}
-              {activeTab !== localPlayerId && viewedPlayer && (
-                <section className="hand hand--hidden" aria-labelledby="rival-hand-title">
-                  <div className="hand__head">
-                    <h2 id="rival-hand-title" className="label">
-                      Mano de {getDisplayName(gameState, viewedPlayer.id)} · {countOf(viewedPlayer.hand.length, "carta oculta", "cartas ocultas")}
-                    </h2>
-                    <span className="hand__hint">Las cartas de la mano del rival permanecen en secreto</span>
-                  </div>
-                  {viewedPlayer.hand.length > 0 ? (
-                    <div className="hand__cards">
-                      {viewedPlayer.hand.map((_, i) => (
-                        <CardBack key={i} title="Carta oculta en la mano del oponente" />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="hand__empty">{getDisplayName(gameState, viewedPlayer.id)} no tiene cartas en su mano actualmente.</p>
-                  )}
-                </section>
-              )}
-
-              {/* Tu mano */}
-              {localPlayer && (
-                <section className="hand" aria-labelledby="hand-title">
-                  <div className="hand__head">
-                    <h2 id="hand-title" className="label">
-                      Tu mano · {countOf(localPlayer.hand.length, "carta", "cartas")}
-                    </h2>
-                    <span className="hand__hint">{pressVerb()} un ave para jugarla</span>
-                  </div>
-
-                  {localPlayer.hand.length > 0 ? (
-                    <div className="hand__cards">
-                      {localPlayer.hand.map((cardId) => {
-                        const card = gameState.cards[cardId];
-                        if (!card) return null;
-                        const isChosen = selectedCardForPlay?.id === cardId;
-                        return (
-                          <BirdCard
-                            key={cardId}
-                            card={card}
-                            mode="hand"
-                            entering={boardChanges.cards.has(cardId)}
-                            highlightNameTags={myNameTags}
-                            selected={isChosen}
-                            lifted={isChosen}
-                            onClick={() => setSelectedCardForPlay(card)}
-                          />
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="hand__empty">
-                      <p>Tu mano está vacía. Robá cartas del mercado o del mazo para jugar más aves.</p>
-                      <Button
-                        icon="stack"
-                        onClick={() => document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                      >
-                        Ir al mercado
-                      </Button>
-                    </div>
-                  )}
-                </section>
-              )}
+              {/* El banner de turno sobra en la mesa ancha: el chip de la barra superior ya lo dice. */}
+              {!wideTable && turnBanner}
+              <RoundGoalsMat gameState={gameState} collapsible={wideTable} />
+              {!wideTable && feederPanel}
+              {!wideTable && marketPanel}
+              {boardPanel}
+              {rivalHand}
+              {handPanel}
             </main>
+
+            {wideTable && (
+              <aside className="supply" aria-label="Comedero y mercado">
+                {feederPanel}
+                {marketPanel}
+              </aside>
+            )}
           </div>
 
           <RivalActionPanel action={rivalAction} onDismiss={dismissRivalAction} />
