@@ -228,7 +228,7 @@
 }
 
 .bird-card__stats {
-  flex: 1;
+  flex: none;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -290,10 +290,16 @@
 }
 
 /* ---- Bandas de poder: el color dice cuándo actúa, la etiqueta también ---- */
+/* Lo que sobra de alto (cartas de una fila igualadas, o el mínimo del modo) lo toma la franja del
+   poder: así no queda un hueco vacío entre el coste y el poder, y todas las franjas llegan al borde. */
 .bird-card__powers {
   display: flex;
   flex-direction: column;
-  flex: none;
+  flex: 1 0 auto;
+}
+
+.bird-card__power:last-child {
+  flex: 1 0 auto;
 }
 
 .bird-card__power {

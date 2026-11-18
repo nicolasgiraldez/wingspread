@@ -442,7 +442,7 @@ export const PlayBirdModal: React.FC<PlayBirdModalProps> = ({
                 </>
               )}
             </p>
-            <div className="pill-row">
+            <div className="pill-row pill-row--grid">
               {Object.entries(player.resources).map(([res, total]) => {
                 const r = res as ResourceFace;
                 const selectedCount = selectedPaidResources.filter((item) => item === r).length;

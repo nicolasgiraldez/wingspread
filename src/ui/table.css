@@ -648,3 +648,9 @@
 .game--wide .cubes {
   gap: 2px;
 }
+
+/* Los 8 cubos en una sola fila aun con el lateral más angosto (1280–1420 px). */
+.game--wide .cubes .cube {
+  width: 21px;
+  height: 23px;
+}

@@ -227,6 +227,12 @@
   align-items: start;
 }
 
+/* La carta del modal va sola: mide lo que su contenido, sin el alto mínimo del modo (que dejaba la
+   franja del poder estirada y vacía). */
+.action-modal .bird-card {
+  min-height: 0;
+}
+
 .action-modal__steps {
   display: flex;
   flex-direction: column;
@@ -266,6 +272,39 @@
 .pill--on {
   background: var(--c-mostaza);
   box-shadow: 0 3px 0 var(--c-carbon);
+}
+
+/* Foco: el anillo general es mostaza y se fundía con la píldora elegida (también mostaza). Acá va un
+   contorno petróleo separado del borde, y la píldora elegida conserva su sombra. */
+.pill:focus-visible {
+  outline: 3px solid var(--c-petroleo);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+.pill--on:focus-visible {
+  box-shadow: 0 3px 0 var(--c-carbon);
+}
+
+/* Alimentos para pagar: columnas del mismo ancho, así no queda una píldora suelta en la segunda fila. */
+.pill-row--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+}
+
+.pill-row--grid .pill {
+  white-space: nowrap;
+}
+
+/* Nota debajo de una fila de píldoras: aire suficiente para el contorno de foco y la sombra. */
+.pill-row + .step__note {
+  margin-top: 10px;
+}
+
+/* Íconos dentro de una línea de texto (el huevo del coste): centrados con las letras, no apoyados arriba. */
+.step__note .icon,
+.step__title .icon {
+  vertical-align: -0.2em;
 }
 
 .pill__icon {

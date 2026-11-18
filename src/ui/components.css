@@ -32,9 +32,11 @@
   box-shadow: none; cursor: not-allowed;
   border-style: dashed;
 }
+/* Los íconos de color (el pájaro rojo de "Confirmar y Jugar Ave") también se apagan. */
+.btn:disabled .icon, .btn[aria-disabled="true"] .icon { filter: grayscale(1); opacity: 0.6; }
 
 /* Botón de solo ícono: 44×44 mínimo y aria-label obligatorio */
-.btn--icon { width: var(--tap-min); padding: 0; }
+.btn--icon { width: var(--tap-min); height: var(--tap-min); padding: 0; }
 
 /* ---- Campos ----------------------------------------------------------- */
 .field { display: flex; flex-direction: column; gap: 8px; }
